@@ -25,7 +25,7 @@ interface Props {
   onPin: (kind: PlaceKind | null) => void
 }
 
-const REACH_VIEWS: readonly ReachView[] = ['streets', 'area']
+const REACH_VIEWS: readonly ReachView[] = ['area', 'streets']
 
 /** Square kilometres: one decimal below ten. */
 export function formatArea(area: number, lang: string): string {

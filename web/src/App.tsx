@@ -155,18 +155,18 @@ const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
 const REACH_VIEW_KEY = 'reach-view'
 
-/** How far as the streets reached or the area they cover: streets unless the area was picked, remembered per browser. */
+/** How far as the area covered or the streets reached: the area unless the streets were picked, remembered per browser. */
 function storedReachView(): ReachView {
   try {
-    return localStorage.getItem(REACH_VIEW_KEY) === 'area' ? 'area' : 'streets'
+    return localStorage.getItem(REACH_VIEW_KEY) === 'streets' ? 'streets' : 'area'
   } catch {
-    return 'streets'
+    return 'area'
   }
 }
 
 function rememberReachView(view: ReachView) {
   try {
-    if (view === 'area') localStorage.setItem(REACH_VIEW_KEY, 'area')
+    if (view === 'streets') localStorage.setItem(REACH_VIEW_KEY, 'streets')
     else localStorage.removeItem(REACH_VIEW_KEY)
   } catch {
     // Not remembered when storage is blocked.
