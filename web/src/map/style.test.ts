@@ -32,12 +32,19 @@ describe('buildStyle', () => {
   })
 
   it('gives the reach map the street lines to itself', () => {
-    const style = build({ layer: 'comfort', reach: { minutes: 15 } })
+    const style = build({ layer: 'comfort', reach: { minutes: 15, area: false } })
     expect(style.sources.reach).toBeDefined()
     expect(layer(style, 'reach-line')).toBeDefined()
     expect(style.layers.some((l) => l.id === 'comfort-line')).toBe(false)
     expect(style.sources.overlays).toBeUndefined()
     expect(build().sources.reach).toBeUndefined()
+  })
+
+  it('draws the reach as an area instead of lines when asked', () => {
+    const style = build({ reach: { minutes: 15, area: true } })
+    expect(layer(style, 'reach-area')).toBeDefined()
+    expect(layer(style, 'reach-edge')).toBeDefined()
+    expect(style.layers.some((l) => l.id === 'reach-line')).toBe(false)
   })
 
   it('draws, and so downloads, only the active data layer', () => {

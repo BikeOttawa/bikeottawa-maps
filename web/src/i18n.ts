@@ -263,6 +263,10 @@ const en = {
   reachError: 'Could not work out how far you get from here. Try a point closer to a street or path.',
   reachAbout:
     'Every street and path you can get to in that time, along the routes the chosen style would take. Colours show minutes from the start.',
+  reachAboutArea: 'The area those streets and paths take in, as measured above. Shades show minutes from the start.',
+  reachView: 'Show',
+  'reachView.streets': 'Streets',
+  'reachView.area': 'Area',
   from: 'From',
   to: 'To',
   searchPlaceholder: 'Search, or click the map',
@@ -594,6 +598,11 @@ const fr: Record<keyof typeof en, string> = {
   reachError: 'Impossible de calculer la zone accessible d’ici. Essayez un point plus près d’une rue ou d’un sentier.',
   reachAbout:
     'Toutes les rues et tous les sentiers que vous pouvez atteindre dans ce temps, par les trajets que choisirait ce style. Les couleurs indiquent les minutes depuis le départ.',
+  reachAboutArea:
+    'La zone que couvrent ces rues et ces sentiers, telle que mesurée ci-dessus. Les teintes indiquent les minutes depuis le départ.',
+  reachView: 'Afficher',
+  'reachView.streets': 'Rues',
+  'reachView.area': 'Zone',
   from: 'Départ',
   to: 'Arrivée',
   searchPlaceholder: 'Cherchez ou cliquez sur la carte',

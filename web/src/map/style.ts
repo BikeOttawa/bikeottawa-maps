@@ -52,9 +52,9 @@ export interface StyleState {
   /**
    * Showing how far you get in this many minutes. The lines themselves are too
    * many to diff with every style change, so the map view sets them on the
-   * source directly.
+   * source directly. `area`: drawn as the area they cover, not the lines.
    */
-  reach: { minutes: number } | null
+  reach: { minutes: number; area: boolean } | null
   /** The collisions layer's spots, built from the filters; null until loaded. */
   collisions: FeatureCollection | null
   /** The bike lanes overlay, drawn over any basemap and data layer. */
@@ -339,6 +339,33 @@ function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpeci
   if (!reach) return []
   const ramp = reachRamp(basemap)
   const last = ramp.length - 1
+  const color = [
+    'interpolate',
+    ['linear'],
+    ['get', 'minutes'],
+    ...ramp.flatMap((color, i) => [1 + ((reach.minutes - 1) * i) / last, color]),
+  ] as ExpressionSpecification
+  if (reach.area) {
+    // Bands of time, nested: each sees the map through it, so the closest,
+    // under all of them, is the strongest.
+    return [
+      {
+        id: 'reach-area',
+        type: 'fill',
+        source: REACH_SOURCE,
+        layout: { 'fill-sort-key': ['-', ['get', 'minutes']] },
+        paint: { 'fill-color': color, 'fill-opacity': 0.22 },
+      },
+      {
+        id: 'reach-edge',
+        type: 'line',
+        source: REACH_SOURCE,
+        filter: ['==', ['get', 'minutes'], reach.minutes],
+        layout: { 'line-join': 'round' },
+        paint: { 'line-color': ramp[Math.floor(last / 2)], 'line-width': 1.5 },
+      },
+    ]
+  }
   return [
     {
       id: 'reach-line',
@@ -350,15 +377,7 @@ function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpeci
         // The closest minutes are drawn on top.
         'line-sort-key': ['-', ['get', 'minutes']],
       },
-      paint: {
-        'line-color': [
-          'interpolate',
-          ['linear'],
-          ['get', 'minutes'],
-          ...ramp.flatMap((color, i) => [1 + ((reach.minutes - 1) * i) / last, color]),
-        ] as ExpressionSpecification,
-        'line-width': lineWidth(),
-      },
+      paint: { 'line-color': color, 'line-width': lineWidth() },
     },
   ]
 }

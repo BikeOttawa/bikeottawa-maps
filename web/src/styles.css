@@ -800,6 +800,13 @@ a {
   min-width: 0;
 }
 
+.reach-view {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
 .style-picker legend,
 .param-sliders legend {
   margin-bottom: 8px;

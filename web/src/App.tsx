@@ -28,7 +28,8 @@ import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import type { LngLat, RouteHighlight } from './route/brouter'
 import { reverseLabel } from './route/geocode'
 import { locate } from './route/locate'
-import { DEFAULT_REACH_MINUTES, isReachMinutes, type ReachMinutes, reachCover } from './route/reach'
+import { DEFAULT_REACH_MINUTES, isReachMinutes, type ReachMinutes, type ReachView, reachCover } from './route/reach'
+import { reachArea } from './route/reachArea'
 import { useReachPlaces } from './route/reachPlaces'
 import {
   formatParams,
@@ -152,6 +153,25 @@ function rememberBasemap(key: string, basemap: BasemapId) {
 
 const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
+const REACH_VIEW_KEY = 'reach-view'
+
+/** How far as the streets reached or the area they cover: streets unless the area was picked, remembered per browser. */
+function storedReachView(): ReachView {
+  try {
+    return localStorage.getItem(REACH_VIEW_KEY) === 'area' ? 'area' : 'streets'
+  } catch {
+    return 'streets'
+  }
+}
+
+function rememberReachView(view: ReachView) {
+  try {
+    if (view === 'area') localStorage.setItem(REACH_VIEW_KEY, 'area')
+    else localStorage.removeItem(REACH_VIEW_KEY)
+  } catch {
+    // Not remembered when storage is blocked.
+  }
+}
 
 /** The bike routes overlay: off unless turned on, remembered per browser. */
 function storedBikeRoutes(): boolean {
@@ -279,6 +299,7 @@ export function App() {
   const [nightBasemap, setNightBasemap] = useState<BasemapId>(() => storedBasemap(NIGHT_BASEMAP_KEY, 'dark'))
   const [bikeLanes, setBikeLanes] = useState(storedBikeLanes)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
+  const [reachView, setReachView] = useState(storedReachView)
   const [selected, setSelected] = useState<Selected | null>(null)
   // Metres along the route under the pointer, shared by the map and the elevation chart.
   const [routeHover, setRouteHover] = useState<number | null>(null)
@@ -309,6 +330,10 @@ export function App() {
   const reach = reaching ? visibleReach(reachState) : null
   const cover = useMemo(() => (reach ? reachCover(reach) : null), [reach])
   const area = cover?.area ?? 0
+  const reachShape = useMemo(
+    () => (reach && reachView === 'area' ? reachArea(reach, minutes) : reach),
+    [reach, reachView, minutes],
+  )
   // The places picked on the Places layer, counted within reach in the layer's order.
   const pickedKinds = useMemo(() => PLACE_KINDS.filter((kind) => placeKinds.includes(kind)), [placeKinds])
   const reachPlaces = useReachPlaces(reaching ? cover : null, pickedKinds)
@@ -340,6 +365,7 @@ export function App() {
   useEffect(() => rememberBasemap(NIGHT_BASEMAP_KEY, nightBasemap), [nightBasemap])
   useEffect(() => rememberBikeLanes(bikeLanes), [bikeLanes])
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
+  useEffect(() => rememberReachView(reachView), [reachView])
 
   // Back/forward and pasted links change the hash without going through React.
   useEffect(() => {
@@ -534,7 +560,10 @@ export function App() {
     onParamChange: changeParam,
   }
 
-  const reachStyle = useMemo(() => (reaching ? { minutes } : null), [reaching, minutes])
+  const reachStyle = useMemo(
+    () => (reaching ? { minutes, area: reachView === 'area' } : null),
+    [reaching, minutes, reachView],
+  )
   // Collisions: loaded once the layer is first shown, grouped into spots by the filters.
   const collisionData = useCollisionData(layer === 'collisions')
   const allSpots = useMemo(
@@ -704,7 +733,7 @@ export function App() {
         onBikeLanesChange={setBikeLanes}
         onBikeRoutesChange={changeBikeRoutes}
         routing={mapRouting}
-        reach={reach}
+        reach={reachShape}
       />
       <div className="sidebar">
         <div className={`card topbar ${topOpen ? '' : 'folded'}`} ref={topbar}>
@@ -806,6 +835,8 @@ export function App() {
                 state={reachState}
                 minutes={minutes}
                 area={area}
+                view={reachView}
+                onViewChange={setReachView}
                 places={reachPlaces}
                 picked={pickedKinds.length > 0}
                 pinned={pinnedKind}

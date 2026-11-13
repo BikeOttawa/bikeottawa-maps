@@ -21,7 +21,7 @@ import type { BasemapId } from '../layers'
 import { isPlaceKind, placeImageId } from '../places'
 import { comfortKeyOf, type LngLat, type RouteHighlight } from '../route/brouter'
 import { nearestOnRoute, pointAtDistance, routeProfile } from '../route/profile'
-import type { Reach } from '../route/reach'
+import type { ReachShape } from '../route/reachArea'
 import type { RoutePoints } from '../route/state'
 import { renderPlaceImage } from './placeImage'
 import { renderStopImage } from './stopImage'
@@ -56,7 +56,7 @@ interface Props {
   /** Details of the selection, shown in a popup beside it. Null where they go elsewhere (phones). */
   popup: ReactNode | null
   /** How far you get, drawn when the style has a reach source. */
-  reach: Reach | null
+  reach: ReachShape | null
   /** When set, clicks place route points instead of selecting features; places can still be picked. */
   routing: {
     points: RoutePoints
@@ -96,13 +96,13 @@ function panelPadding() {
 /** The reach data last handed to the map, and the source object it went to. */
 interface ReachShown {
   source: unknown
-  data: Reach | null
+  data: ReachShape | null
 }
 
-const NO_REACH: Reach = { type: 'FeatureCollection', features: [] }
+const NO_REACH: ReachShape = { type: 'FeatureCollection', features: [] }
 
 /** Puts the reach lines on the map's reach source, if it has one and they are not there yet. */
-function showReach(map: MapLibreMap, data: Reach | null, shown: { current: ReachShown }) {
+function showReach(map: MapLibreMap, data: ReachShape | null, shown: { current: ReachShown }) {
   const source = map.getSource<GeoJSONSource>(REACH_SOURCE)
   if (!source || (shown.current.source === source && shown.current.data === data)) return
   if (shown.current.source !== source) {

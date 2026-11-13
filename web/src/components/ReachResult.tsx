@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n'
 import type { PlaceKind } from '../places'
+import type { ReachView } from '../route/reach'
 import type { PlaceCount } from '../route/reachPlaces'
 import type { ReachState } from '../route/useReach'
 import { visibleReach } from '../route/useReach'
@@ -10,6 +11,9 @@ interface Props {
   minutes: number
   /** Square metres covered, for the reach shown. */
   area: number
+  /** Streets reached, or the area they cover. */
+  view: ReachView
+  onViewChange: (view: ReachView) => void
   /** The places picked on the Places layer within reach; null while counted, or none picked. */
   places: PlaceCount[] | null
   /** Whether any places are picked on the Places layer. */
@@ -20,6 +24,8 @@ interface Props {
   onPin: (kind: PlaceKind | null) => void
 }
 
+const REACH_VIEWS: readonly ReachView[] = ['streets', 'area']
+
 /** Square kilometres: one decimal below ten. */
 export function formatArea(area: number, lang: string): string {
   const km2 = area / 1e6
@@ -27,7 +33,18 @@ export function formatArea(area: number, lang: string): string {
 }
 
 /** Status of the reach map, what it covers and the places within it. */
-export function ReachResult({ state, minutes, area, places, picked, pinned, onPoint, onPin }: Props) {
+export function ReachResult({
+  state,
+  minutes,
+  area,
+  view,
+  onViewChange,
+  places,
+  picked,
+  pinned,
+  onPoint,
+  onPin,
+}: Props) {
   const { t, lang } = useI18n()
   if (state.status === 'error') return <p className="route-message error">{t('reachError')}</p>
   const reach = visibleReach(state)
@@ -51,6 +68,16 @@ export function ReachResult({ state, minutes, area, places, picked, pinned, onPo
           </div>
         )}
       </dl>
+      <fieldset className="reach-view">
+        <legend className="visually-hidden">{t('reachView')}</legend>
+        <div className="mode-switch">
+          {REACH_VIEWS.map((id) => (
+            <button key={id} type="button" aria-pressed={id === view} onClick={() => onViewChange(id)}>
+              {t(`reachView.${id}`)}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       {places ? (
         <div className="reach-places">
           <ul>
@@ -84,7 +111,7 @@ export function ReachResult({ state, minutes, area, places, picked, pinned, onPo
       ) : (
         !picked && <p className="footnote">{t('reach.placesHint')}</p>
       )}
-      <p className="footnote">{t('reachAbout')}</p>
+      <p className="footnote">{t(view === 'area' ? 'reachAboutArea' : 'reachAbout')}</p>
     </section>
   )
 }

@@ -14,6 +14,9 @@ export const REACH_MINUTES = [5, 10, 15, 20, 30] as const
 export type ReachMinutes = (typeof REACH_MINUTES)[number]
 export const DEFAULT_REACH_MINUTES: ReachMinutes = 10
 
+/** The reach drawn as the streets reached, or as the area they cover. */
+export type ReachView = 'streets' | 'area'
+
 export function isReachMinutes(value: unknown): value is ReachMinutes {
   return REACH_MINUTES.includes(Number(value) as ReachMinutes)
 }
@@ -58,27 +61,49 @@ export interface ReachCover {
 
 const NOTHING: ReachCover = { area: 0, covers: () => false }
 
-/**
- * What the reach covers: on a 25 m grid, every cell a reached way passes
- * through, and every cell those ways close off from the outside (city blocks,
- * parks, the river between two bridges). Dead ends and bays open to the
- * outside are left out.
- */
-export function reachCover(reach: Reach): ReachCover {
+/** The reach's lines in metres east and north, each with the minute it is reached in. */
+interface Projected {
+  /** Metres per degree of longitude here. */
+  kx: number
+  lines: { minutes: number; points: number[][] }[]
+}
+
+function project(reach: Reach): Projected | null {
   const first = reach.features[0]?.geometry.coordinates[0]?.[0]
-  if (!first) return NOTHING
+  if (!first) return null
   const kx = M_PER_DEG * Math.cos((first[1] * Math.PI) / 180)
   const lines = reach.features.flatMap((feature) =>
-    feature.geometry.coordinates.map((line) => line.map((p) => [p[0] * kx, p[1] * M_PER_DEG])),
+    feature.geometry.coordinates.map((line) => ({
+      minutes: feature.properties.minutes,
+      points: line.map((p) => [p[0] * kx, p[1] * M_PER_DEG]),
+    })),
   )
+  return { kx, lines }
+}
+
+/** A grid over the whole reach, in metres, with a free cell all round. */
+export interface Grid {
+  /** Metres per degree of longitude here. */
+  kx: number
+  minX: number
+  minY: number
+  cell: number
+  width: number
+  height: number
+}
+
+/** Cells outside the area: reached from the grid's edge without crossing a line. */
+export const OUTSIDE = 2
+
+function gridFor({ kx, lines }: Projected): Grid {
   let [minX, minY, maxX, maxY] = [
     Number.POSITIVE_INFINITY,
     Number.POSITIVE_INFINITY,
     Number.NEGATIVE_INFINITY,
     Number.NEGATIVE_INFINITY,
   ]
-  for (const line of lines)
-    for (const [x, y] of line) {
+  for (const { points } of lines)
+    for (const [x, y] of points) {
       minX = Math.min(minX, x)
       minY = Math.min(minY, y)
       maxX = Math.max(maxX, x)
@@ -88,7 +113,14 @@ export function reachCover(reach: Reach): ReachCover {
   // A free cell all round, so the outside is one piece to flood from a corner.
   const width = Math.floor((maxX - minX) / cell) + 3
   const height = Math.floor((maxY - minY) / cell) + 3
-  const OUTSIDE = 2
+  return { kx, minX, minY, cell, width, height }
+}
+
+/**
+ * Each cell of the grid: 1 where a line passes through, 0 where lines close it
+ * off from the outside, OUTSIDE for the rest.
+ */
+function fill(lines: number[][][], { minX, minY, cell, width, height }: Grid): Uint8Array {
   const grid = new Uint8Array(width * height)
   for (const line of lines) {
     for (let i = 1; i < line.length; i++) {
@@ -103,18 +135,52 @@ export function reachCover(reach: Reach): ReachCover {
   }
   const stack = [0]
   grid[0] = OUTSIDE
-  let outside = 1
   while (stack.length) {
     const i = stack.pop() as number
     const x = i % width
     for (const next of [x > 0 ? i - 1 : -1, x < width - 1 ? i + 1 : -1, i - width, i + width]) {
       if (next >= 0 && next < grid.length && grid[next] === 0) {
         grid[next] = OUTSIDE
-        outside++
         stack.push(next)
       }
     }
   }
+  return grid
+}
+
+/**
+ * The area covered within each of `limits` minutes, as cells of one grid over
+ * the whole reach (see reachCover).
+ */
+export function reachGrids(reach: Reach, limits: readonly number[]): { grid: Grid; cells: Uint8Array[] } | null {
+  const projected = project(reach)
+  if (!projected) return null
+  const grid = gridFor(projected)
+  const cells = limits.map((limit) =>
+    fill(
+      projected.lines.filter((line) => line.minutes <= limit).map((line) => line.points),
+      grid,
+    ),
+  )
+  return { grid, cells }
+}
+
+/**
+ * What the reach covers: on a 25 m grid, every cell a reached way passes
+ * through, and every cell those ways close off from the outside (city blocks,
+ * parks, the river between two bridges). Dead ends and bays open to the
+ * outside are left out.
+ */
+export function reachCover(reach: Reach): ReachCover {
+  const projected = project(reach)
+  if (!projected) return NOTHING
+  const { kx, minX, minY, cell, width, height } = gridFor(projected)
+  const grid = fill(
+    projected.lines.map((line) => line.points),
+    { kx, minX, minY, cell, width, height },
+  )
+  let outside = 0
+  for (const value of grid) if (value === OUTSIDE) outside++
   const near = Math.ceil(NEAR / cell)
   const covers = (lon: number, lat: number) => {
     const cx = Math.floor((lon * kx - minX) / cell) + 1
