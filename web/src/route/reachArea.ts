@@ -117,7 +117,7 @@ export function bandLimits(minutes: number): number[] {
 /** Bands are labelled along a line from the start in this direction: north-north-east, clear of the panels. */
 const LABEL_BEARING = (25 * Math.PI) / 180
 /** Metres: band edges closer to the start than this go unlabelled, hidden by its marker. */
-const LABEL_CLEAR = 150
+const LABEL_CLEAR = 100
 
 /** How far along a ray from `from` it last crosses a ring, or -1 if it never does. */
 function lastCrossing(ring: number[][], from: number[], direction: number[]): number {
