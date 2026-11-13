@@ -159,12 +159,14 @@ export function classifyWay(tags) {
   const lts = stressmodel.evaluateLTS({ tags }).lts
   const isPath = PATH_HIGHWAYS.has(highway)
   const isSidewalk = tags.footway === 'sidewalk' || tags.footway === 'crossing'
+  // The bike lanes overlay goes by the tags alone, whatever the stress model says.
+  const bikeway = bikewayProps(tags)
   // Streets closed to bikes are dropped; off-street paths are kept for the winter layer.
-  if (lts === 0 && (!isPath || isSidewalk)) return null
+  if (lts === 0 && (!isPath || isSidewalk) && !bikeway.bikeway) return null
 
   const props = { lts, kind: isPath ? 'path' : 'street', highway }
   pick(tags, ['name', 'service', 'footway', 'surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'], props)
-  Object.assign(props, bikewayProps(tags))
+  Object.assign(props, bikeway)
   // Indoor walkways have no snow to plow, so they carry no winter status and
   // stay off the winter layer.
   const isIndoor = tags.indoor !== undefined && tags.indoor !== 'no'
@@ -176,7 +178,7 @@ export function classifyWay(tags) {
 
   let minzoom = 13
   if (MAJOR_HIGHWAYS.has(highway)) minzoom = 9
-  else if (highway === 'cycleway' || (highway === 'path' && lts > 0)) minzoom = 10
+  else if (highway === 'cycleway' || (highway === 'path' && (lts > 0 || bikeway.bikeway))) minzoom = 10
   else if (LOCAL_HIGHWAYS.has(highway)) minzoom = 12
   return { props, minzoom }
 }

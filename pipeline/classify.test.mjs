@@ -60,6 +60,14 @@ test('ways keep the sub-type that names them', () => {
   assert.equal(classifyWay({ highway: 'footway', footway: 'sidewalk', bicycle: 'yes' }).props.footway, 'sidewalk')
 })
 
+test('bikeways are kept by their tags, even where the stress model rates them closed', () => {
+  // The stress model takes only bicycle=yes as opening a sidewalk to bikes.
+  const { props, minzoom } = classifyWay({ highway: 'path', footway: 'sidewalk', bicycle: 'designated' })
+  assert.equal(props.lts, 0)
+  assert.equal(props.bikeway, 'dedicated')
+  assert.equal(minzoom, 10)
+})
+
 test('ways closed to bikes are dropped unless they are off-street paths', () => {
   assert.equal(classifyWay({ highway: 'motorway' }), null)
   assert.equal(classifyWay({ highway: 'residential', bicycle: 'no' }), null)
