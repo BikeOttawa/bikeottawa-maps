@@ -64,3 +64,21 @@ export const DirectionsIcon = () => (
     <path d="M15 6l4 4-4 4" />
   </Icon>
 )
+
+/** How far as streets: a few crossing streets. */
+export const StreetsIcon = () => (
+  <Icon>
+    <path d="M4 8h16M4 16h16M9 3v18M16 3v18" />
+  </Icon>
+)
+
+/** How far as an area: a shaded patch with its edge. */
+export const AreaIcon = () => (
+  <Icon>
+    <path
+      d="M12 3.5c3.5 0 7.5 2.5 7.5 6.5 0 2.5-1.5 3.5-1.5 5.5 0 3-3 5-6 5s-7.5-1.5-7.5-6c0-2.5 1.5-3.5 1.5-5.5 0-3 2.5-5.5 6-5.5z"
+      fill="currentColor"
+      fillOpacity="0.3"
+    />
+  </Icon>
+)

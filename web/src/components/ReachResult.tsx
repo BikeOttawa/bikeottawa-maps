@@ -4,6 +4,7 @@ import type { ReachView } from '../route/reach'
 import type { PlaceCount } from '../route/reachPlaces'
 import type { ReachState } from '../route/useReach'
 import { visibleReach } from '../route/useReach'
+import { AreaIcon, StreetsIcon } from './icons'
 import { PlaceIcon } from './PlaceIcon'
 
 interface Props {
@@ -52,32 +53,41 @@ export function ReachResult({
   const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
   return (
     <section className={`route-result ${state.status === 'loading' ? 'stale' : ''}`} aria-live="polite">
-      <dl className="route-stats">
-        <div className="route-stat">
-          <dd>{formatArea(area, lang)}</dd>
-          <dt>{t('area')}</dt>
-        </div>
-        <div className="route-stat">
-          <dd>{minutes} min</dd>
-          <dt>{t('time')}</dt>
-        </div>
-        {places && (
+      <div className="reach-head">
+        <dl className="route-stats">
           <div className="route-stat">
-            <dd>{number(places.reduce((sum, { points }) => sum + points.length, 0))}</dd>
-            <dt>{t('reach.places')}</dt>
+            <dd>{formatArea(area, lang)}</dd>
+            <dt>{t('area')}</dt>
           </div>
-        )}
-      </dl>
-      <fieldset className="reach-view">
-        <legend className="visually-hidden">{t('reachView')}</legend>
-        <div className="mode-switch">
-          {REACH_VIEWS.map((id) => (
-            <button key={id} type="button" aria-pressed={id === view} onClick={() => onViewChange(id)}>
-              {t(`reachView.${id}`)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+          <div className="route-stat">
+            <dd>{minutes} min</dd>
+            <dt>{t('time')}</dt>
+          </div>
+          {places && (
+            <div className="route-stat">
+              <dd>{number(places.reduce((sum, { points }) => sum + points.length, 0))}</dd>
+              <dt>{t('reach.places')}</dt>
+            </div>
+          )}
+        </dl>
+        <fieldset className="reach-view">
+          <legend className="visually-hidden">{t('reachView')}</legend>
+          <div className="mode-switch">
+            {REACH_VIEWS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={id === view}
+                aria-label={t(`reachView.${id}`)}
+                title={t(`reachView.${id}`)}
+                onClick={() => onViewChange(id)}
+              >
+                {id === 'area' ? <AreaIcon /> : <StreetsIcon />}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
       {places ? (
         <div className="reach-places">
           <ul>

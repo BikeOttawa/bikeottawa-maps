@@ -800,11 +800,41 @@ a {
   min-width: 0;
 }
 
+/* How far's figures, with the Streets / Area switch at the end of their row. */
+.reach-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
 .reach-view {
-  margin: 10px 0 0;
+  margin: 0;
   padding: 0;
   border: 0;
   min-width: 0;
+}
+
+.reach-view .mode-switch {
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+}
+
+.reach-view .mode-switch button {
+  width: 34px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 7px;
+}
+
+.reach-head .route-stats {
+  gap: 16px;
+}
+
+.reach-head .route-stats dd {
+  white-space: nowrap;
 }
 
 .style-picker legend,
