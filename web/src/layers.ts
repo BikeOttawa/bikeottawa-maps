@@ -23,11 +23,11 @@ export function lampColor(basemap: BasemapId): string {
 }
 
 /**
- * How far you get: minutes of riding, closest first. One blue, strongest where
- * it is closest, so it fades out against pale ground and lights up on dark.
+ * How far you get: minutes of riding, closest first. One petrol blue, strongest
+ * where it is closest, so it fades out against pale ground and lights up on dark.
  */
-export const REACH_RAMP_ON_PALE = ['#104281', '#1C5CAB', '#2A78D6', '#5598E7', '#86B6EF'] as const
-export const REACH_RAMP_ON_DARK = ['#CDE2FB', '#9EC5F4', '#6DA7EC', '#3987E5', '#256ABF'] as const
+export const REACH_RAMP_ON_PALE = ['#0A4A6E', '#106A96', '#2389BD', '#5FAAD3', '#9DCBE6'] as const
+export const REACH_RAMP_ON_DARK = ['#D2ECF7', '#A3D4EC', '#6CB8DE', '#3796C6', '#1D76A3'] as const
 
 export function reachRamp(basemap: BasemapId): readonly string[] {
   return basemap === 'light' || basemap === 'grey' ? REACH_RAMP_ON_PALE : REACH_RAMP_ON_DARK
