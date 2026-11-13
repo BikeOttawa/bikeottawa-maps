@@ -54,26 +54,44 @@ describe('bandLimits', () => {
 })
 
 describe('reachArea', () => {
-  const area = reachArea(reach, 5)
+  // Starting from the middle of the block.
+  const area = reachArea(reach, 5, [0.005, 0.005])
+  const rings = (minutes?: number) =>
+    area.features.flatMap((f) =>
+      f.geometry.type === 'Polygon' && (minutes === undefined || f.properties.minutes === minutes)
+        ? [f.geometry.coordinates[0]]
+        : [],
+    )
 
   it('outlines the area the area figure counts, in bands that grow with time', () => {
-    const outer = area.features.filter((f) => f.properties.minutes === 5)
+    const outer = rings(5)
     expect(outer).toHaveLength(1)
-    const ring = outer[0].geometry.coordinates[0]
+    const ring = outer[0]
     expect(ring[0]).toEqual(ring[ring.length - 1])
     expect(m2(ring)).toBeCloseTo(reachCover(reach).area, -4)
     // Nothing yet in the first minute; the block from the second; the street from the fifth.
-    const sizeAt = (minutes: number) =>
-      area.features
-        .filter((f) => f.properties.minutes === minutes)
-        .reduce((s, f) => s + m2(f.geometry.coordinates[0]), 0)
+    const sizeAt = (minutes: number) => rings(minutes).reduce((s, ring) => s + m2(ring), 0)
     expect(sizeAt(1)).toBe(0)
     expect(sizeAt(2)).toBeGreaterThan(1e6)
     expect(sizeAt(5)).toBeGreaterThan(sizeAt(2))
   })
 
+  it('labels each band where a line from the start leaves it', () => {
+    const labels = area.features.flatMap((f) =>
+      f.geometry.type === 'Point' ? [{ minutes: f.properties.minutes, at: f.geometry.coordinates }] : [],
+    )
+    // Bands 2 to 5 all end at the block's north side here; the first has nothing to label.
+    expect(labels.map((l) => l.minutes)).toEqual([2, 3, 4, 5])
+    for (const { at } of labels) {
+      expect(at[1]).toBeCloseTo(0.01, 3)
+      // North-north-east of the start.
+      expect(at[0]).toBeGreaterThan(0.005)
+    }
+    expect(reachArea(reach, 5).features.every((f) => f.geometry.type === 'Polygon')).toBe(true)
+  })
+
   it('rounds off the grid’s corners', () => {
-    const ring = area.features[0].geometry.coordinates[0]
+    const ring = rings()[0]
     const turns = ring.slice(1, -1).map((p, i) => {
       const [a, b] = [ring[i], ring[i + 2]]
       const [ux, uy, vx, vy] = [p[0] - a[0], p[1] - a[1], b[0] - p[0], b[1] - p[1]]

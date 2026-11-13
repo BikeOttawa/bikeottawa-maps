@@ -1,8 +1,9 @@
-import type { FeatureCollection, Polygon } from 'geojson'
+import type { FeatureCollection, Point, Polygon } from 'geojson'
+import type { LngLat } from './brouter'
 import { type Grid, OUTSIDE, type Reach, reachGrids } from './reach'
 
-/** The area covered within so many minutes, one feature per piece. */
-export type ReachArea = FeatureCollection<Polygon, { minutes: number }>
+/** The area covered within so many minutes, one polygon per piece, and a point to label each band at. */
+export type ReachArea = FeatureCollection<Polygon | Point, { minutes: number }>
 /** What the map draws for How far: the streets reached, or the area. */
 export type ReachShape = Reach | ReachArea
 
@@ -113,28 +114,67 @@ export function bandLimits(minutes: number): number[] {
   return Array.from({ length: BANDS }, (_, i) => Math.round((minutes * (i + 1)) / BANDS))
 }
 
+/** Bands are labelled along a line from the start in this direction: north-north-east, clear of the panels. */
+const LABEL_BEARING = (25 * Math.PI) / 180
+/** Metres: band edges closer to the start than this go unlabelled, hidden by its marker. */
+const LABEL_CLEAR = 150
+
+/** How far along a ray from `from` it last crosses a ring, or -1 if it never does. */
+function lastCrossing(ring: number[][], from: number[], direction: number[]): number {
+  let far = -1
+  for (let i = 0; i < ring.length; i++) {
+    const [a, b] = [ring[i], ring[(i + 1) % ring.length]]
+    const [ex, ey] = [b[0] - a[0], b[1] - a[1]]
+    const denominator = direction[0] * ey - direction[1] * ex
+    if (denominator === 0) continue
+    const [ax, ay] = [a[0] - from[0], a[1] - from[1]]
+    const along = (ax * ey - ay * ex) / denominator
+    const onEdge = (ax * direction[1] - ay * direction[0]) / denominator
+    if (along > 0 && onEdge >= 0 && onEdge <= 1) far = Math.max(far, along)
+  }
+  return far
+}
+
 /**
  * The area the reach covers, as drawn on the map: the same cells as the area
  * figure (see reachCover), outlined and smoothed, in bands of time from the
  * start. Each band is everything reached within its minutes, so they nest.
+ * Each band also has a point to label it with, where a line from the start
+ * leaves it.
  */
-export function reachArea(reach: Reach, minutes: number): ReachArea {
+export function reachArea(reach: Reach, minutes: number, start?: LngLat): ReachArea {
   const limits = bandLimits(minutes)
   const grids = reachGrids(reach, limits)
   if (!grids) return { type: 'FeatureCollection', features: [] }
   const { grid, cells } = grids
-  return {
-    type: 'FeatureCollection',
-    features: cells.flatMap((band, i) =>
-      outlines(band, grid.width, grid.height).map((ring) => {
-        let points = straighten(ring)
-        for (let round = 0; round < SMOOTHING; round++) points = smooth(points)
-        return {
-          type: 'Feature' as const,
-          properties: { minutes: limits[i] },
-          geometry: { type: 'Polygon' as const, coordinates: [toLngLat(points, grid)] },
-        }
-      }),
-    ),
-  }
+  // The start in the outline's doubled grid units (see outlines).
+  const from = start && [
+    2 * ((start[0] * grid.kx - grid.minX) / grid.cell + 0.5),
+    2 * ((start[1] * M_PER_DEG - grid.minY) / grid.cell + 0.5),
+  ]
+  const direction = [Math.sin(LABEL_BEARING), Math.cos(LABEL_BEARING)]
+  const features: ReachArea['features'] = []
+  cells.forEach((band, i) => {
+    let label = -1
+    for (const ring of outlines(band, grid.width, grid.height)) {
+      let points = straighten(ring)
+      for (let round = 0; round < SMOOTHING; round++) points = smooth(points)
+      if (from) label = Math.max(label, lastCrossing(points, from, direction))
+      features.push({
+        type: 'Feature',
+        properties: { minutes: limits[i] },
+        geometry: { type: 'Polygon', coordinates: [toLngLat(points, grid)] },
+      })
+    }
+    // Not under the start's marker.
+    if (from && (label * grid.cell) / 2 > LABEL_CLEAR) {
+      const at = [from[0] + direction[0] * label, from[1] + direction[1] * label]
+      features.push({
+        type: 'Feature',
+        properties: { minutes: limits[i] },
+        geometry: { type: 'Point', coordinates: toLngLat([at], grid)[0] },
+      })
+    }
+  })
+  return { type: 'FeatureCollection', features }
 }

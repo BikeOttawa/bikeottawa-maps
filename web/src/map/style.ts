@@ -335,6 +335,30 @@ function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boo
 /** Source of the reach lines, filled in by the map view. */
 export const REACH_SOURCE = 'reach'
 
+/**
+ * The minutes at each band's edge of the reach area, in a row out from the
+ * start. Over the street names, which make way for them; where two bands end
+ * together, the closer one is labelled.
+ */
+function reachLabelLayers(reach: StyleState['reach'], basemap: BasemapId, theme: Theme): LayerSpecification[] {
+  if (!reach?.area) return []
+  return [
+    {
+      id: 'reach-band-label',
+      type: 'symbol',
+      source: REACH_SOURCE,
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: {
+        'text-field': ['concat', ['to-string', ['get', 'minutes']], ' min'],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 12,
+        'symbol-sort-key': ['get', 'minutes'],
+      },
+      paint: { 'text-color': reachRamp(basemap)[0], 'text-halo-color': theme.halo, 'text-halo-width': 2 },
+    },
+  ]
+}
+
 function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpecification[] {
   if (!reach) return []
   const ramp = reachRamp(basemap)
@@ -353,6 +377,7 @@ function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpeci
         id: 'reach-area',
         type: 'fill',
         source: REACH_SOURCE,
+        filter: ['==', ['geometry-type'], 'Polygon'],
         layout: { 'fill-sort-key': ['-', ['get', 'minutes']] },
         paint: { 'fill-color': color, 'fill-opacity': 0.22 },
       },
@@ -360,7 +385,7 @@ function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpeci
         id: 'reach-edge',
         type: 'line',
         source: REACH_SOURCE,
-        filter: ['==', ['get', 'minutes'], reach.minutes],
+        filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'minutes'], reach.minutes]],
         layout: { 'line-join': 'round' },
         paint: { 'line-color': ramp[Math.floor(last / 2)], 'line-width': 1.5 },
       },
@@ -978,6 +1003,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...collisions.under,
       ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false),
       ...base.slice(at),
+      ...reachLabelLayers(state.reach, state.basemap, theme),
       ...routeLabelLayers(state, theme),
       ...(showsPlaces(state) ? [placesLayer(state, theme)] : []),
       ...placeHighlightLayers(state, theme),

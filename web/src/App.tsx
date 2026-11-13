@@ -330,9 +330,10 @@ export function App() {
   const reach = reaching ? visibleReach(reachState) : null
   const cover = useMemo(() => (reach ? reachCover(reach) : null), [reach])
   const area = cover?.area ?? 0
+  const reachStart = points[0]?.lngLat
   const reachShape = useMemo(
-    () => (reach && reachView === 'area' ? reachArea(reach, minutes) : reach),
-    [reach, reachView, minutes],
+    () => (reach && reachView === 'area' ? reachArea(reach, minutes, reachStart) : reach),
+    [reach, reachView, minutes, reachStart],
   )
   // The places picked on the Places layer, counted within reach in the layer's order.
   const pickedKinds = useMemo(() => PLACE_KINDS.filter((kind) => placeKinds.includes(kind)), [placeKinds])
