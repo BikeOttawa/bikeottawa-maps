@@ -417,14 +417,16 @@ export function App() {
     [update],
   )
 
-  const changeMode = useCallback(
-    (next: Mode) => {
-      update({ mode: next })
-      setSelected(null)
-      setTopOpen(true)
-    },
-    [update],
-  )
+  const changeMode = useCallback((next: Mode) => {
+    // From How far to a route, the start stays and the end is left to pick.
+    setUrl((current) => ({
+      ...current,
+      mode: next,
+      ...(current.mode === 'reach' && next === 'route' && { points: [current.points[0], null], vias: [] }),
+    }))
+    setSelected(null)
+    setTopOpen(true)
+  }, [])
 
   const changeCollisions = useCallback(
     (next: CollisionFilters) => {
