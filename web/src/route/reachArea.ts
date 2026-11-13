@@ -114,10 +114,16 @@ export function bandLimits(minutes: number): number[] {
   return Array.from({ length: BANDS }, (_, i) => Math.round((minutes * (i + 1)) / BANDS))
 }
 
-/** Bands are labelled along a line from the start in this direction: north-north-east, clear of the panels. */
-const LABEL_BEARING = (25 * Math.PI) / 180
+/** Directions tried for the row of band labels out from the start. */
+const LABEL_DIRECTIONS = 16
+/** All else equal, the row goes north-north-east, clear of the panels on the left. */
+const PREFERRED_BEARING = 25
 /** Metres: band edges closer to the start than this go unlabelled, hidden by its marker. */
 const LABEL_CLEAR = 100
+/** Metres: a label this close to the one before it is left out (two bands ending together). */
+const LABEL_MIN_GAP = 40
+/** Metres: labels at least this far apart read well; more room counts for no more. */
+const LABEL_ROOM = 250
 
 /** How far along a ray from `from` it last crosses a ring, or -1 if it never does. */
 function lastCrossing(ring: number[][], from: number[], direction: number[]): number {
@@ -136,45 +142,79 @@ function lastCrossing(ring: number[][], from: number[], direction: number[]): nu
 }
 
 /**
+ * Where to label each band: along one line out from the start, where it last
+ * leaves the band. Of the directions tried, the one that labels the most
+ * bands, then with the most room between labels, then nearest the preferred.
+ * Distances are in the rings' units, null for a band left unlabelled.
+ */
+function labelRow(
+  bands: number[][][][],
+  from: number[],
+  metresPerUnit: number,
+): { direction: number[]; distances: (number | null)[] } {
+  let best = { score: Number.NEGATIVE_INFINITY, direction: [0, 1], distances: [] as (number | null)[] }
+  for (let k = 0; k < LABEL_DIRECTIONS; k++) {
+    const bearing = (360 * k) / LABEL_DIRECTIONS
+    const direction = [Math.sin((bearing * Math.PI) / 180), Math.cos((bearing * Math.PI) / 180)]
+    let previous = LABEL_CLEAR - LABEL_MIN_GAP
+    let room = Number.POSITIVE_INFINITY
+    let count = 0
+    const distances = bands.map((rings) => {
+      const along = Math.max(-1, ...rings.map((ring) => lastCrossing(ring, from, direction)))
+      const metres = along * metresPerUnit
+      if (metres < previous + LABEL_MIN_GAP) return null
+      if (count > 0) room = Math.min(room, metres - previous)
+      previous = metres
+      count++
+      return along
+    })
+    const turn = Math.abs(((bearing - PREFERRED_BEARING + 540) % 360) - 180)
+    const score = count * 1000 + Math.min(room, LABEL_ROOM) - turn / 2
+    if (score > best.score) best = { score, direction, distances }
+  }
+  return best
+}
+
+/**
  * The area the reach covers, as drawn on the map: the same cells as the area
  * figure (see reachCover), outlined and smoothed, in bands of time from the
  * start. Each band is everything reached within its minutes, so they nest.
- * Each band also has a point to label it with, where a line from the start
- * leaves it.
+ * Each band also has a point to label it with, in a row out from the start.
  */
 export function reachArea(reach: Reach, minutes: number, start?: LngLat): ReachArea {
   const limits = bandLimits(minutes)
   const grids = reachGrids(reach, limits)
   if (!grids) return { type: 'FeatureCollection', features: [] }
   const { grid, cells } = grids
-  // The start in the outline's doubled grid units (see outlines).
-  const from = start && [
+  const bands = cells.map((band) =>
+    outlines(band, grid.width, grid.height).map((ring) => {
+      let points = straighten(ring)
+      for (let round = 0; round < SMOOTHING; round++) points = smooth(points)
+      return points
+    }),
+  )
+  const features: ReachArea['features'] = bands.flatMap((rings, i) =>
+    rings.map((ring) => ({
+      type: 'Feature' as const,
+      properties: { minutes: limits[i] },
+      geometry: { type: 'Polygon' as const, coordinates: [toLngLat(ring, grid)] },
+    })),
+  )
+  if (!start) return { type: 'FeatureCollection', features }
+  // The start in the outline's doubled grid units (see outlines), where a unit is half a cell.
+  const from = [
     2 * ((start[0] * grid.kx - grid.minX) / grid.cell + 0.5),
     2 * ((start[1] * M_PER_DEG - grid.minY) / grid.cell + 0.5),
   ]
-  const direction = [Math.sin(LABEL_BEARING), Math.cos(LABEL_BEARING)]
-  const features: ReachArea['features'] = []
-  cells.forEach((band, i) => {
-    let label = -1
-    for (const ring of outlines(band, grid.width, grid.height)) {
-      let points = straighten(ring)
-      for (let round = 0; round < SMOOTHING; round++) points = smooth(points)
-      if (from) label = Math.max(label, lastCrossing(points, from, direction))
-      features.push({
-        type: 'Feature',
-        properties: { minutes: limits[i] },
-        geometry: { type: 'Polygon', coordinates: [toLngLat(points, grid)] },
-      })
-    }
-    // Not under the start's marker.
-    if (from && (label * grid.cell) / 2 > LABEL_CLEAR) {
-      const at = [from[0] + direction[0] * label, from[1] + direction[1] * label]
-      features.push({
-        type: 'Feature',
-        properties: { minutes: limits[i] },
-        geometry: { type: 'Point', coordinates: toLngLat([at], grid)[0] },
-      })
-    }
+  const { direction, distances } = labelRow(bands, from, grid.cell / 2)
+  distances.forEach((along, i) => {
+    if (along === null) return
+    const at = [from[0] + direction[0] * along, from[1] + direction[1] * along]
+    features.push({
+      type: 'Feature',
+      properties: { minutes: limits[i] },
+      geometry: { type: 'Point', coordinates: toLngLat([at], grid)[0] },
+    })
   })
   return { type: 'FeatureCollection', features }
 }

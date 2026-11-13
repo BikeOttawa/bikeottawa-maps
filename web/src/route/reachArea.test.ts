@@ -76,18 +76,29 @@ describe('reachArea', () => {
     expect(sizeAt(5)).toBeGreaterThan(sizeAt(2))
   })
 
-  it('labels each band where a line from the start leaves it', () => {
-    const labels = area.features.flatMap((f) =>
+  const labelsOf = (shape: typeof area) =>
+    shape.features.flatMap((f) =>
       f.geometry.type === 'Point' ? [{ minutes: f.properties.minutes, at: f.geometry.coordinates }] : [],
     )
-    // Bands 2 to 5 all end at the block's north side here; the first has nothing to label.
-    expect(labels.map((l) => l.minutes)).toEqual([2, 3, 4, 5])
-    for (const { at } of labels) {
-      expect(at[1]).toBeCloseTo(0.01, 3)
-      // North-north-east of the start.
-      expect(at[0]).toBeGreaterThan(0.005)
-    }
+  const metresFrom = (start: number[], at: number[]) => Math.hypot(at[0] - start[0], at[1] - start[1]) * 111_320
+
+  it('labels the bands in a row out from the start, where each one ends', () => {
+    const labels = labelsOf(area)
+    // Bands 2 to 4 end together at the block's edge, labelled once; the first
+    // has nothing to label. A row east, along the street, labels the fifth too.
+    expect(labels.map((l) => l.minutes)).toEqual([2, 5])
+    const [near, far] = labels.map((l) => metresFrom([0.005, 0.005], l.at))
+    expect(near).toBeGreaterThan(500)
+    expect(far).toBeGreaterThan(near + 500)
     expect(reachArea(reach, 5).features.every((f) => f.geometry.type === 'Polygon')).toBe(true)
+  })
+
+  it('turns the row of labels to wherever there is room, as from the edge of the area', () => {
+    // On the block's north side, nothing lies to the north: the row goes elsewhere.
+    const start = [0.005, 0.0099]
+    const labels = labelsOf(reachArea(reach, 5, start as [number, number]))
+    expect(labels.length).toBeGreaterThanOrEqual(2)
+    for (const { at } of labels) expect(metresFrom(start, at)).toBeGreaterThan(100)
   })
 
   it('rounds off the grid’s corners', () => {
