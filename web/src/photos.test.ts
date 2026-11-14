@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   commonsLink,
   directImage,
+  fotoshiIds,
+  fotoshiPhoto,
   imageLink,
   mapillaryId,
   mapillaryViewerUrl,
@@ -23,6 +25,29 @@ describe('mapillaryId', () => {
     expect(mapillaryViewerUrl('262623838945219')).toBe(
       'https://www.mapillary.com/app/?pKey=262623838945219&focus=photo',
     )
+  })
+})
+
+describe('fotoshiIds', () => {
+  it('takes every photo id from the tag', () => {
+    expect(fotoshiIds('Jf8bfHzP0OmzWMEkzN3TWUB4')).toEqual(['Jf8bfHzP0OmzWMEkzN3TWUB4'])
+    expect(fotoshiIds('XREh69r4XvdV3QA7T6GqNUbE; mQXlxZPoNpgV7S8XBdGExXt8')).toEqual([
+      'XREh69r4XvdV3QA7T6GqNUbE',
+      'mQXlxZPoNpgV7S8XBdGExXt8',
+    ])
+  })
+  it('ignores what is not a photo id', () => {
+    expect(fotoshiIds(undefined)).toEqual([])
+    expect(fotoshiIds('yes')).toEqual([])
+    expect(fotoshiIds('https://fto.sh/i/E7Xxf8qX')).toEqual([])
+  })
+  it('shows the photo from the CDN and links to its page', () => {
+    expect(fotoshiPhoto('Jf8bfHzP0OmzWMEkzN3TWUB4')).toEqual({
+      url: 'https://cdn.fotoshi.com/images/Jf8bfHzP0OmzWMEkzN3TWUB4-640.jpeg',
+      largeUrl: 'https://cdn.fotoshi.com/images/Jf8bfHzP0OmzWMEkzN3TWUB4-2048.jpeg',
+      credit: 'Fotoshi · CC BY 4.0',
+      link: 'https://fotoshi.com/photo/Jf8bfHzP0OmzWMEkzN3TWUB4',
+    })
   })
 })
 

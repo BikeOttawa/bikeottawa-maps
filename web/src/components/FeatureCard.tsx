@@ -1,4 +1,4 @@
-import { REGION } from '../config'
+import { MAPILLARY_TOKEN, REGION } from '../config'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
 import { bikewayColors, isBikewayId, LTS_COLORS, WINTER_COLORS } from '../layers'
@@ -8,7 +8,7 @@ import { isPlaceKind } from '../places'
 import { wayType } from '../wayType'
 import { DirectionsIcon } from './icons'
 import { PlaceIcon } from './PlaceIcon'
-import { CardPhoto, hasPhoto } from './PlacePhoto'
+import { CardPhoto } from './PlacePhoto'
 
 const WAY_FACTS = ['surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'] as const
 const PLACE_FACTS = [
@@ -148,11 +148,11 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
   // Photos the card does not show itself are linked instead.
   const photoLinks: { href: string; label: string }[] = []
   if (selected.kind === 'place') {
-    const shown = hasPhoto(props)
     const mapillary = mapillaryId(props.mapillary)
     const image = imageLink(props.image)
     const commons = commonsLink(props.wikimedia_commons)
-    if (mapillary && !shown) photoLinks.push({ href: mapillaryViewerUrl(mapillary), label: t('photoOnMapillary') })
+    if (mapillary && !MAPILLARY_TOKEN)
+      photoLinks.push({ href: mapillaryViewerUrl(mapillary), label: t('photoOnMapillary') })
     if (image && !directImage(props.image)) photoLinks.push({ href: image, label: t('photo') })
     if (commons) photoLinks.push({ href: commons, label: 'Wikimedia Commons' })
   }

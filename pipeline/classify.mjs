@@ -270,8 +270,9 @@ const PLACE_TAGS = [
   'wheelchair',
   'barrier',
   'maxwidth:physical',
-  // Photos of the place: a Mapillary image id, or a link to one.
+  // Photos of the place: a Mapillary or Fotoshi image id, or a link to one.
   'mapillary',
+  'image:fotoshi',
   'image',
   'wikimedia_commons',
 ]

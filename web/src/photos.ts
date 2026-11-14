@@ -1,7 +1,29 @@
 /**
  * Photos of places, from what a mapper linked in OSM: `mapillary=<image id>`
- * (often several, separated by ;), `image=<url>` or `wikimedia_commons=<page>`.
+ * or `image:fotoshi=<photo id>` (often several, separated by ;),
+ * `image=<url>` or `wikimedia_commons=<page>`.
  */
+
+/** The Fotoshi photo ids in a place's `image:fotoshi` tag. */
+export function fotoshiIds(value: unknown): string[] {
+  return String(value ?? '')
+    .split(';')
+    .map((id) => id.trim())
+    .filter((id) => /^[A-Za-z0-9_-]{16,40}$/.test(id))
+}
+
+/**
+ * A Fotoshi photo, straight from its CDN: no API call, so no key. The photo's
+ * page names the photographer, which is how its CC BY licence asks for credit.
+ */
+export function fotoshiPhoto(id: string): Photo {
+  return {
+    url: `https://cdn.fotoshi.com/images/${id}-640.jpeg`,
+    largeUrl: `https://cdn.fotoshi.com/images/${id}-2048.jpeg`,
+    credit: 'Fotoshi · CC BY 4.0',
+    link: `https://fotoshi.com/photo/${id}`,
+  }
+}
 
 /** The first Mapillary image id in a place's `mapillary` tag. */
 export function mapillaryId(value: unknown): string | null {

@@ -7,15 +7,12 @@ import {
   directPhoto,
   fetchMapillaryPhoto,
   findNearbyMapillary,
+  fotoshiIds,
+  fotoshiPhoto,
   mapillaryId,
   type NearbyImage,
   type Photo,
 } from '../photos'
-
-/** Whether the card shows a picture for these tags (otherwise it links to the photo, if any). */
-export function hasPhoto(props: Record<string, unknown>): boolean {
-  return Boolean((mapillaryId(props.mapillary) && MAPILLARY_TOKEN) || directImage(props.image))
-}
 
 /** "Jun 2019": when a photo was taken. */
 function takenOn(photo: Photo, lang: Lang): string | null {
@@ -32,10 +29,18 @@ function preload(photo: Photo | null) {
   if (photo) new Image().src = photo.largeUrl
 }
 
+/** A photo the larger view can step to: one already known, or a Mapillary id loaded when needed. */
+interface Extra {
+  id: string
+  photo?: Photo
+  /** Metres from the place, for a photo taken nearby. */
+  distance?: number
+}
+
 /** Photos the larger view can step to after the card's own, and a line about each. */
 interface More {
-  items: readonly NearbyImage[]
-  noteFor: (item: NearbyImage) => string
+  items: readonly Extra[]
+  noteFor: (item: Extra) => string
 }
 
 const NOTHING_MORE: More = { items: [], noteFor: () => '' }
@@ -74,6 +79,7 @@ function PhotoFigure({
   const load = (at: number): Promise<Photo | null> => {
     if (at === 0) return Promise.resolve(photo)
     const item = more.items[at - 1]
+    if (item?.photo) return Promise.resolve(item.photo)
     if (!item || !MAPILLARY_TOKEN) return Promise.resolve(null)
     let pending = loads.current.get(item.id)
     if (!pending) {
@@ -194,21 +200,23 @@ interface Found {
   photo: Photo
   /** Set when the card's photo is not the place's own but one taken nearby. */
   distance?: number
-  more: NearbyImage[]
+  more: Extra[]
 }
 
 /**
- * Photos for a card. A place's own photo (its mapillary or image tag) comes
- * first; then, or for a street or a place without one, the Mapillary photos
- * taken nearby: the closest of each capture run, leaving out near-copies of
- * the place's own. They are only looked up once the card is open, and nothing
- * shows when there are none.
+ * Photos for a card. A place's own photos come first: Fotoshi's (taken of the
+ * place itself), then its mapillary and image tags. Then, or for a street or a
+ * place without one, the Mapillary photos taken nearby: the closest of each
+ * capture run, leaving out near-copies of the place's own. They are only
+ * looked up once the card is open, and nothing shows when there are none.
  */
 export function CardPhoto({ at, props }: { at: readonly [number, number]; props?: Record<string, unknown> }) {
   const { t } = useI18n()
   const [lon, lat] = at
   const tagged = props && MAPILLARY_TOKEN ? mapillaryId(props.mapillary) : null
   const direct = props ? directImage(props.image) : null
+  // Joined, so the effect below sees a change only when the ids change.
+  const fotoshi = props ? fotoshiIds(props['image:fotoshi']).join(';') : ''
   const [found, setFound] = useState<Found | null>(null)
   const [state, setState] = useState<'loading' | 'shown' | 'none'>('loading')
 
@@ -225,11 +233,15 @@ export function CardPhoto({ at, props }: { at: readonly [number, number]; props?
       : Promise.resolve([])
     Promise.all([own, nearby])
       .then(async ([ownPhoto, near]) => {
-        const first = ownPhoto ?? (direct ? directPhoto(direct) : null)
+        const own = [...fotoshiIds(fotoshi).map(fotoshiPhoto), ownPhoto, direct ? directPhoto(direct) : null].filter(
+          (p): p is Photo => p !== null,
+        )
         let result: Found | null = null
-        if (first) {
-          const others = near.filter((n) => n.id !== tagged && !(first.sequence && n.sequence === first.sequence))
-          result = { photo: first, more: others }
+        if (own[0]) {
+          const run = ownPhoto?.sequence
+          const others = near.filter((n) => n.id !== tagged && !(run && n.sequence === run))
+          const rest = own.slice(1).map((photo) => ({ id: photo.link, photo }))
+          result = { photo: own[0], more: [...rest, ...others] }
         } else if (near[0] && token) {
           const closest = await fetchMapillaryPhoto(near[0].id, token, signal)
           if (closest) result = { photo: closest, distance: near[0].distance, more: near.slice(1) }
@@ -242,9 +254,9 @@ export function CardPhoto({ at, props }: { at: readonly [number, number]; props?
         if (!signal.aborted) setState('none')
       })
     return () => controller.abort()
-  }, [lon, lat, tagged, direct])
+  }, [lon, lat, tagged, direct, fotoshi])
 
-  if (state === 'none' || (!MAPILLARY_TOKEN && !direct)) return null
+  if (state === 'none' || (!MAPILLARY_TOKEN && !direct && !fotoshi)) return null
   const metres = (distance: number) => String(Math.max(1, Math.round(distance)))
   const note =
     found?.distance !== undefined ? t('photoDistance').replace('{distance}', metres(found.distance)) : undefined
@@ -254,11 +266,12 @@ export function CardPhoto({ at, props }: { at: readonly [number, number]; props?
       note={note}
       more={{
         items: found?.more ?? NO_NEARBY,
-        noteFor: (item) => t('photoDistance').replace('{distance}', metres(item.distance)),
+        noteFor: (item) =>
+          item.distance === undefined ? '' : t('photoDistance').replace('{distance}', metres(item.distance)),
       }}
       onBroken={() => setState('none')}
     />
   )
 }
 
-const NO_NEARBY: NearbyImage[] = []
+const NO_NEARBY: Extra[] = []
