@@ -1,6 +1,8 @@
 /** The switchable data layers and their colours. Shared by the map style and the legend. */
 
-export const LAYER_IDS = ['places', 'comfort', 'winter', 'night', 'collisions'] as const
+import { type KnownSurfaceId, WIDTH_STOPS } from './pathways'
+
+export const LAYER_IDS = ['places', 'comfort', 'pathways', 'winter', 'night', 'collisions'] as const
 export type LayerId = (typeof LAYER_IDS)[number]
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
@@ -104,6 +106,40 @@ export function isRouteLevelId(value: unknown): value is RouteLevelId {
 
 export function isBikewayId(value: unknown): value is BikewayId {
   return BIKEWAY_IDS.includes(value as BikewayId)
+}
+
+/**
+ * The pathways layer. Surfaces run from green (paved) to brown (dirt); widths
+ * through one green, strongest where widest: darkest on pale ground, brightest
+ * on dark. A surface or width not yet tagged is yellow, outside both ranges.
+ */
+interface PathwayColors {
+  surface: Record<KnownSurfaceId, string>
+  /** At each of WIDTH_STOPS. */
+  width: readonly string[]
+  unknown: string
+}
+const PATHWAYS_ON_PALE: PathwayColors = {
+  surface: { paved: '#1E7B34', stone_dust: '#6E9A3E', gravel: '#9C7650', dirt: '#5E3A1E' },
+  width: ['#A3D39A', '#5DAE5E', '#2A8540', '#0D5A26'],
+  unknown: '#F5C000',
+}
+const PATHWAYS_ON_DARK: PathwayColors = {
+  surface: { paved: '#6FD27F', stone_dust: '#A3C77A', gravel: '#C99B6E', dirt: '#A0683F' },
+  width: ['#346B3D', '#4C9C58', '#7ACB83', '#C2F2BC'],
+  unknown: '#FFD60A',
+}
+
+export function pathwayColors(basemap: BasemapId): PathwayColors {
+  return basemap === 'light' || basemap === 'grey' ? PATHWAYS_ON_PALE : PATHWAYS_ON_DARK
+}
+
+/** The width colours as a CSS gradient from no width to the widest stop. */
+export function widthGradient(basemap: BasemapId): string {
+  const { width } = pathwayColors(basemap)
+  const last = WIDTH_STOPS[WIDTH_STOPS.length - 1]
+  const stops = WIDTH_STOPS.map((metres, i) => `${width[i]} ${(metres / last) * 100}%`)
+  return `linear-gradient(to right, ${width[0]} 0%, ${stops.join(', ')})`
 }
 
 export const WINTER_COLORS = { yes: '#1B5FAE', no: '#E07B1A', unknown: '#6F7B80' } as const

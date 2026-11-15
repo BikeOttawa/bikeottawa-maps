@@ -14,12 +14,14 @@ import {
   type LayerId,
   LTS_COLORS,
   NO_BIKES_COLOR,
+  pathwayColors,
   ROUTE_COLORS,
   type RouteLevelId,
   reachRamp,
   routeBandColors,
   WINTER_COLORS,
 } from '../layers'
+import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
 import { comfortKeyOf, type Route, type RouteHighlight } from '../route/brouter'
 
@@ -64,7 +66,9 @@ export interface StyleState {
   reach: { minutes: number; area: boolean } | null
   /** The collisions layer's spots, built from the filters; null until loaded. */
   collisions: FeatureCollection | null
-  /** The bike lanes overlay, drawn over any basemap and data layer. */
+  /** What the pathways layer shows, and how it colours it. */
+  pathways?: PathwayFilters
+  /** The bike lanes overlay, drawn over any basemap and data layer but the pathways one. */
   bikeLanes?: boolean
   /** The bike routes overlay: signed routes and mountain-bike trails. */
   bikeRoutes?: boolean
@@ -78,6 +82,7 @@ export const ROUTE_LAYERS = ['routes-band']
 /** Layers a click can hit, per data layer. */
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
+  pathways: ['pathways-line'],
   winter: ['winter-line', 'winter-unknown'],
   places: ['places-icon'],
   night: [],
@@ -414,6 +419,72 @@ function reachLayers(reach: StyleState['reach'], basemap: BasemapId): LayerSpeci
   ]
 }
 
+/** Pathways as wide as they are, relative to a 3 m path; those without a width as if 1.5 m. */
+function pathwayWidth(extra = 0): ExpressionSpecification {
+  const factor = ['min', 1.5, ['max', 0.4, ['/', ['coalesce', ['get', 'width_m'], UNKNOWN_WIDTH], 3]]]
+  return [
+    'interpolate',
+    ['exponential', 1.5],
+    ['zoom'],
+    ...[9, 13, 16, 19].flatMap((zoom, i) => [zoom, ['+', ['*', [1.2, 3, 6.5, 15][i], factor], extra]]),
+  ] as ExpressionSpecification
+}
+
+/**
+ * Pathways coloured by surface or by width, in yellow where that is not
+ * tagged yet; those go on top, so the gaps show.
+ */
+function pathwayLayers(state: StyleState, fade: number): LayerSpecification[] {
+  const filters = state.pathways ?? DEFAULT_PATHWAY_FILTERS
+  const colors = pathwayColors(state.basemap)
+  const pale = state.basemap === 'light' || state.basemap === 'grey'
+  const bySurface = filters.by === 'surface'
+  const unknown: ExpressionSpecification = ['!', ['has', bySurface ? 'surface_group' : 'width_m']]
+  const color: ExpressionSpecification = bySurface
+    ? ([
+        'match',
+        ['get', 'surface_group'],
+        ...Object.entries(colors.surface).flat(),
+        colors.unknown,
+      ] as unknown as ExpressionSpecification)
+    : [
+        'case',
+        ['has', 'width_m'],
+        [
+          'interpolate',
+          ['linear'],
+          ['get', 'width_m'],
+          ...WIDTH_STOPS.flatMap((metres, i) => [metres, colors.width[i]]),
+        ],
+        colors.unknown,
+      ]
+  const layout = {
+    'line-cap': 'round' as const,
+    'line-join': 'round' as const,
+    'line-sort-key': ['case', unknown, 1, 0] as ExpressionSpecification,
+    visibility: state.layer === 'pathways' && filters.show && !state.reach ? ('visible' as const) : ('none' as const),
+  }
+  const way = { type: 'line' as const, source: WAYS_SOURCE, 'source-layer': 'ways', filter: pathwayFilter(filters) }
+  return [
+    {
+      ...way,
+      id: 'pathways-casing',
+      layout,
+      paint: {
+        'line-color': pale ? 'rgba(22, 36, 43, 0.45)' : 'rgba(0, 0, 0, 0.6)',
+        'line-width': pathwayWidth(1.5),
+        'line-opacity': fade,
+      },
+    },
+    {
+      ...way,
+      id: 'pathways-line',
+      layout,
+      paint: { 'line-color': color, 'line-width': pathwayWidth(), 'line-opacity': fade },
+    },
+  ]
+}
+
 function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   // The data steps back when a planned route is drawn over it.
   const fade = state.route ? 0.35 : 1
@@ -436,7 +507,9 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   const way = { type: 'line' as const, source: WAYS_SOURCE, 'source-layer': 'ways' }
   const place = { type: 'circle' as const, source: PLACES_SOURCE, 'source-layer': 'places' }
 
+  const [pathwayCasing, pathwayLine] = pathwayLayers(state, fade)
   const wayLayers: LayerSpecification[] = [
+    pathwayCasing,
     {
       ...way,
       id: 'comfort-casing',
@@ -492,6 +565,7 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
         'line-opacity': fade,
       },
     },
+    pathwayLine,
   ]
   const placeLayers: LayerSpecification[] = [
     {
@@ -509,9 +583,9 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   return [...(showsWays(state) ? wayLayers : []), ...(loadsPlaces(state) ? placeLayers : [])]
 }
 
-/** Street data (comfort, winter) is drawn on those two layers, except under the reach map. */
+/** Street data (comfort, pathways, winter) is drawn on those layers, except under the reach map. */
 function showsWays(state: StyleState): boolean {
-  return (state.layer === 'comfort' || state.layer === 'winter') && !state.reach
+  return (state.layer === 'comfort' || state.layer === 'pathways' || state.layer === 'winter') && !state.reach
 }
 
 /** Places are drawn on their layer, once at least one kind is ticked (none is, to begin with). */
@@ -672,8 +746,9 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   return [...sideLayers, ...wholeLayers]
 }
 
+/** The pathways layer draws the paths its own way, and leaves the lanes out for now. */
 function showsBikeLanes(state: StyleState): boolean {
-  return Boolean(state.bikeLanes)
+  return Boolean(state.bikeLanes) && (state.layer !== 'pathways' || Boolean(state.reach))
 }
 export const PLACES_SOURCE = 'places'
 

@@ -65,8 +65,9 @@ tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
   --name "Bike Ottawa night" --attribution "© OpenStreetMap contributors" \
   -L "streets:$WORK/lit.geojsonseq" -L "lamps:$WORK/lamps.geojsonseq"
 
-# Date of the OSM data: how far the change files have been applied.
+# Date of the OSM data (how far the change files have been applied), and km of pathway.
 OSM_TIMESTAMP="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$REGION")"
-printf '{"osmTimestamp":"%s","builtAt":"%s"}\n' "$OSM_TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUT/meta.json"
+printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s}\n' "$OSM_TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  "$(cat "$WORK/pathways.json")" > "$OUT/meta.json"
 ls -lh "$OUT/overlays.pmtiles" "$OUT/places.pmtiles" "$OUT/night.pmtiles" "$OUT/routes.pmtiles"
 cat "$OUT/meta.json"

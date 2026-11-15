@@ -1,8 +1,10 @@
 import type { CollisionFilters, CollisionSpot } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, type LayerId, LTS_COLORS, lampColor, WINTER_COLORS } from '../layers'
+import type { PathwayFilters, PathwayKm } from '../pathways'
 import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
 import { CollisionLegend } from './CollisionLegend'
+import { PathwayLegend } from './PathwayLegend'
 import { PlaceIcon } from './PlaceIcon'
 
 interface Props {
@@ -12,6 +14,10 @@ interface Props {
   busiestSpot: number
   collisionFilters: CollisionFilters
   onCollisionFiltersChange: (filters: CollisionFilters) => void
+  pathwayFilters: PathwayFilters
+  onPathwayFiltersChange: (filters: PathwayFilters) => void
+  /** Km of pathway, from the pipeline; null when not known. */
+  pathwayKm: PathwayKm | null
   /** The night layer's colours depend on the ground they are drawn on. */
   basemap: BasemapId
   placeKinds: readonly PlaceKind[]
@@ -27,6 +33,9 @@ export function Legend({
   busiestSpot,
   collisionFilters,
   onCollisionFiltersChange,
+  pathwayFilters,
+  onPathwayFiltersChange,
+  pathwayKm,
 }: Props) {
   const { t } = useI18n()
   const lamp = lampColor(basemap)
@@ -42,6 +51,9 @@ export function Legend({
             </li>
           ))}
         </ul>
+      )}
+      {layer === 'pathways' && (
+        <PathwayLegend filters={pathwayFilters} onChange={onPathwayFiltersChange} km={pathwayKm} basemap={basemap} />
       )}
       {layer === 'winter' && (
         <ul>

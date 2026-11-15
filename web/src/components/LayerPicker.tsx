@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n'
-import { LAYER_IDS, type LayerId, LTS_COLORS, WINTER_COLORS } from '../layers'
+import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
 import { GROUP_COLORS } from '../places'
 
 interface Props {
@@ -18,6 +18,16 @@ function LayerIcon({ layer }: { layer: LayerId }) {
         <path d="M3 10h14" stroke={LTS_COLORS[1]} />
         <path d="M3 15h18" stroke={LTS_COLORS[2]} />
         <path d="M3 20h10" stroke={LTS_COLORS[3]} />
+      </svg>
+    )
+  }
+  if (layer === 'pathways') {
+    // A winding path, paved where it is known and yellow where it is not yet.
+    const colors = pathwayColors('light')
+    return (
+      <svg aria-hidden="true" {...common} strokeWidth="3" strokeLinecap="round">
+        <path d="M5 22c0-5 9-4 9-9" stroke={colors.surface.paved} />
+        <path d="M14 13c0-5-7-5-5-11" stroke={colors.unknown} />
       </svg>
     )
   }

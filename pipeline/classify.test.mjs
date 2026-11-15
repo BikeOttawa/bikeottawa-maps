@@ -5,10 +5,13 @@ import {
   centreOf,
   classifyPlace,
   classifyWay,
+  isPathway,
   isStreetLamp,
   middleOf,
   parseOsmId,
+  pathwayProps,
   placeFilters,
+  surfaceGroup,
 } from './classify.mjs'
 
 test('cycleways are low-stress paths shown from far out', () => {
@@ -20,9 +23,58 @@ test('cycleways are low-stress paths shown from far out', () => {
     surface: 'asphalt',
     bikeway: 'dedicated',
     bikeway_width: 3,
+    pathway: true,
+    surface_group: 'paved',
     winter: 'yes',
   })
   assert.equal(minzoom, 10)
+})
+
+test('pathways are paths bikes are not kept off, including bare ones', () => {
+  assert.equal(isPathway({ highway: 'cycleway' }), true)
+  assert.equal(isPathway({ highway: 'path' }), true)
+  assert.equal(isPathway({ highway: 'path', bicycle: 'yes' }), true)
+  assert.equal(isPathway({ highway: 'path', bicycle: 'no' }), false)
+  assert.equal(isPathway({ highway: 'path', bicycle: 'dismount' }), false)
+  assert.equal(isPathway({ highway: 'footway' }), false)
+  assert.equal(isPathway({ highway: 'footway', footway: 'sidewalk' }), false)
+  assert.equal(isPathway({ highway: 'footway', bicycle: 'yes' }), true)
+  assert.equal(isPathway({ highway: 'footway', footway: 'sidewalk', bicycle: 'designated' }), true)
+  assert.equal(isPathway({ highway: 'residential' }), false)
+})
+
+test('a bare path is kept, its surface and width left unknown', () => {
+  const { props, minzoom } = classifyWay({ highway: 'path' })
+  assert.equal(props.pathway, true)
+  assert.equal(props.surface_group, undefined)
+  assert.equal(props.width_m, undefined)
+  assert.equal(minzoom, 10)
+})
+
+test('sidewalks bikes may use are pathways', () => {
+  const way = classifyWay({ highway: 'footway', footway: 'sidewalk', bicycle: 'yes' })
+  assert.equal(way?.props.pathway, true)
+})
+
+test('surfaces fall into groups by how they ride', () => {
+  assert.equal(surfaceGroup('asphalt'), 'paved')
+  assert.equal(surfaceGroup('paving_stones'), 'paved')
+  assert.equal(surfaceGroup('fine_gravel'), 'stone_dust')
+  assert.equal(surfaceGroup('compacted'), 'stone_dust')
+  assert.equal(surfaceGroup('gravel'), 'gravel')
+  assert.equal(surfaceGroup('unpaved'), 'gravel')
+  assert.equal(surfaceGroup('ground'), 'dirt')
+  assert.equal(surfaceGroup('asphalt;fine_gravel'), 'paved')
+  assert.equal(surfaceGroup('henderson_boulevard'), undefined)
+  assert.equal(surfaceGroup(undefined), undefined)
+})
+
+test('a pathway is as wide as tagged, the bike side first, and unknown otherwise', () => {
+  assert.equal(pathwayProps({ width: '3.5' }).width_m, 3.5)
+  assert.equal(pathwayProps({ width: '4', 'cycleway:width': '2' }).width_m, 2)
+  assert.equal(pathwayProps({ width: '3 m' }).width_m, 3)
+  assert.equal(pathwayProps({ width: "6'" }).width_m, undefined)
+  assert.equal(pathwayProps({}).width_m, undefined)
 })
 
 test('pathways without a usable winter_service tag are unknown', () => {

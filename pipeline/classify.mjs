@@ -141,6 +141,81 @@ export function bikewayProps(tags, { ignoreTrack = false } = {}) {
   }
 }
 
+/** Bikes may not be ridden here. */
+const NOT_RIDDEN = new Set(['no', 'dismount', 'private'])
+
+/**
+ * The pathways layer: cycleways and paths where bikes are not ruled out, and
+ * footways and sidewalks where they are let in. A bare `highway=path` counts:
+ * it is a pathway still to be surveyed.
+ */
+export function isPathway(tags) {
+  if (NOT_RIDDEN.has(tags.bicycle)) return false
+  if (tags.highway === 'cycleway' || tags.highway === 'path') return true
+  return tags.highway === 'footway' && LET_IN.has(tags.bicycle)
+}
+
+/** Surfaces by how they ride, smoothest first. Other values count as unknown. */
+const SURFACE_GROUPS = {
+  paved: [
+    'asphalt',
+    'concrete',
+    'concrete:plates',
+    'concrete:lanes',
+    'paved',
+    'paving_stones',
+    'sett',
+    'bricks',
+    'brick',
+    'cobblestone',
+    'unhewn_cobblestone',
+    'chipseal',
+    'metal',
+    'wood',
+    'rubber',
+    'tartan',
+  ],
+  stone_dust: ['fine_gravel', 'compacted', 'stone_dust'],
+  gravel: ['gravel', 'unpaved', 'pebblestone', 'crushed_stone'],
+  dirt: [
+    'ground',
+    'dirt',
+    'earth',
+    'mud',
+    'sand',
+    'grass',
+    'grass_paver',
+    'woodchips',
+    'rock',
+    'rocks',
+    'clay',
+    'dirt/sand',
+    'snow',
+    'ice',
+  ],
+}
+const SURFACE_GROUP_OF = new Map(
+  Object.entries(SURFACE_GROUPS).flatMap(([group, values]) => values.map((value) => [value, group])),
+)
+
+/** The group of a `surface` tag; of its first value when it has several. */
+export function surfaceGroup(surface) {
+  return surface ? SURFACE_GROUP_OF.get(surface.split(';')[0].trim()) : undefined
+}
+
+/**
+ * What the pathways layer draws a way by: its surface group and its width in
+ * metres, each left out when not tagged, so that the gaps show.
+ */
+export function pathwayProps(tags) {
+  const props = { pathway: true }
+  const group = surfaceGroup(tags.surface)
+  if (group) props.surface_group = group
+  const width = metres(tags['cycleway:width']) ?? metres(tags.width)
+  if (width) props.width_m = width
+  return props
+}
+
 /**
  * @param {Record<string, string>} tags OSM tags of a way
  * @returns {{props: Record<string, string|number>, minzoom: number} | null} null when the way is not shown
@@ -161,12 +236,14 @@ export function classifyWay(tags) {
   const isSidewalk = tags.footway === 'sidewalk' || tags.footway === 'crossing'
   // The bike lanes overlay goes by the tags alone, whatever the stress model says.
   const bikeway = bikewayProps(tags)
+  const pathway = isPathway(tags)
   // Streets closed to bikes are dropped; off-street paths are kept for the winter layer.
-  if (lts === 0 && (!isPath || isSidewalk) && !bikeway.bikeway) return null
+  if (lts === 0 && (!isPath || isSidewalk) && !bikeway.bikeway && !pathway) return null
 
   const props = { lts, kind: isPath ? 'path' : 'street', highway }
   pick(tags, ['name', 'service', 'footway', 'surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'], props)
   Object.assign(props, bikeway)
+  if (pathway) Object.assign(props, pathwayProps(tags))
   // Indoor walkways have no snow to plow, so they carry no winter status and
   // stay off the winter layer.
   const isIndoor = tags.indoor !== undefined && tags.indoor !== 'no'
@@ -178,7 +255,7 @@ export function classifyWay(tags) {
 
   let minzoom = 13
   if (MAJOR_HIGHWAYS.has(highway)) minzoom = 9
-  else if (highway === 'cycleway' || (highway === 'path' && (lts > 0 || bikeway.bikeway))) minzoom = 10
+  else if (pathway || (highway === 'path' && (lts > 0 || bikeway.bikeway))) minzoom = 10
   else if (LOCAL_HIGHWAYS.has(highway)) minzoom = 12
   return { props, minzoom }
 }

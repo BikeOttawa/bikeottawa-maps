@@ -1,7 +1,17 @@
 import type { ReactNode } from 'react'
 import type { CollisionFilters, CollisionSpot } from '../collisions'
 import { useI18n } from '../i18n'
-import { type BasemapId, type LayerId, LTS_COLORS, lampColor, reachRamp, WINTER_COLORS } from '../layers'
+import {
+  type BasemapId,
+  type LayerId,
+  LTS_COLORS,
+  lampColor,
+  pathwayColors,
+  reachRamp,
+  WINTER_COLORS,
+  widthGradient,
+} from '../layers'
+import type { PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
 import { COMFORT_KEYS, distanceByComfort, type Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
@@ -41,11 +51,38 @@ interface LayerProps {
   placeKinds: readonly PlaceKind[]
   collisionSpots: readonly CollisionSpot[] | null
   collisionFilters: CollisionFilters
+  pathwayFilters: PathwayFilters
 }
 
 /** The active layer's key, small enough for one line. */
-export function LayerPeek({ layer, basemap, placeKinds, collisionSpots, collisionFilters }: LayerProps): ReactNode {
+export function LayerPeek({
+  layer,
+  basemap,
+  placeKinds,
+  collisionSpots,
+  collisionFilters,
+  pathwayFilters,
+}: LayerProps): ReactNode {
   const { t, lang } = useI18n()
+  if (layer === 'pathways') {
+    const colors = pathwayColors(basemap)
+    const bySurface = pathwayFilters.by === 'surface'
+    return (
+      <>
+        <span>{t(bySurface ? 'surface.paved' : 'pathways.narrow')}</span>
+        {bySurface ? (
+          <Bar parts={Object.values(colors.surface).map((color) => [color, 1])} />
+        ) : (
+          <span className="peek-bar" aria-hidden="true" style={{ background: widthGradient(basemap) }} />
+        )}
+        <span>{t(bySurface ? 'surface.dirt' : 'pathways.wide')}</span>
+        <span className="peek-item">
+          <Swatch color={colors.unknown} />
+          {t('unknown')}
+        </span>
+      </>
+    )
+  }
   if (layer === 'comfort')
     return (
       <>

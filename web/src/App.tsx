@@ -25,6 +25,7 @@ import { initialLang, type Lang, LangContext, rememberLang, translator } from '.
 import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
 import { MapView } from './map/MapView'
 import type { Selected, StyleState } from './map/style'
+import { formatPathwayFilters, type PathwayFilters, type PathwayKm, parsePathwayFilters } from './pathways'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import type { LngLat, RouteHighlight } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
@@ -75,6 +76,8 @@ interface UrlState {
   placeKinds: readonly PlaceKind[]
   /** Which collisions the collisions layer shows. */
   collisions: CollisionFilters
+  /** Which pathways the pathways layer shows, and what it colours them by. */
+  pathways: PathwayFilters
   mode: Mode
   points: RoutePoints
   /** Places the route must pass through, in riding order. */
@@ -94,6 +97,7 @@ function readUrl(): UrlState {
     layer: isLayerId(hash.layer) ? hash.layer : DEFAULT_LAYER,
     placeKinds: (hash.places ?? '').split(',').filter(isPlaceKind),
     collisions: parseCollisionFilters(hash.collisions),
+    pathways: parsePathwayFilters(hash.pathways),
     mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
     points: parsePoints(hash.route),
     vias: parseVias(hash.via),
@@ -113,6 +117,7 @@ function writeUrl(state: UrlState): void {
     ['layer', state.layer === DEFAULT_LAYER ? null : state.layer],
     ['places', state.placeKinds.length ? state.placeKinds.join(',') : null],
     ['collisions', state.layer === 'collisions' ? formatCollisionFilters(state.collisions) : null],
+    ['pathways', state.layer === 'pathways' ? formatPathwayFilters(state.pathways) : null],
     ['mode', riding ? state.mode : null],
     // How far starts from the route's start, so the two modes share it.
     ['route', routing ? formatPoints(state.points) : reaching ? formatPoints([state.points[0], null]) : null],
@@ -222,15 +227,25 @@ function usePhoneLayout(): boolean {
   return phone
 }
 
-/** Date of the OpenStreetMap data in the tiles, written by the pipeline. */
-function useDataDate(lang: Lang): string | null {
-  const [timestamp, setTimestamp] = useState<string | null>(null)
+interface TileMeta {
+  /** Date of the OpenStreetMap data in the tiles. */
+  osmTimestamp?: string
+  pathways?: PathwayKm
+}
+
+/** What the pipeline says about the tiles it built. */
+function useTileMeta(): TileMeta | null {
+  const [meta, setMeta] = useState<TileMeta | null>(null)
   useEffect(() => {
     fetch(`${ASSETS_BASE}/tiles/meta.json`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((meta) => setTimestamp(meta?.osmTimestamp ?? null))
-      .catch(() => setTimestamp(null))
+      .then(setMeta)
+      .catch(() => setMeta(null))
   }, [])
+  return meta
+}
+
+function formatDataDate(timestamp: string | undefined, lang: Lang): string | null {
   if (!timestamp) return null
   return new Date(timestamp).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { dateStyle: 'medium' })
 }
@@ -317,8 +332,9 @@ export function App() {
   const [topOpen, setTopOpen] = useState(true)
   const i18n = useMemo(() => ({ lang, t: translator(lang) }), [lang])
   const { t } = i18n
-  const dataDate = useDataDate(lang)
-  const { layer, placeKinds, collisions, mode, points, vias, travel, style, custom, walkStyle, minutes } = url
+  const tileMeta = useTileMeta()
+  const dataDate = formatDataDate(tileMeta?.osmTimestamp, lang)
+  const { layer, placeKinds, collisions, pathways, mode, points, vias, travel, style, custom, walkStyle, minutes } = url
   const profile = useMemo(() => profileFor(travel, style, custom, walkStyle), [travel, style, custom, walkStyle])
   const basemap = layer === 'night' ? nightBasemap : dayBasemap
   // Not exploring: planning a route, or seeing how far you get.
@@ -455,6 +471,9 @@ export function App() {
     },
     [update],
   )
+
+  // The card stays open: a mapper looks at a path one way, then the other.
+  const changePathways = useCallback((next: PathwayFilters) => update({ pathways: next }), [update])
 
   const togglePlaceKind = useCallback((kind: PlaceKind) => {
     setUrl((current) => {
@@ -614,6 +633,7 @@ export function App() {
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
+      pathways,
       bikeLanes,
       bikeRoutes,
       placeHighlight,
@@ -629,6 +649,7 @@ export function App() {
       travel,
       reachStyle,
       collisionGeo,
+      pathways,
       bikeLanes,
       bikeRoutes,
       placeHighlight,
@@ -708,6 +729,7 @@ export function App() {
       placeKinds={placeKinds}
       collisionSpots={spots}
       collisionFilters={collisions}
+      pathwayFilters={pathways}
     />
   ) : route ? (
     <RoutePeek route={route} travel={travel} />
@@ -888,6 +910,9 @@ export function App() {
                   busiestSpot={busiestSpot}
                   collisionFilters={collisions}
                   onCollisionFiltersChange={changeCollisions}
+                  pathwayFilters={pathways}
+                  onPathwayFiltersChange={changePathways}
+                  pathwayKm={tileMeta?.pathways ?? null}
                 />
               )}
               <p className="footnote">

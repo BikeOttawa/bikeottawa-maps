@@ -1,7 +1,7 @@
 // Reads `osmium export` output (one GeoJSON feature per line) and writes
 // ways, places, lamps, lit (lit ways, for the night layer) and routes (ways on
-// signed bike routes) .geojsonseq files ready for tippecanoe, and routes.json,
-// the routes themselves.
+// signed bike routes) .geojsonseq files ready for tippecanoe, routes.json, the
+// routes themselves, and pathways.json, km of pathway by surface and width.
 // Usage: node pipeline/transform.mjs <input.geojsonseq> <output-dir> [transit.opl] [routes.opl]
 
 import { once } from 'node:events'
@@ -34,6 +34,8 @@ const routeWays = createWriteStream(path.join(outDir, 'routes.geojsonseq'))
 const counts = { ways: 0, lit: 0, places: 0, lamps: 0, routeWays: 0, byLts: [0, 0, 0, 0, 0] }
 /** Metres of each way on a route, within the map area. */
 const routeWayLength = new Map()
+/** Metres of pathway in all, by surface group, and without a width, for the pathways legend. */
+const pathwayMetres = { all: 0, surface: { paved: 0, stone_dust: 0, gravel: 0, dirt: 0, unknown: 0 }, unknownWidth: 0 }
 
 function metres(coords) {
   let sum = 0
@@ -110,6 +112,12 @@ for await (const line of lines()) {
     }
     counts.ways++
     counts.byLts[way.props.lts]++
+    if (way.props.pathway) {
+      const length = metres(feature.geometry.coordinates)
+      pathwayMetres.all += length
+      pathwayMetres.surface[way.props.surface_group ?? 'unknown'] += length
+      if (!way.props.width_m) pathwayMetres.unknownWidth += length
+    }
     // Lit ways glow on the night layer. They go in a file of their own, bare, so
     // that all of them can show however far out the map is zoomed.
     if (isLit(tags, litShare(feature.geometry.coordinates))) {
@@ -176,6 +184,15 @@ for (const [id, wayIds] of waysOf) {
   routesOut[id] = { ...route, km: Math.round(sum / 100) / 10, ...(parents.length && { parents }) }
 }
 writeFileSync(path.join(outDir, 'routes.json'), JSON.stringify(routesOut))
+const km = (m) => Math.round(m / 1000)
+writeFileSync(
+  path.join(outDir, 'pathways.json'),
+  JSON.stringify({
+    km: km(pathwayMetres.all),
+    surface: Object.fromEntries(Object.entries(pathwayMetres.surface).map(([group, m]) => [group, km(m)])),
+    unknownWidth: km(pathwayMetres.unknownWidth),
+  }),
+)
 const byLevel = ROUTE_LEVELS.map((level) => Object.values(routesOut).filter((r) => r.level === level).length)
 console.log(
   `ways: ${counts.ways} (LTS 1-4: ${counts.byLts.slice(1).join(', ')}; paths closed to bikes: ${counts.byLts[0]}; lit: ${counts.lit}), places: ${counts.places}, street lamps: ${counts.lamps}, routes: ${Object.keys(routesOut).length} (national, regional, local, mtb: ${byLevel.join(', ')}) over ${counts.routeWays} ways`,

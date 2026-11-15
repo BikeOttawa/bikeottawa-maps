@@ -1,6 +1,7 @@
 import type { FeatureCollection } from 'geojson'
 import { describe, expect, it } from 'vitest'
 import { BASEMAP_IDS, LAYER_IDS } from '../layers'
+import { DEFAULT_PATHWAY_FILTERS } from '../pathways'
 import { PLACE_KINDS } from '../places'
 import { buildStyle, INTERACTIVE_LAYERS, type StyleState } from './style'
 
@@ -63,15 +64,35 @@ describe('buildStyle', () => {
     }
   })
 
-  it('loads street tiles only for comfort and winter, place tiles only for places', () => {
+  it('loads street tiles only for comfort, pathways and winter, place tiles only for places', () => {
     const sources = (layerId: (typeof LAYER_IDS)[number]) => Object.keys(build({ layer: layerId }).sources)
     expect(sources('comfort')).toContain('overlays')
+    expect(sources('pathways')).toContain('overlays')
     expect(sources('winter')).toContain('overlays')
     expect(sources('comfort')).not.toContain('places')
     expect(sources('places')).toContain('places')
     // With no kind ticked there is nothing to draw, so nothing to load.
     expect(Object.keys(build({ layer: 'places', placeKinds: [] }).sources)).not.toContain('places')
     for (const other of ['places', 'night', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
+  })
+
+  it('colours pathways by surface or by width, unknown ones on top', () => {
+    const paint = (by: 'surface' | 'width') =>
+      layer(build({ layer: 'pathways', pathways: { ...DEFAULT_PATHWAY_FILTERS, by } }), 'pathways-line') as {
+        paint: { 'line-color': unknown }
+        layout: { 'line-sort-key': unknown }
+      }
+    expect(JSON.stringify(paint('surface').paint['line-color'])).toContain('surface_group')
+    expect(JSON.stringify(paint('surface').layout['line-sort-key'])).toContain('surface_group')
+    expect(JSON.stringify(paint('width').paint['line-color'])).toContain('width_m')
+    expect(JSON.stringify(paint('width').layout['line-sort-key'])).toContain('width_m')
+  })
+
+  it('hides the pathways when unticked, and the bike lanes overlay on their layer', () => {
+    const hidden = build({ layer: 'pathways', pathways: { ...DEFAULT_PATHWAY_FILTERS, show: false } })
+    expect(layer(hidden, 'pathways-line').layout?.visibility).toBe('none')
+    expect(build({ layer: 'pathways', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(false)
+    expect(build({ layer: 'comfort', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(true)
   })
 
   it('loads place tiles for a selected place, to pick out one found by a search', () => {

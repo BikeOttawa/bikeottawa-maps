@@ -1,12 +1,14 @@
 import { MAPILLARY_TOKEN, REGION } from '../config'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
-import { bikewayColors, isBikewayId, LTS_COLORS, WINTER_COLORS } from '../layers'
+import { bikewayColors, isBikewayId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
 import type { Selected } from '../map/style'
+import { type KnownSurfaceId, WIDTH_STOPS } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
 import { isPlaceKind } from '../places'
 import { wayType } from '../wayType'
 import { DirectionsIcon } from './icons'
+import { OsmTags } from './OsmTags'
 import { PlaceIcon } from './PlaceIcon'
 import { CardPhoto } from './PlacePhoto'
 
@@ -53,6 +55,15 @@ function formatMonth(date: string, locale: string): string {
     month: 'long',
     year: 'numeric',
   })
+}
+
+/** The card is pale, so the colours drawn on pale ground. */
+const PATHWAY_COLORS = pathwayColors('light')
+
+/** The colour a pathway this wide is drawn in: that of the widest stop it reaches. */
+function widthColor(metres: number): string {
+  const stop = WIDTH_STOPS.findLastIndex((at) => metres >= at)
+  return PATHWAY_COLORS.width[Math.max(0, stop)]
 }
 
 function osmPath(selected: Props['selected']): string {
@@ -123,8 +134,25 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
     const lines = typeof props.lines === 'string' && props.lines !== props.operator ? props.lines : null
     if (lines) facts.push({ label: t(/[,/]/.test(lines) ? 'fact.lines' : 'fact.line'), value: lines })
   }
+  // Pathways always say what their surface and width are, in the pathways
+  // layer's colours: yellow where they are not mapped yet.
+  const pathway = selected.kind === 'way' && props.pathway === true
+  if (pathway) {
+    const group = props.surface_group as KnownSurfaceId | undefined
+    facts.push({
+      label: t('fact.surface'),
+      value: props.surface === undefined ? t('unknown') : formatValue('surface', props.surface, t),
+      color: group ? PATHWAY_COLORS.surface[group] : PATHWAY_COLORS.unknown,
+    })
+    const width = typeof props.width_m === 'number' ? props.width_m : null
+    facts.push({
+      label: t('fact.width'),
+      value: width === null ? t('unknown') : `${width.toLocaleString(locale, { maximumFractionDigits: 2 })}\u00a0m`,
+      color: width === null ? PATHWAY_COLORS.unknown : widthColor(width),
+    })
+  }
   for (const key of selected.kind === 'way' ? WAY_FACTS : PLACE_FACTS) {
-    if (props[key] === undefined) continue
+    if (props[key] === undefined || (pathway && (key === 'surface' || key === 'width'))) continue
     const value = formatValue(key, props[key], t)
     // Hours lead with whether the place is open now, when they can be understood.
     const week = key === 'opening_hours' ? parseHours(String(props[key])) : null
@@ -245,7 +273,13 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
             {label}
           </a>
         ))}
+        {id && (
+          <a href={`https://www.openstreetmap.org/edit?${type}=${id}`} target="_blank" rel="noopener noreferrer">
+            {t('editInOsm')}
+          </a>
+        )}
       </p>
+      {id && <OsmTags key={`${type}/${id}`} path={`${type}/${id}`} />}
     </section>
   )
 }
