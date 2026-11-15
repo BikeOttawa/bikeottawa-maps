@@ -79,6 +79,8 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
       : `${selected.kind === 'way' ? 'kind' : 'place'}.${props.kind}`
   const kindLabel = (selected.kind === 'way' && wayType(props, t)) || (isMessageKey(kindKey) ? t(kindKey) : '')
   const name = typeof props.name === 'string' ? props.name : null
+  // A place found by a search but not on the map's layers has no kind: its address says where it is.
+  const subtitle = kindLabel || (typeof props.address === 'string' ? props.address : '')
   const [type, id] = osmPath(selected).split('/')
 
   const facts: { label: string; value: string; color?: string; tone?: 'open' | 'closed'; note?: string }[] = []
@@ -164,7 +166,7 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
         <div className="feature-title">
           <h2>{name ?? kindLabel}</h2>
           {/* The kind is the title when there is no name, so it is not repeated. */}
-          {name && kindLabel && <p>{kindLabel}</p>}
+          {name && subtitle && <p>{subtitle}</p>}
         </div>
         {selected.kind === 'place' && onRouteHere && (
           <button
@@ -226,10 +228,14 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
       <p className="feature-links">
         <span>
           {t('viewIn')}{' '}
-          <a href={`https://www.openstreetmap.org/${type}/${id}`} target="_blank" rel="noopener noreferrer">
-            OSM
-          </a>
-          {' · '}
+          {id && (
+            <>
+              <a href={`https://www.openstreetmap.org/${type}/${id}`} target="_blank" rel="noopener noreferrer">
+                OSM
+              </a>
+              {' · '}
+            </>
+          )}
           <a href={streetViewUrl(selected.at)} target="_blank" rel="noopener noreferrer">
             Street View
           </a>

@@ -74,6 +74,19 @@ describe('buildStyle', () => {
     for (const other of ['places', 'night', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
   })
 
+  it('loads place tiles for a selected place, to pick out one found by a search', () => {
+    const selected = {
+      kind: 'place' as const,
+      osm: 'node/60890260',
+      props: {},
+      at: [-75.69, 45.42] as [number, number],
+    }
+    const style = build({ layer: 'comfort', selected })
+    expect(Object.keys(style.sources)).toContain('places')
+    expect(layer(style, 'selected-place').filter).toEqual(['==', ['get', 'osm'], 'node/60890260'])
+    expect(style.layers.find((l) => l.id === 'places-icon')).toBeUndefined()
+  })
+
   it('draws lines below the basemap labels and place markers above them', () => {
     const { layers } = build()
     const firstLabel = layers.findIndex((l) => l.type === 'symbol' && l.source === 'basemap')

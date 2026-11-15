@@ -789,6 +789,25 @@ a {
   border-width: 4px;
 }
 
+/* The search field's magnifier, in the same space as the A and B badges. */
+.place-input-search {
+  flex: none;
+  margin: 0 3px;
+  color: var(--muted);
+}
+
+/* A place found by a search: a dot ringed like the route markers. */
+.found-marker {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--ink);
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    0 2px 6px rgb(22 36 43 / 55%);
+}
+
 .style-picker,
 .param-sliders {
   display: flex;

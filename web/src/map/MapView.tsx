@@ -28,6 +28,7 @@ import { renderStopImage } from './stopImage'
 import {
   buildStyle,
   INTERACTIVE_LAYERS,
+  PLACES_SOURCE,
   REACH_SOURCE,
   ROUTE_LAYERS,
   type Selected,
@@ -46,6 +47,8 @@ const ROUTE_HOVER_RADIUS = 16
 /** The basemap only covers the region, so panning stops a little beyond it. */
 const BOUNDS_MARGIN = 0.05
 const PHONE_LAYOUT = '(max-width: 720px)'
+/** How close the map comes in, at least, to a place found by a search. */
+const FOUND_ZOOM = 17
 
 interface Props {
   state: StyleState
@@ -57,6 +60,8 @@ interface Props {
   popup: ReactNode | null
   /** How far you get, drawn when the style has a reach source. */
   reach: ReachShape | null
+  /** A place picked from a search: marked, and flown to when it changes. */
+  found: LngLat | null
   /** When set, clicks place route points instead of selecting features; places can still be picked. */
   routing: {
     points: RoutePoints
@@ -125,6 +130,7 @@ export function MapView({
   onBikeRoutesChange,
   popup,
   reach,
+  found,
   routing,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
@@ -132,6 +138,7 @@ export function MapView({
   const markers = useRef<(Marker | null)[]>([null, null])
   const hoverMarker = useRef<Marker | null>(null)
   const viaMarkers = useRef<Marker[]>([])
+  const foundMarker = useRef<Marker | null>(null)
   // True while the hover dot is being dragged out into a via point.
   const dragging = useRef(false)
   const profile = useMemo(() => (state.route ? routeProfile(state.route.coords) : []), [state.route])
@@ -270,6 +277,7 @@ export function MapView({
       markers.current = [null, null]
       hoverMarker.current = null
       viaMarkers.current = []
+      foundMarker.current = null
       popupRef.current = null
       styleReady.current = false
       styleWait.current = false
@@ -381,6 +389,52 @@ export function MapView({
     if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: panelPadding(), maxZoom: 17, duration: 600 })
   }, [zoomTo])
 
+  // A place found by a search: a dot marks it, and the map goes there, clear of
+  // the panels. Only a new search moves the map: the dot coming back on return
+  // to exploring leaves it where it is.
+  const flownTo = useRef<LngLat | null>(null)
+  useEffect(() => {
+    const map = mapRef.current
+    foundMarker.current?.remove()
+    foundMarker.current = null
+    if (!map || !found) return
+    const element = document.createElement('div')
+    element.className = 'found-marker'
+    foundMarker.current = new Marker({ element }).setLngLat(found).addTo(map)
+    if (flownTo.current === found) return
+    flownTo.current = found
+    const { top, bottom, left, right } = panelPadding()
+    map.flyTo({
+      center: found,
+      zoom: Math.max(map.getZoom(), FOUND_ZOOM),
+      offset: [(left - right) / 2, (top - bottom) / 2],
+    })
+  }, [found])
+
+  // A searched place that is also one of the map's own gets the map's details
+  // of it (kind, hours, photos) once its tile has loaded.
+  const searched = state.selected?.kind === 'place' && state.selected.searched ? state.selected : null
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !searched?.osm) return
+    const look = () => {
+      if (!map.getSource(PLACES_SOURCE)) return
+      const [feature] = map.querySourceFeatures(PLACES_SOURCE, {
+        sourceLayer: 'places',
+        filter: ['==', ['get', 'osm'], searched.osm],
+      })
+      if (!feature) return
+      map.off('sourcedata', look)
+      const { osm, at, props } = searched
+      latest.current.onSelect({ kind: 'place', osm, at, props: { ...props, ...feature.properties } })
+    }
+    map.on('sourcedata', look)
+    look()
+    return () => {
+      map.off('sourcedata', look)
+    }
+  }, [searched])
+
   // The details popup follows the selection. It is shown only when there is content for it.
   const anchor = popup ? (state.selected?.at ?? null) : null
   const [anchorLng, anchorLat] = anchor ?? [null, null]
@@ -403,12 +457,17 @@ export function MapView({
     popupRef.current.setLngLat([anchorLng, anchorLat]).addTo(map)
 
     // MapLibre keeps the popup inside the map but knows nothing of the side panel; nudge the map if they overlap.
-    const frame = requestAnimationFrame(() => {
+    // While the map is on its way to a place found by a search, wait: nudging now would stop it.
+    const nudge = () => {
       const box = popupRef.current?.getElement()?.getBoundingClientRect()
       const panel = document.querySelector('.sidebar')?.getBoundingClientRect()
       if (box && panel && box.left < panel.right + 12) map.panBy([box.left - panel.right - 12, 0], { duration: 300 })
-    })
-    return () => cancelAnimationFrame(frame)
+    }
+    const frame = requestAnimationFrame(() => (map.isMoving() ? map.once('moveend', nudge) : nudge()))
+    return () => {
+      cancelAnimationFrame(frame)
+      map.off('moveend', nudge)
+    }
   }, [anchorLng, anchorLat, popupElement])
 
   // Via points: drag to move, click to remove.

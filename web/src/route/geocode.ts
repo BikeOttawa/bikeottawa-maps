@@ -5,6 +5,11 @@ import type { LngLat } from './brouter'
 export interface Place {
   label: string
   lngLat: LngLat
+  /** Its name, if it has one, and its address: the label in two parts. */
+  name?: string
+  address?: string
+  /** The OSM object it is, as "node/123", "way/456" or "relation/789". */
+  osm?: string
 }
 
 /** A Photon server, the OpenStreetMap search engine; Komoot's public one unless VITE_GEOCODER_URL says otherwise. */
@@ -18,9 +23,11 @@ export interface PhotonProperties {
   street?: string
   city?: string
   district?: string
+  osm_type?: string
+  osm_id?: number
 }
 
-interface PhotonFeature {
+export interface PhotonFeature {
   geometry: { coordinates: [number, number] }
   properties: PhotonProperties
 }
@@ -29,6 +36,22 @@ interface PhotonFeature {
 export function placeLabel({ name, housenumber, street, city, district }: PhotonProperties): string {
   const address = [housenumber, street].filter(Boolean).join(' ')
   return [name, address, district ?? city].filter((part, i, all) => part && all.indexOf(part) === i).join(', ')
+}
+
+const OSM_TYPES: Record<string, string> = { N: 'node', W: 'way', R: 'relation' }
+
+/** A search result as a place: its label, its two parts and the OSM object it is. */
+export function placeOf({ geometry, properties }: PhotonFeature): Place {
+  const { name, housenumber, street, city, district, osm_type, osm_id } = properties
+  const address = placeLabel({ housenumber, street, city, district })
+  const type = OSM_TYPES[osm_type ?? '']
+  return {
+    label: placeLabel(properties),
+    lngLat: geometry.coordinates,
+    ...(name ? { name } : {}),
+    ...(address && address !== name ? { address } : {}),
+    ...(type && osm_id ? { osm: `${type}/${osm_id}` } : {}),
+  }
 }
 
 /**
@@ -54,7 +77,7 @@ export async function searchPlaces(query: string, lang: Lang, signal?: AbortSign
   if (!res.ok) throw new Error(`Search failed (${res.status})`)
   const { features } = (await res.json()) as { features: PhotonFeature[] }
   return features
-    .map((f) => ({ label: placeLabel(f.properties), lngLat: f.geometry.coordinates }))
+    .map(placeOf)
     .filter((place, i, all) => place.label && all.findIndex((other) => other.label === place.label) === i)
 }
 

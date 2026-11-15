@@ -26,7 +26,14 @@ import { comfortKeyOf, type Route, type RouteHighlight } from '../route/brouter'
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
   | { kind: 'way'; id: number; props: Record<string, unknown>; at: [number, number] }
-  | { kind: 'place'; osm: string; props: Record<string, unknown>; at: [number, number] }
+  | {
+      kind: 'place'
+      osm: string
+      props: Record<string, unknown>
+      at: [number, number]
+      /** Found by a search: the props are the search's until the map finds the place in its own data. */
+      searched?: boolean
+    }
   /** A spot on the collisions layer, by its key (see collisionSpots). */
   | { kind: 'collision'; spot: string; at: [number, number] }
   /**
@@ -499,7 +506,7 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
     },
   ]
   // Each tile set is only in the style, and so only downloaded, while it is shown.
-  return [...(showsWays(state) ? wayLayers : []), ...(showsPlaces(state) ? placeLayers : [])]
+  return [...(showsWays(state) ? wayLayers : []), ...(loadsPlaces(state) ? placeLayers : [])]
 }
 
 /** Street data (comfort, winter) is drawn on those two layers, except under the reach map. */
@@ -510,6 +517,14 @@ function showsWays(state: StyleState): boolean {
 /** Places are drawn on their layer, once at least one kind is ticked (none is, to begin with). */
 function showsPlaces(state: StyleState): boolean {
   return state.layer === 'places' && state.placeKinds.length > 0
+}
+
+/**
+ * The places tile set also loads for a selected place, so one found by a
+ * search is picked out, and its details read, whatever kinds are ticked.
+ */
+function loadsPlaces(state: StyleState): boolean {
+  return showsPlaces(state) || state.selected?.kind === 'place'
 }
 
 /** Street data and places come in tile sets of their own, so each loads only for its layer. */
@@ -660,7 +675,7 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
 function showsBikeLanes(state: StyleState): boolean {
   return Boolean(state.bikeLanes)
 }
-const PLACES_SOURCE = 'places'
+export const PLACES_SOURCE = 'places'
 
 /** Lit streets hand over to the individual lamps between these zooms. */
 const STREETS_UNTIL = 14.5
@@ -959,7 +974,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(state.bikeRoutes && {
         [ROUTES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/routes.pmtiles` },
       }),
-      ...(showsPlaces(state) && {
+      ...(loadsPlaces(state) && {
         [PLACES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/places.pmtiles` },
       }),
       // Loaded only while the night layer is on.

@@ -7,16 +7,17 @@ import type { RoutePoint } from '../route/state'
 interface Props {
   id: string
   label: string
-  /** A and B are the ends; via is a point in between. */
-  marker: 'A' | 'B' | 'via'
+  /** A and B are the ends; via is a point in between; search finds a place on the map. */
+  marker: 'A' | 'B' | 'via' | 'search'
   point: RoutePoint | null
-  onChange: (point: RoutePoint | null) => void
+  /** The search result too, when the point is one. */
+  onChange: (point: RoutePoint | null, place?: Place) => void
 }
 
 const SEARCH_DELAY_MS = 300
 const MIN_QUERY_LENGTH = 3
 
-/** A start or destination field: type to search, or it shows the point picked on the map. */
+/** A start, destination or search field: type to search, or it shows the point picked on the map. */
 export function PlaceInput({ id, label, marker, point, onChange }: Props) {
   const { t, lang } = useI18n()
   // Text being typed; null while the field just mirrors the chosen point.
@@ -54,7 +55,7 @@ export function PlaceInput({ id, label, marker, point, onChange }: Props) {
   }
 
   const pick = (place: Place) => {
-    onChange({ lngLat: place.lngLat, label: place.label })
+    onChange({ lngLat: place.lngLat, label: place.label }, place)
     setQuery(null)
   }
   const shown =
@@ -64,19 +65,42 @@ export function PlaceInput({ id, label, marker, point, onChange }: Props) {
   return (
     <div className="place-input">
       <label htmlFor={id}>
-        <span
-          className={`route-marker inline ${marker === 'A' ? 'start' : marker === 'B' ? 'end' : 'via'}`}
-          aria-hidden="true"
-        >
-          {marker === 'via' ? '' : marker}
-        </span>
+        {marker === 'search' ? (
+          <svg
+            className="place-input-search"
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="M15.5 15.5L21 21" />
+          </svg>
+        ) : (
+          <span
+            className={`route-marker inline ${marker === 'A' ? 'start' : marker === 'B' ? 'end' : 'via'}`}
+            aria-hidden="true"
+          >
+            {marker === 'via' ? '' : marker}
+          </span>
+        )}
         <span className="visually-hidden">{label}</span>
       </label>
       <input
         id={id}
         type="text"
         autoComplete="off"
-        placeholder={noLocation ? t('noLocation') : `${label}${t('colon')}${t('searchPlaceholder')}`}
+        placeholder={
+          noLocation
+            ? t('noLocation')
+            : marker === 'search'
+              ? t('searchMap')
+              : `${label}${t('colon')}${t('searchPlaceholder')}`
+        }
         value={shown}
         onChange={(e) => {
           setQuery(e.target.value)
@@ -114,7 +138,7 @@ export function PlaceInput({ id, label, marker, point, onChange }: Props) {
         </button>
       )}
       {/* An empty field offers where the device is, in the place of the clear button. */}
-      {!point && !query && marker !== 'via' && (
+      {!point && !query && (marker === 'A' || marker === 'B') && (
         <button
           type="button"
           className={`icon-button small ${locating ? 'locating' : ''}`}

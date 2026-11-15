@@ -13,6 +13,7 @@ import { FeatureCard } from './components/FeatureCard'
 import { LayerPicker } from './components/LayerPicker'
 import { Legend } from './components/Legend'
 import { type Mode, ModeSwitch } from './components/ModeSwitch'
+import { PlaceInput } from './components/PlaceInput'
 import { ReachForm } from './components/ReachForm'
 import { formatArea, ReachResult } from './components/ReachResult'
 import { RouteForm } from './components/RouteForm'
@@ -26,7 +27,7 @@ import { MapView } from './map/MapView'
 import type { Selected, StyleState } from './map/style'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import type { LngLat, RouteHighlight } from './route/brouter'
-import { reverseLabel } from './route/geocode'
+import { type Place, reverseLabel } from './route/geocode'
 import { locate } from './route/locate'
 import { DEFAULT_REACH_MINUTES, isReachMinutes, type ReachMinutes, type ReachView, reachCover } from './route/reach'
 import { reachArea } from './route/reachArea'
@@ -301,6 +302,8 @@ export function App() {
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
   const [reachView, setReachView] = useState(storedReachView)
   const [selected, setSelected] = useState<Selected | null>(null)
+  // A place picked from the search while exploring.
+  const [found, setFound] = useState<Place | null>(null)
   // Metres along the route under the pointer, shared by the map and the elevation chart.
   const [routeHover, setRouteHover] = useState<number | null>(null)
   // Legend item picked out on the route: pointed at for now, or pinned by a click.
@@ -427,6 +430,23 @@ export function App() {
     setSelected(null)
     setTopOpen(true)
   }, [])
+
+  // A place picked from the search opens its card; the map finds out more if it is one of its own places.
+  const findPlace = useCallback(
+    (place: Place | null) => {
+      setFound(place)
+      if (place) {
+        const name = place.name ?? place.address ?? place.label
+        const address = place.name ? place.address : undefined
+        const props = { name, ...(address && { address }) }
+        setSelected({ kind: 'place', osm: place.osm ?? '', props, at: place.lngLat, searched: true })
+      } else {
+        // Clearing the search closes its card, not one opened since.
+        setSelected((current) => (current?.kind === 'place' && found && current.at === found.lngLat ? null : current))
+      }
+    },
+    [found],
+  )
 
   const changeCollisions = useCallback(
     (next: CollisionFilters) => {
@@ -737,6 +757,7 @@ export function App() {
         onBikeRoutesChange={changeBikeRoutes}
         routing={mapRouting}
         reach={reachShape}
+        found={routing ? null : (found?.lngLat ?? null)}
       />
       <div className="sidebar">
         <div className={`card topbar ${topOpen ? '' : 'folded'}`} ref={topbar}>
@@ -755,6 +776,15 @@ export function App() {
               {t('switchLangShort')}
             </button>
           </div>
+          {!routing && (
+            <PlaceInput
+              id="search"
+              label={t('search')}
+              marker="search"
+              point={found && { lngLat: found.lngLat, label: found.label }}
+              onChange={(point, place) => findPlace(point && place ? place : null)}
+            />
+          )}
           {!routing ? (
             <LayerPicker active={layer} onChange={changeLayer} />
           ) : !planning && !reaching ? (
