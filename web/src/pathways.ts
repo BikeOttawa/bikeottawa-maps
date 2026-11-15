@@ -3,7 +3,9 @@ import type { ExpressionSpecification, FilterSpecification } from 'maplibre-gl'
 /**
  * The pathways layer: every path bikes are not kept off, coloured by surface or
  * by width, those not yet tagged with either in yellow so they can be mapped.
- * The pipeline groups surfaces (`surface_group`) and reads widths (`width_m`).
+ * The pipeline groups surfaces (`surface_group`), reads widths (`width_m`) and
+ * measures the island each way is part of (`island_m`): all the pathways
+ * joined to it, crossings included, so that short stubs can be left out.
  */
 
 /** Surface groups, smoothest first; unknown is a path whose surface is not tagged. */
@@ -23,6 +25,8 @@ export interface PathwayFilters {
   minWidth: number
   /** Pathways whose width is not tagged stay on the map. */
   unknownWidth: boolean
+  /** Only pathways joined up into at least this much pathway, in metres. */
+  minLength: number
 }
 
 export const DEFAULT_PATHWAY_FILTERS: PathwayFilters = {
@@ -31,6 +35,7 @@ export const DEFAULT_PATHWAY_FILTERS: PathwayFilters = {
   surfaces: SURFACE_IDS,
   minWidth: 0,
   unknownWidth: true,
+  minLength: 300,
 }
 
 /** The width slider, in metres. */
@@ -38,6 +43,9 @@ export const WIDTH_RANGE = { max: 4, step: 0.5 }
 
 /** Width a pathway is drawn at when its width is not tagged. */
 export const UNKNOWN_WIDTH = 1.5
+
+/** The length slider's steps, in metres: short stubs first, then whole neighbourhoods. */
+export const LENGTH_STEPS = [0, 100, 200, 300, 500, 1000, 2000, 5000] as const
 
 /** Widths the colours change at, narrowest first. */
 export const WIDTH_STOPS = [1, 2, 3, 4] as const
@@ -58,16 +66,29 @@ export function pathwayFilter(f: PathwayFilters): FilterSpecification {
     ['has', 'pathway'],
     ['in', surfaceOf, ['literal', [...f.surfaces]]],
     ['case', ['has', 'width_m'], ['>=', ['get', 'width_m'], f.minWidth], f.unknownWidth],
+    // Tiles from before islands were measured keep every pathway.
+    ['>=', ['coalesce', ['get', 'island_m'], Number.MAX_SAFE_INTEGER], f.minLength],
   ]
 }
 
 const isColorBy = (value: string): value is ColorBy => COLOR_BY.includes(value as ColorBy)
 const isSurfaceId = (value: string): value is SurfaceId => SURFACE_IDS.includes(value as SurfaceId)
 
+/** A length as people say it: metres up to a kilometre, then km. */
+export function formatLength(metres: number, locale: string): string {
+  if (metres < 1000) return `${Math.round(metres).toLocaleString(locale)}\u00a0m`
+  return `${(metres / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })}\u00a0km`
+}
+
+/** The step nearest a length, so the slider can show it. */
+export function nearestLength(metres: number): number {
+  return LENGTH_STEPS.reduce((best, step) => (Math.abs(step - metres) < Math.abs(best - metres) ? step : best))
+}
+
 /**
- * In the URL as `pathways=width;paved,gravel;2.5;known;off`: colour, surfaces,
- * least width, `known` to leave out unknown widths and `off` to hide them all,
- * each part left out when it is the default.
+ * In the URL as `pathways=width;paved,gravel;2.5;1000;known;off`: colour,
+ * surfaces, least width, least island length, `known` to leave out unknown
+ * widths and `off` to hide them all, each part left out when it is the default.
  */
 export function formatPathwayFilters(f: PathwayFilters): string | null {
   const d = DEFAULT_PATHWAY_FILTERS
@@ -76,6 +97,7 @@ export function formatPathwayFilters(f: PathwayFilters): string | null {
     f.by === d.by ? '' : f.by,
     allSurfaces ? '' : SURFACE_IDS.filter((s) => f.surfaces.includes(s)).join(',') || 'none',
     f.minWidth === d.minWidth ? '' : String(f.minWidth),
+    f.minLength === d.minLength ? '' : String(f.minLength),
     f.unknownWidth ? '' : 'known',
     f.show ? '' : 'off',
   ]
@@ -84,8 +106,11 @@ export function formatPathwayFilters(f: PathwayFilters): string | null {
 
 export function parsePathwayFilters(text: string | undefined): PathwayFilters {
   const d = DEFAULT_PATHWAY_FILTERS
-  const [byText = '', surfaceText = '', widthText = '', unknownText = '', showText = ''] = (text ?? '').split(';')
+  const [byText = '', surfaceText = '', widthText = '', lengthText = '', unknownText = '', showText = ''] = (
+    text ?? ''
+  ).split(';')
   const width = Number(widthText)
+  const length = Number(lengthText)
   const inRange = widthText !== '' && width >= 0 && width <= WIDTH_RANGE.max
   return {
     show: showText !== 'off',
@@ -93,5 +118,6 @@ export function parsePathwayFilters(text: string | undefined): PathwayFilters {
     surfaces: surfaceText === 'none' ? [] : surfaceText ? surfaceText.split(',').filter(isSurfaceId) : d.surfaces,
     minWidth: inRange ? Math.round(width / WIDTH_RANGE.step) * WIDTH_RANGE.step : d.minWidth,
     unknownWidth: unknownText !== 'known',
+    minLength: lengthText !== '' && length >= 0 ? nearestLength(length) : d.minLength,
   }
 }

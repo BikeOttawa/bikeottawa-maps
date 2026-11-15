@@ -14,17 +14,28 @@ describe('pathway filters', () => {
       surfaces: ['paved', 'unknown'] as const,
       minWidth: 2.5,
       unknownWidth: false,
+      minLength: 1000,
     }
     const text = formatPathwayFilters(filters)
-    expect(text).toBe('width;paved,unknown;2.5;known;off')
+    expect(text).toBe('width;paved,unknown;2.5;1000;known;off')
     expect(parsePathwayFilters(text ?? '')).toEqual(filters)
     expect(parsePathwayFilters('width')).toEqual({ ...DEFAULT_PATHWAY_FILTERS, by: 'width' })
     expect(parsePathwayFilters(';none').surfaces).toEqual([])
+    expect(formatPathwayFilters({ ...DEFAULT_PATHWAY_FILTERS, minLength: 0 })).toBe(';;;0')
+    expect(parsePathwayFilters(';;;0').minLength).toBe(0)
   })
 
   it('ignores what it does not know', () => {
     expect(parsePathwayFilters('colour;asphalt,paved;9')).toEqual({ ...DEFAULT_PATHWAY_FILTERS, surfaces: ['paved'] })
     expect(parsePathwayFilters(';;1.3').minWidth).toBe(1.5)
+    expect(parsePathwayFilters(';;;450').minLength).toBe(500)
+    expect(parsePathwayFilters(';;;far').minLength).toBe(DEFAULT_PATHWAY_FILTERS.minLength)
+  })
+
+  it('leaves out islands shorter than the least length', () => {
+    const filter = JSON.stringify(pathwayFilter({ ...DEFAULT_PATHWAY_FILTERS, minLength: 500 }))
+    expect(filter).toContain('["get","island_m"]')
+    expect(filter).toContain(',500]')
   })
 
   it('keeps unknown widths unless asked not to', () => {

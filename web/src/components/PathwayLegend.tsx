@@ -1,6 +1,15 @@
 import { useI18n } from '../i18n'
 import { type BasemapId, pathwayColors, widthGradient } from '../layers'
-import { COLOR_BY, type PathwayFilters, type PathwayKm, SURFACE_IDS, type SurfaceId, WIDTH_RANGE } from '../pathways'
+import {
+  COLOR_BY,
+  formatLength,
+  LENGTH_STEPS,
+  type PathwayFilters,
+  type PathwayKm,
+  SURFACE_IDS,
+  type SurfaceId,
+  WIDTH_RANGE,
+} from '../pathways'
 
 interface Props {
   filters: PathwayFilters
@@ -34,9 +43,10 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
   const allColors = bySurface
     ? `linear-gradient(to right, ${Object.values(colors.surface).join(', ')})`
     : widthGradient(basemap)
-  const width = filters.minWidth
-    ? t('pathways.minWidth').replace('{width}', metres(filters.minWidth))
-    : t('pathways.anyWidth')
+  const atLeast = (value: number, text: string) =>
+    value ? t('pathways.atLeast').replace('{value}', text) : t('pathways.any')
+  const width = atLeast(filters.minWidth, metres(filters.minWidth))
+  const length = atLeast(filters.minLength, formatLength(filters.minLength, locale))
 
   return (
     <div className="pathway-legend">
@@ -82,7 +92,7 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           {width}
         </legend>
         <input
-          className="pathway-width"
+          className="pathway-range"
           type="range"
           min={0}
           max={WIDTH_RANGE.max}
@@ -112,6 +122,25 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           <span>{t('pathways.unknownWidth')}</span>
           {distance(km?.unknownWidth)}
         </label>
+      </fieldset>
+      <fieldset className="pathway-group" disabled={!filters.show}>
+        <legend>
+          {t('pathways.length')}
+          {t('colon')}
+          {length}
+        </legend>
+        <input
+          className="pathway-range"
+          type="range"
+          min={0}
+          max={LENGTH_STEPS.length - 1}
+          step={1}
+          value={Math.max(0, LENGTH_STEPS.indexOf(filters.minLength as (typeof LENGTH_STEPS)[number]))}
+          aria-label={t('pathways.length')}
+          aria-valuetext={length}
+          onChange={(e) => onChange({ ...filters, minLength: LENGTH_STEPS[Number(e.target.value)] })}
+        />
+        <span className="pathway-note">{t('pathways.lengthNote')}</span>
       </fieldset>
       <p className="footnote">{t('pathways.hint')}</p>
     </div>

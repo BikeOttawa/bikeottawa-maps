@@ -8,7 +8,17 @@ import { once } from 'node:events'
 import { createReadStream, createWriteStream, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
-import { bikewayProps, centreOf, classifyPlace, classifyWay, isStreetLamp, middleOf, parseOsmId } from './classify.mjs'
+import {
+  bikewayProps,
+  centreOf,
+  classifyPlace,
+  classifyWay,
+  isPathway,
+  isStreetLamp,
+  middleOf,
+  parseOsmId,
+} from './classify.mjs'
+import { isCrossing, islandIndex } from './islands.mjs'
 import { isLit, lampIndex } from './lamps.mjs'
 import { ROUTE_LEVELS, routeIndex } from './routes.mjs'
 import { sidepathIndex } from './sidepaths.mjs'
@@ -57,17 +67,25 @@ const LAMPS_MINZOOM = 12
 const lines = () => createInterface({ input: createReadStream(input), crlfDelay: Infinity })
 
 // First pass: where the street lamps are, so that ways can be told whether they
-// are lit; and the cycleways, so that streets can be told they have one alongside.
+// are lit; the cycleways, so that streets can be told they have one alongside;
+// and which pathways join up into islands, and how long each island is.
 const lampPositions = []
 const cycleways = []
+const islands = islandIndex()
+const PATH_LINE = /"highway":"(?:path|cycleway|footway)"/
 for await (const line of lines()) {
   const lamp = line.includes('"street_lamp"')
-  if (!lamp && !line.includes('"cycleway"')) continue
+  if (!lamp && !line.includes('"cycleway"') && !PATH_LINE.test(line)) continue
   const feature = JSON.parse(line)
-  if (lamp && feature.geometry.type === 'Point' && isStreetLamp(feature.properties))
+  const tags = feature.properties
+  if (lamp && feature.geometry.type === 'Point' && isStreetLamp(tags)) {
     lampPositions.push(feature.geometry.coordinates)
-  else if (feature.properties.highway === 'cycleway' && feature.geometry.type === 'LineString')
-    cycleways.push(feature.geometry.coordinates)
+  } else if (feature.geometry.type === 'LineString') {
+    const coords = feature.geometry.coordinates
+    if (tags.highway === 'cycleway') cycleways.push(coords)
+    if (isPathway(tags) && classifyWay(tags)?.props.pathway) islands.add(coords, metres(coords))
+    else if (isCrossing(tags)) islands.add(coords, 0)
+  }
 }
 const { litShare } = lampIndex(lampPositions)
 const hasSidepath = sidepathIndex(cycleways)
@@ -113,6 +131,7 @@ for await (const line of lines()) {
     counts.ways++
     counts.byLts[way.props.lts]++
     if (way.props.pathway) {
+      way.props.island_m = Math.round(islands.length(feature.geometry.coordinates))
       const length = metres(feature.geometry.coordinates)
       pathwayMetres.all += length
       pathwayMetres.surface[way.props.surface_group ?? 'unknown'] += length

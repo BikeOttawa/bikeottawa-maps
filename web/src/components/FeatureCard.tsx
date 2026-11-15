@@ -3,7 +3,7 @@ import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
 import { bikewayColors, isBikewayId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
 import type { Selected } from '../map/style'
-import { type KnownSurfaceId, WIDTH_STOPS } from '../pathways'
+import { formatLength, type KnownSurfaceId, WIDTH_STOPS } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
 import { isPlaceKind } from '../places'
 import { wayType } from '../wayType'
@@ -150,6 +150,10 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
       value: width === null ? t('unknown') : `${width.toLocaleString(locale, { maximumFractionDigits: 2 })}\u00a0m`,
       color: width === null ? PATHWAY_COLORS.unknown : widthColor(width),
     })
+    // How much pathway it joins up with, which the length filter goes by.
+    if (typeof props.island_m === 'number') {
+      facts.push({ label: t('fact.island'), value: formatLength(props.island_m, locale) })
+    }
   }
   for (const key of selected.kind === 'way' ? WAY_FACTS : PLACE_FACTS) {
     if (props[key] === undefined || (pathway && (key === 'surface' || key === 'width'))) continue
