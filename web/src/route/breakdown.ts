@@ -143,9 +143,11 @@ const LOOKS: Record<RouteView, Record<string, PartLook>> = {
   },
   bikeway: {
     path: { color: bikeways.dedicated, label: 'bikewayPart.path' },
-    lane: { color: bikeways.lane, label: 'bikeway.lane', pattern: 'dashed' },
-    shoulder: { color: bikeways.shoulder, label: 'bikeway.shoulder' },
-    traffic: { color: '#56636B', label: 'bikewayPart.traffic' },
+    // Green to orange, from apart from cars to among them; shoulders, often
+    // beside fast traffic, in a sand of their own.
+    lane: { color: '#F2C200', label: 'bikeway.lane', pattern: 'dashed' },
+    shoulder: { color: '#BFA05A', label: 'bikeway.shoulder' },
+    traffic: { color: '#E8701A', label: 'bikewayPart.traffic' },
     walk: { color: NO_BIKES_COLOR, label: 'walk' },
   },
   surface: {

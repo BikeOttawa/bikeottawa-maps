@@ -1,8 +1,9 @@
 import type { FeatureCollection } from 'geojson'
 import { describe, expect, it } from 'vitest'
-import { BASEMAP_IDS, bikewayColors, LAYER_IDS, LTS_COLORS } from '../layers'
+import { BASEMAP_IDS, LAYER_IDS, LTS_COLORS } from '../layers'
 import { DEFAULT_PATHWAY_FILTERS } from '../pathways'
 import { PLACE_KINDS } from '../places'
+import { partLook } from '../route/breakdown'
 import { buildStyle, INTERACTIVE_LAYERS, type StyleState } from './style'
 
 const state: StyleState = {
@@ -163,7 +164,7 @@ describe('buildStyle', () => {
     expect(source.data.features[0].properties).toEqual({ part: 'lts3', color: LTS_COLORS[2] })
     // Coloured by what the route card shows.
     const byBikeway = build({ route, routeView: 'bikeway' }).sources.route as { data: FeatureCollection }
-    expect(byBikeway.data.features[0].properties).toEqual({ part: 'lane', color: bikewayColors('light').lane })
+    expect(byBikeway.data.features[0].properties).toEqual({ part: 'lane', color: partLook('bikeway', 'lane').color })
     expect((build().sources.route as { data: FeatureCollection }).data.features).toHaveLength(0)
     const stops = build({ route }).sources['route-stops'] as { data: FeatureCollection }
     expect(stops.data.features.map((f) => f.properties)).toEqual([{ kind: 'light' }])
