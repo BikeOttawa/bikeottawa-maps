@@ -12,12 +12,13 @@ export const THEFT_YEARS = { first: 2018, last: 2025, missing: [] as readonly nu
 
 /**
  * What each theft is sorted by: where the bike was taken from, the time of
- * day, the kind of bike and its value. Value groups start at their lowest
- * value in dollars.
+ * day, the season, the kind of bike and its value. Value groups start at
+ * their lowest value in dollars.
  */
 export const THEFT_GROUPS = {
   where: ['outdoors', 'home', 'building', 'other'],
   time: ['morning', 'afternoon', 'evening', 'night'],
+  season: ['winter', 'spring', 'summer', 'fall'],
   type: ['mountain', 'hybrid', 'road', 'city', 'kids', 'other'],
   value: ['0', '500', '1000', '2500', 'unknown'],
 } as const
@@ -45,7 +46,24 @@ export interface TheftProps {
 }
 
 /** Which group of a set a theft falls in. */
+/** The season of each month, January first: winter is December to February. */
+const SEASON_OF_MONTH = [
+  'winter',
+  'winter',
+  'spring',
+  'spring',
+  'spring',
+  'summer',
+  'summer',
+  'summer',
+  'fall',
+  'fall',
+  'fall',
+  'winter',
+]
+
 export function theftGroupOf(p: TheftProps, id: TheftGroupId): string {
+  if (id === 'season') return SEASON_OF_MONTH[Number(p.date.slice(5, 7)) - 1] ?? 'other'
   if (id === 'value') {
     const v = p.value ?? 0
     return v <= 0 ? 'unknown' : v >= 2500 ? '2500' : v >= 1000 ? '1000' : v >= 500 ? '500' : '0'

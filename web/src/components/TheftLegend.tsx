@@ -31,8 +31,12 @@ interface Props {
 /** Values are ordered, so one purple from light to dark; the other sets take the categorical hues. */
 const VALUE_STEPS = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
 
+/** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
+const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }
+
 function colorOf(id: TheftGroupId, group: string): string {
   if (group === 'other' || group === 'unknown') return OTHER
+  if (id === 'season') return SEASON_HUES[group] ?? OTHER
   const index = (THEFT_GROUPS[id] as readonly string[]).indexOf(group)
   return id === 'value' ? VALUE_STEPS[index] : HUES[index]
 }
