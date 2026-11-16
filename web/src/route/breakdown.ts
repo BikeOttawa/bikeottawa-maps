@@ -48,12 +48,16 @@ function litPart(tags: Record<string, string>): string {
   return LIT.has(tags.lit) ? 'yes' : tags.lit === 'no' ? 'no' : 'unknown'
 }
 
-/** Streets and their sidewalks are plowed; a path as tagged, an unpaved one taken not to be. */
+/**
+ * As tagged; otherwise paved streets and their sidewalks are plowed, unpaved
+ * ones unknown, and paths as the Winter layer has them: unpaved not plowed.
+ */
 function winterPart(tags: Record<string, string>): string {
   const service = tags.winter_service
   if (service === 'yes' || service === 'no') return service
-  if (alongStreet(tags)) return 'yes'
-  return ['stone_dust', 'gravel', 'dirt'].includes(surfacePart(tags)) ? 'no' : 'unknown'
+  const paved = surfacePart(tags) === 'paved'
+  if (alongStreet(tags)) return paved ? 'yes' : 'unknown'
+  return paved || surfacePart(tags) === 'unknown' ? 'unknown' : 'no'
 }
 
 /** Best first. */

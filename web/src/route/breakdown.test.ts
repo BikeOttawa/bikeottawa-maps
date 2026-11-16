@@ -56,13 +56,18 @@ describe('route breakdown', () => {
     expect([lit('yes'), lit('24/7'), lit('no'), lit()]).toEqual(['yes', 'yes', 'no', 'unknown'])
   })
 
-  it('takes streets and sidewalks to be plowed, and paths as tagged', () => {
+  it('takes paved streets and sidewalks to be plowed, unpaved paths not, and the rest as tagged', () => {
     const winter = (tags: Record<string, string>) => partOf(stretch(tags), 'winter')
     expect(winter({ highway: 'secondary' })).toBe('yes')
+    expect(winter({ highway: 'residential', surface: 'asphalt' })).toBe('yes')
     expect(winter({ highway: 'footway', footway: 'sidewalk' })).toBe('yes')
+    expect(winter({ highway: 'unclassified', surface: 'gravel' })).toBe('unknown')
+    expect(winter({ highway: 'residential', surface: 'dirt', winter_service: 'yes' })).toBe('yes')
     expect(winter({ highway: 'cycleway', winter_service: 'yes' })).toBe('yes')
     expect(winter({ highway: 'cycleway', winter_service: 'no' })).toBe('no')
     expect(winter({ highway: 'path', surface: 'gravel' })).toBe('no')
+    expect(winter({ highway: 'track', surface: 'dirt' })).toBe('no')
+    expect(winter({ highway: 'cycleway', surface: 'asphalt' })).toBe('unknown')
     expect(winter({ highway: 'cycleway' })).toBe('unknown')
   })
 
