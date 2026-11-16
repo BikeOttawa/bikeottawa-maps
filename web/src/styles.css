@@ -967,6 +967,19 @@ a {
   gap: 6px;
 }
 
+/* Five views in a row: each as wide as its name needs, the rest shared out. */
+.route-views {
+  flex: none;
+  gap: 2px;
+}
+
+.mode-switch.route-views button {
+  flex: 1 1 auto;
+  min-height: 36px;
+  padding: 0 4px;
+  font-size: 13px;
+}
+
 .comfort-bar {
   display: flex;
   gap: 2px;
