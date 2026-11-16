@@ -1684,10 +1684,85 @@ a {
   font-size: 14px;
 }
 
+/*
+ * Collisions month by month, each year over its place on the slider below.
+ * The end years hang half a year past the handles, so the timeline and the
+ * slider both come in by (W - 144px) / 16: half a year's band less half a
+ * handle (18px), with seven years between the ends.
+ */
+.timeline {
+  position: relative;
+  height: 58px;
+  margin: 0 calc((100% - 144px) / 16);
+}
+
+.timeline-year {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.timeline-year:hover {
+  background: #f2f4f4;
+}
+
+.timeline-months {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  gap: 1px;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-month {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.timeline-bar {
+  width: 100%;
+  border-radius: 1px 1px 0 0;
+  background: var(--accent);
+}
+
+.timeline-year.out .timeline-bar {
+  background: #c5cdd0;
+}
+
+/* The year the city never published. */
+.timeline-year.missing {
+  cursor: default;
+}
+
+.timeline-year.missing .timeline-months {
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, #e3e7e8 0 2px, transparent 2px 5px);
+}
+
+.timeline-label {
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Two range inputs on one track; only their handles take the pointer. */
 .year-range-track {
   position: relative;
   height: 24px;
+  margin: 0 calc((100% - 144px) / 16);
 }
 
 .year-range-track::before,

@@ -57,6 +57,10 @@ const en = {
   'crash.minCount': 'Spots with at least {count} collisions',
   'crash.source': 'City of Ottawa open data, {first} to {last}. The city has not published 2023.',
   'crash.conditions': 'Circumstances',
+  'crash.timeline': 'Collisions month by month',
+  'crash.notPublished': 'Not published by the city',
+  'crash.onlyYear': 'Show {year} only',
+  'crash.everyYear': 'Show every year',
   'crash.injuryExpected': '{count}; {expected} if they ended like the rest',
   'crash.conditionsHint':
     'Tap a line to show only those collisions. The thin mark is how it stands before any injury or circumstance is picked.',
@@ -459,6 +463,10 @@ const fr: Record<keyof typeof en, string> = {
   'crash.minCount': 'Endroits avec au moins {count} collisions',
   'crash.source': 'Données ouvertes de la Ville d’Ottawa, de {first} à {last}. La Ville n’a pas publié 2023.',
   'crash.conditions': 'Circonstances',
+  'crash.timeline': 'Collisions mois par mois',
+  'crash.notPublished': 'Non publiée par la Ville',
+  'crash.onlyYear': 'Ne montrer que {year}',
+  'crash.everyYear': 'Montrer toutes les années',
   'crash.injuryExpected': '{count}; {expected} s’il en allait comme pour les autres',
   'crash.conditionsHint':
     'Touchez une ligne pour ne montrer que ces collisions. Le trait fin : où elle en est avant tout choix de blessure ou de circonstance.',

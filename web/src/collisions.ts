@@ -136,6 +136,18 @@ export function collisionFilter(f: CollisionFilters): ExpressionSpecification {
   ]
 }
 
+/** Collisions by month (`2019-06`), under every filter but the years, so the years left out still show. */
+export function countByMonth(all: readonly CollisionProps[], f: CollisionFilters): Map<string, number> {
+  const everyYear = { ...f, from: COLLISION_YEARS.first, to: COLLISION_YEARS.last }
+  const counts = new Map<string, number>()
+  for (const p of all) {
+    if (!matchesCollision(p, everyYear)) continue
+    const month = p.date.slice(0, 7)
+    counts.set(month, (counts.get(month) ?? 0) + 1)
+  }
+  return counts
+}
+
 /** How many collisions at each injury level pass the filters (ignoring the severity filter). */
 export function countBySeverity(all: readonly CollisionProps[], f: CollisionFilters): Record<Severity, number> {
   const counts = { none: 0, minimal: 0, minor: 0, major: 0, fatal: 0 }

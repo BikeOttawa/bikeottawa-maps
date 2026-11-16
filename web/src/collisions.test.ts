@@ -5,6 +5,7 @@ import {
   collisionSpots,
   conditionCounts,
   conditionOf,
+  countByMonth,
   countBySeverity,
   DEFAULT_COLLISION_FILTERS,
   formatCollisionFilters,
@@ -83,6 +84,14 @@ describe('circumstances', () => {
     expect(conditionOf(crash({ impact: 'SMV other' }), 'impact')).toBe('single')
     expect(conditionOf(crash({ control: 'Roundabout' }), 'control')).toBe('other')
     expect(conditionOf(crash({}), 'light')).toBe('other')
+  })
+  it('counts by month across every year, whatever years are picked', () => {
+    const f = { ...DEFAULT_COLLISION_FILTERS, from: 2020, to: 2020 }
+    const months = countByMonth(
+      [crash({ date: '2020-06-01' }), crash({ date: '2020-06-30' }), crash({ date: '2018-01-15', year: 2018 })],
+      f,
+    )
+    expect(Object.fromEntries(months)).toEqual({ '2020-06': 2, '2018-01': 1 })
   })
   it('filters by the groups picked, and counts each circumstance without its own pick', () => {
     const dark = crash({ light: 'Dark', weather: 'Rain' })
