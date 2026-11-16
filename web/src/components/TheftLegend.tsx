@@ -35,6 +35,8 @@ const VALUE_HUES = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
 function colorOf(id: TheftGroupId, group: string): string {
   if (group === 'other' || group === 'unknown') return OTHER
   if (id === 'season') return SEASON_HUES[group] ?? OTHER
+  // Found again green, still missing orange.
+  if (id === 'recovered') return group === 'yes' ? HUES[2] : HUES[1]
   const index = (THEFT_GROUPS[id] as readonly string[]).indexOf(group)
   return id === 'value' ? VALUE_HUES[index] : HUES[index]
 }

@@ -30,6 +30,8 @@ describe('thefts', () => {
     expect(theftGroupOf(theft({}), 'value')).toBe('unknown')
     expect(theftGroupOf(theft({ where: 'home' }), 'where')).toBe('home')
     expect(theftGroupOf(theft({ type: 'unicycle' }), 'type')).toBe('other')
+    expect(theftGroupOf(theft({ recovered: true }), 'recovered')).toBe('yes')
+    expect(theftGroupOf(theft({}), 'recovered')).toBe('no')
     // Winter runs from December to February.
     const season = (date: string) => theftGroupOf(theft({ date }), 'season')
     expect(['2020-12-31', '2021-02-28', '2021-03-01', '2021-08-31', '2021-09-01'].map(season)).toEqual([
@@ -69,10 +71,10 @@ describe('thefts', () => {
       to: 2024,
       minCount: 5,
       minValue: 5000,
-      groups: { where: ['outdoors'], season: ['summer', 'fall'], value: ['1000', '2500'] },
+      groups: { where: ['outdoors'], season: ['summer', 'fall'], value: ['1000', '2500'], recovered: ['yes'] },
     }
     const text = formatTheftFilters(f)
-    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500;5000')
+    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500.recovered:yes;5000')
     expect(parseTheftFilters(text ?? '')).toEqual(f)
     expect(formatTheftFilters(DEFAULT_THEFT_FILTERS)).toBeNull()
     expect(parseTheftFilters('1990-2050;0;where:moon;1234')).toEqual(DEFAULT_THEFT_FILTERS)

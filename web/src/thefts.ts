@@ -13,8 +13,8 @@ export const THEFT_YEARS = { first: 2018, last: 2025, missing: [] as readonly nu
 
 /**
  * What each theft is sorted by: where the bike was taken from, the time of
- * day, the season, the kind of bike and its value. Value groups start at
- * their lowest value in dollars.
+ * day, the season, the kind of bike, its value, and whether it was found
+ * again. Value groups start at their lowest value in dollars.
  */
 export const THEFT_GROUPS = {
   where: ['outdoors', 'home', 'building', 'other'],
@@ -22,6 +22,7 @@ export const THEFT_GROUPS = {
   season: SEASONS,
   type: ['mountain', 'hybrid', 'road', 'city', 'kids', 'other'],
   value: ['0', '500', '1000', '2500', 'unknown'],
+  recovered: ['yes', 'no'],
 } as const
 export type TheftGroupId = keyof typeof THEFT_GROUPS
 export const THEFT_GROUP_IDS = Object.keys(THEFT_GROUPS) as TheftGroupId[]
@@ -52,6 +53,7 @@ export interface TheftProps {
 /** Which group of a set a theft falls in. */
 export function theftGroupOf(p: TheftProps, id: TheftGroupId): string {
   if (id === 'season') return seasonOf(p.date)
+  if (id === 'recovered') return p.recovered ? 'yes' : 'no'
   if (id === 'value') {
     const v = p.value ?? 0
     return v <= 0 ? 'unknown' : v >= 2500 ? '2500' : v >= 1000 ? '1000' : v >= 500 ? '500' : '0'
