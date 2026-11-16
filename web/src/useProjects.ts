@@ -4,13 +4,18 @@ import type { ConstructionProps } from './construction'
 
 /**
  * The City's construction projects, for the projects legend's counts: the file
- * the map shows, loaded the first time the layer is on and kept after that.
- * Null until it arrives, or when the tiles build could not fetch it.
+ * the map shows, loaded again each time the layer is turned on, as the map
+ * loads it, so the two never count from different nights' files. Null until it
+ * arrives, or when the tiles build could not fetch it.
  */
 export function useProjects(enabled: boolean): readonly ConstructionProps[] | null {
   const [projects, setProjects] = useState<readonly ConstructionProps[] | null>(null)
   useEffect(() => {
-    if (!enabled || projects) return
+    if (!enabled) {
+      setProjects(null)
+      return
+    }
+    if (projects) return
     const controller = new AbortController()
     fetch(`${ASSETS_BASE}/tiles/construction.geojson`, { signal: controller.signal })
       .then((res) => res.json())
