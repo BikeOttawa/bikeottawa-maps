@@ -1825,7 +1825,7 @@ a {
   background: none;
 }
 
-/* Thefts: the dollars under the value slider's stops, and what grey means. */
+/* Thefts: the dollars under the value slider's stops. */
 .value-ticks {
   position: relative;
   height: 14px;
@@ -1837,20 +1837,6 @@ a {
   position: absolute;
   transform: translateX(-50%);
   white-space: nowrap;
-}
-
-.value-none {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-}
-
-.value-none-dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
 }
 
 .collision-total {

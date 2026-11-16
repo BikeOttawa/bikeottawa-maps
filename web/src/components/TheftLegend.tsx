@@ -98,7 +98,7 @@ function MinValueSlider({
 }) {
   const { t, lang } = useI18n()
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
-  const { values, noValue } = theftColors(basemap)
+  const { values } = theftColors(basemap)
   const index = Math.max(0, (VALUE_STOPS as readonly number[]).indexOf(value))
   const last = VALUE_STOPS.length - 1
   // Where a stop's knob centre sits along the track: the knob is 18px wide.
@@ -141,12 +141,6 @@ function MinValueSlider({
           </span>
         ))}
       </span>
-      {value === 0 && (
-        <span className="value-none">
-          <span className="value-none-dot" style={{ background: noValue }} />
-          {t('theft.noValue')}
-        </span>
-      )}
     </label>
   )
 }
