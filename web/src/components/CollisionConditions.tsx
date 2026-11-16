@@ -13,7 +13,7 @@ import {
 } from '../collisions'
 import { type MessageKey, useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
-import { GroupRow, HUES, type Line, Lines, OTHER, sum, toggled } from './GroupBars'
+import { GroupRow, HUES, type Line, Lines, OTHER, SEASON_HUES, sum, toggled } from './GroupBars'
 
 /**
  * The collisions shown, split by injury and by circumstance, as filters: a
@@ -25,10 +25,18 @@ import { GroupRow, HUES, type Line, Lines, OTHER, sum, toggled } from './GroupBa
  */
 
 const colorOf = (id: ConditionId, group: string) =>
-  group === 'other' ? OTHER : HUES[(CONDITIONS[id] as readonly string[]).indexOf(group)]
+  group === 'other'
+    ? OTHER
+    : id === 'season'
+      ? (SEASON_HUES[group] ?? OTHER)
+      : HUES[(CONDITIONS[id] as readonly string[]).indexOf(group)]
 
 const groupLabel = (id: ConditionId, group: string) =>
-  (group === 'other' ? 'condition.other' : `condition.${id}.${group}`) as MessageKey
+  (group === 'other'
+    ? 'condition.other'
+    : id === 'season'
+      ? `season.${group}`
+      : `condition.${id}.${group}`) as MessageKey
 
 /**
  * Collisions by worst injury, worst first, in the map's colours. Picking some

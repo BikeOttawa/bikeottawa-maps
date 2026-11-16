@@ -1,5 +1,6 @@
 import type { FeatureCollection, Point } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
+import { SEASONS, seasonOf } from './seasons'
 
 /**
  * Traffic collisions involving cyclists or pedestrians, from the City of
@@ -19,10 +20,11 @@ export const COLLISION_YEARS = { first: 2017, last: 2024, missing: [2023] } as c
 
 /**
  * The circumstances recorded for each collision, each sorted into a few
- * groups; the city's rarer values go to `other`.
+ * groups; the city's rarer values go to `other`. The season comes from the date.
  */
 export const CONDITIONS = {
   light: ['day', 'dark', 'dusk', 'dawn', 'other'],
+  season: SEASONS,
   weather: ['clear', 'rain', 'snow', 'other'],
   surface: ['dry', 'wet', 'snow', 'other'],
   impact: ['angle', 'turning', 'sideswipe', 'rear', 'single', 'other'],
@@ -32,7 +34,7 @@ export type ConditionId = keyof typeof CONDITIONS
 export const CONDITION_IDS = Object.keys(CONDITIONS) as ConditionId[]
 
 /** The city's values, by group. */
-const CONDITION_OF: Record<ConditionId, Record<string, string>> = {
+const CONDITION_OF: Record<Exclude<ConditionId, 'season'>, Record<string, string>> = {
   light: { Daylight: 'day', Dark: 'dark', Dusk: 'dusk', Dawn: 'dawn' },
   weather: { Clear: 'clear', Rain: 'rain', Snow: 'snow', 'Freezing Rain': 'snow', 'Drifting Snow': 'snow' },
   surface: { Dry: 'dry', Wet: 'wet', 'Loose snow': 'snow', Slush: 'snow', Ice: 'snow', 'Packed snow': 'snow' },
@@ -49,6 +51,7 @@ const CONDITION_OF: Record<ConditionId, Record<string, string>> = {
 
 /** Which group of a circumstance a collision falls in. */
 export function conditionOf(p: CollisionProps, id: ConditionId): string {
+  if (id === 'season') return seasonOf(p.date)
   return CONDITION_OF[id][p[id] ?? ''] ?? 'other'
 }
 

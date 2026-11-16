@@ -56,7 +56,7 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 
 - cyclists or pedestrians;
 - years, on a slider with a month-by-month timeline above it (clicking a year shows that year alone);
-- worst injury and circumstances (light, weather, road, impact, traffic control), as bars that each pick their group. Once something else is picked, a tick on each bar marks the group as it was before, so the pick shows how those collisions differ;
+- worst injury and circumstances (light, time of year, weather, road, impact, traffic control), as bars that each pick their group. Once something else is picked, a tick on each bar marks the group as it was before, so the pick shows how those collisions differ;
 - the fewest collisions a spot needs to stay on the map.
 
 The data is kept in the repository as `web/public/data/collisions.geojson`, about 3,500 points. The city publishes a new year each summer; `npm run collisions` downloads it again.

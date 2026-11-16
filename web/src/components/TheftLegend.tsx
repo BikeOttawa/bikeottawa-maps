@@ -13,7 +13,7 @@ import {
   theftGroupCounts,
   theftsByMonth,
 } from '../thefts'
-import { GroupRow, HUES, OTHER } from './GroupBars'
+import { GroupRow, HUES, OTHER, SEASON_HUES } from './GroupBars'
 import { MinCountSlider, YearRange } from './YearRange'
 
 interface Props {
@@ -31,9 +31,6 @@ interface Props {
 /** Values are ordered, so one purple from light to dark; the other sets take the categorical hues. */
 const VALUE_STEPS = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
 
-/** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
-const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }
-
 function colorOf(id: TheftGroupId, group: string): string {
   if (group === 'other' || group === 'unknown') return OTHER
   if (id === 'season') return SEASON_HUES[group] ?? OTHER
@@ -44,6 +41,7 @@ function colorOf(id: TheftGroupId, group: string): string {
 function labelKey(id: TheftGroupId, group: string): MessageKey {
   if (group === 'other') return 'condition.other'
   if (group === 'unknown') return 'unknown'
+  if (id === 'season') return `season.${group}` as MessageKey
   return `theft.${id}.${group}` as MessageKey
 }
 

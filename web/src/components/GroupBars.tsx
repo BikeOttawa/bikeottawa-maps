@@ -11,6 +11,9 @@ import { useI18n } from '../i18n'
 export const HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'] as const
 export const OTHER = '#9AA1A6'
 
+/** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
+export const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }
+
 export const sum = (counts: { values(): Iterable<number> }) => [...counts.values()].reduce((a, b) => a + b, 0)
 
 export function percent(share: number): string {

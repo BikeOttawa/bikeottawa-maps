@@ -56,10 +56,10 @@ describe('collision filters in the URL', () => {
       to: 2024,
       severities: ['major', 'fatal'] as const,
       minCount: 5,
-      conditions: { light: ['dark', 'dusk'], impact: ['angle'] },
+      conditions: { light: ['dark', 'dusk'], season: ['winter'], impact: ['angle'] },
     }
     const text = formatCollisionFilters(f)
-    expect(text).toBe('bike,foot;2019-2024;major,fatal;5;light:dark,dusk.impact:angle')
+    expect(text).toBe('bike,foot;2019-2024;major,fatal;5;light:dark,dusk.season:winter.impact:angle')
     expect(parseCollisionFilters(text ?? undefined)).toEqual(f)
   })
   it('ignores junk', () => {
@@ -84,6 +84,12 @@ describe('circumstances', () => {
     expect(conditionOf(crash({ impact: 'SMV other' }), 'impact')).toBe('single')
     expect(conditionOf(crash({ control: 'Roundabout' }), 'control')).toBe('other')
     expect(conditionOf(crash({}), 'light')).toBe('other')
+  })
+
+  it('takes the season from the date, winter from December', () => {
+    expect(conditionOf(crash({ date: '2022-12-15' }), 'season')).toBe('winter')
+    expect(conditionOf(crash({ date: '2022-03-01' }), 'season')).toBe('spring')
+    expect(conditionOf(crash({ date: '2022-11-30' }), 'season')).toBe('fall')
   })
   it('counts by month across every year, whatever years are picked', () => {
     const f = { ...DEFAULT_COLLISION_FILTERS, from: 2020, to: 2020 }
