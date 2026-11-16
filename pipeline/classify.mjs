@@ -1,5 +1,8 @@
 // Turns raw OSM tags into the small set of properties the map tiles carry.
 import stressmodel from 'stressmodel/stressmodel.js'
+// Surfaces by how they ride, smoothest first; other values count as unknown. The
+// web app groups route surfaces with the same file.
+import SURFACE_GROUPS from './surface-groups.json' with { type: 'json' }
 
 const PATH_HIGHWAYS = new Set(['path', 'footway', 'cycleway'])
 const MAJOR_HIGHWAYS = new Set(['trunk', 'primary', 'secondary', 'tertiary'])
@@ -157,45 +160,6 @@ export function isPathway(tags) {
   return tags.highway === 'footway' && LET_IN.has(tags.bicycle)
 }
 
-/** Surfaces by how they ride, smoothest first. Other values count as unknown. */
-const SURFACE_GROUPS = {
-  paved: [
-    'asphalt',
-    'concrete',
-    'concrete:plates',
-    'concrete:lanes',
-    'paved',
-    'paving_stones',
-    'sett',
-    'bricks',
-    'brick',
-    'cobblestone',
-    'unhewn_cobblestone',
-    'chipseal',
-    'metal',
-    'wood',
-    'rubber',
-    'tartan',
-  ],
-  stone_dust: ['fine_gravel', 'compacted', 'stone_dust'],
-  gravel: ['gravel', 'unpaved', 'pebblestone', 'crushed_stone'],
-  dirt: [
-    'ground',
-    'dirt',
-    'earth',
-    'mud',
-    'sand',
-    'grass',
-    'grass_paver',
-    'woodchips',
-    'rock',
-    'rocks',
-    'clay',
-    'dirt/sand',
-    'snow',
-    'ice',
-  ],
-}
 const SURFACE_GROUP_OF = new Map(
   Object.entries(SURFACE_GROUPS).flatMap(([group, values]) => values.map((value) => [value, group])),
 )

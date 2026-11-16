@@ -13,10 +13,10 @@ import {
 } from '../layers'
 import type { PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
-import { COMFORT_KEYS, distanceByComfort, type Route } from '../route/brouter'
+import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
+import type { Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
 import { PlaceIcon } from './PlaceIcon'
-import { COMFORT } from './RouteResult'
 
 /** A bar of coloured parts, as wide as the line it is on. */
 function Bar({ parts }: { parts: [color: string, size: number][] }) {
@@ -128,14 +128,13 @@ export function LayerPeek({
   return placeKinds.map((kind) => <PlaceIcon key={kind} kind={kind} />)
 }
 
-/** How the route splits by comfort, as a thin bar. */
-export function RoutePeek({ route, travel }: { route: Route; travel: Travel }): ReactNode {
+/** How the route splits by what the route card shows, as a thin bar. */
+export function RoutePeek({ route, travel, view }: { route: Route; travel: Travel; view: RouteView }): ReactNode {
   if (travel !== 'bike') return null
-  const totals = distanceByComfort(route)
-  const parts = COMFORT_KEYS.filter((key) => totals[key] > 0).map((key): [string, number] => [
-    COMFORT[key].color,
-    totals[key],
-  ])
+  const totals = distanceByPart(route, view)
+  const parts = ROUTE_PARTS[view]
+    .filter((key) => (totals.get(key) ?? 0) > 0)
+    .map((key): [string, number] => [partLook(view, key).color, totals.get(key) ?? 0])
   return <Bar parts={parts} />
 }
 

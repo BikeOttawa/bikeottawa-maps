@@ -16,6 +16,8 @@ export interface RouteSegment {
   /** What kind of walking a level-0 stretch is. */
   walk: WalkKind | null
   tags: Record<string, string>
+  /** Ridden against the way's direction, so its left side is on the right. */
+  reversed: boolean
 }
 
 /** A stop sign or a set of traffic lights the route has to obey. */
@@ -163,6 +165,7 @@ export function parseRoute(geojson: unknown): Route {
       distance: Number(row[iDist]),
       ...rateStretch(tags),
       tags,
+      reversed: (row[iTags] ?? '').includes('reversedirection=yes'),
     })
     start = end
   }
@@ -198,8 +201,11 @@ export async function fetchRoute(
 export const COMFORT_KEYS = ['lts1', 'lts2', 'lts3', 'lts4', 'sidewalk', 'stairs', 'other'] as const
 export type ComfortKey = (typeof COMFORT_KEYS)[number]
 
-/** Something in the route legend that can be picked out on the map: a part of the comfort breakdown, or the stop signs or traffic lights. */
-export type RouteHighlight = ComfortKey | RouteStop['kind']
+/**
+ * Something in the route legend that can be picked out on the map: a part of
+ * the breakdown on show (route/breakdown.ts), or the stop signs or traffic lights.
+ */
+export type RouteHighlight = string
 
 /** Which part of the comfort breakdown a segment belongs to. */
 export function comfortKeyOf(segment: Pick<RouteSegment, 'lts' | 'walk'>): ComfortKey {

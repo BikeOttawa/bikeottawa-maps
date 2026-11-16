@@ -27,6 +27,7 @@ import { MapView } from './map/MapView'
 import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayKm, parsePathwayFilters } from './pathways'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
+import { isRouteView, type RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
 import { locate } from './route/locate'
@@ -160,6 +161,7 @@ function rememberBasemap(key: string, basemap: BasemapId) {
 const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
 const REACH_VIEW_KEY = 'reach-view'
+const ROUTE_VIEW_KEY = 'route-view'
 
 /** How far as the area covered or the streets reached: the area unless the streets were picked, remembered per browser. */
 function storedReachView(): ReachView {
@@ -174,6 +176,25 @@ function rememberReachView(view: ReachView) {
   try {
     if (view === 'streets') localStorage.setItem(REACH_VIEW_KEY, 'streets')
     else localStorage.removeItem(REACH_VIEW_KEY)
+  } catch {
+    // Not remembered when storage is blocked.
+  }
+}
+
+/** What a route is split by on its card and coloured by on the map: comfort unless another was picked, remembered per browser. */
+function storedRouteView(): RouteView {
+  try {
+    const view = localStorage.getItem(ROUTE_VIEW_KEY)
+    return isRouteView(view) ? view : 'comfort'
+  } catch {
+    return 'comfort'
+  }
+}
+
+function rememberRouteView(view: RouteView) {
+  try {
+    if (view === 'comfort') localStorage.removeItem(ROUTE_VIEW_KEY)
+    else localStorage.setItem(ROUTE_VIEW_KEY, view)
   } catch {
     // Not remembered when storage is blocked.
   }
@@ -318,6 +339,7 @@ export function App() {
   const [pathwayBikeLanes, setPathwayBikeLanes] = useState(false)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
   const [reachView, setReachView] = useState(storedReachView)
+  const [routeView, setRouteView] = useState(storedRouteView)
   const [selected, setSelected] = useState<Selected | null>(null)
   // A place picked from the search while exploring.
   const [found, setFound] = useState<Place | null>(null)
@@ -391,6 +413,7 @@ export function App() {
   }, [layer])
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
   useEffect(() => rememberReachView(reachView), [reachView])
+  useEffect(() => rememberRouteView(routeView), [routeView])
 
   // Back/forward and pasted links change the hash without going through React.
   useEffect(() => {
@@ -637,6 +660,7 @@ export function App() {
       selected,
       route,
       routeHighlight,
+      routeView,
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
@@ -653,6 +677,7 @@ export function App() {
       selected,
       route,
       routeHighlight,
+      routeView,
       travel,
       reachStyle,
       collisionGeo,
@@ -718,6 +743,12 @@ export function App() {
     setPointedPart(null)
     setPinnedPart(null)
   }, [route])
+  // The parts of one view are not the parts of another.
+  const changeRouteView = useCallback((view: RouteView) => {
+    setRouteView(view)
+    setPointedPart(null)
+    setPinnedPart(null)
+  }, [])
   const hasResult = (planning && routeState.status !== 'idle') || (reaching && reachState.status !== 'idle')
   // What the folded sheet says it holds: a title, and under it a key or the
   // state of the route.
@@ -739,7 +770,7 @@ export function App() {
       pathwayFilters={pathways}
     />
   ) : route ? (
-    <RoutePeek route={route} travel={travel} />
+    <RoutePeek route={route} travel={travel} view={routeView} />
   ) : reach ? (
     <ReachPeek minutes={minutes} basemap={basemap} />
   ) : planning || reaching ? (
@@ -884,6 +915,8 @@ export function App() {
               <RouteResult
                 travel={travel}
                 state={routeState}
+                view={routeView}
+                onViewChange={changeRouteView}
                 hover={routeHover}
                 onHover={setRouteHover}
                 highlight={routeHighlight}

@@ -1,0 +1,38 @@
+{
+  "paved": [
+    "asphalt",
+    "concrete",
+    "concrete:plates",
+    "concrete:lanes",
+    "paved",
+    "paving_stones",
+    "sett",
+    "bricks",
+    "brick",
+    "cobblestone",
+    "unhewn_cobblestone",
+    "chipseal",
+    "metal",
+    "wood",
+    "rubber",
+    "tartan"
+  ],
+  "stone_dust": ["fine_gravel", "compacted", "stone_dust"],
+  "gravel": ["gravel", "unpaved", "pebblestone", "crushed_stone"],
+  "dirt": [
+    "ground",
+    "dirt",
+    "earth",
+    "mud",
+    "sand",
+    "grass",
+    "grass_paver",
+    "woodchips",
+    "rock",
+    "rocks",
+    "clay",
+    "dirt/sand",
+    "snow",
+    "ice"
+  ]
+}

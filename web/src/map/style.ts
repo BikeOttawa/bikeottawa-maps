@@ -13,7 +13,6 @@ import {
   LAMP_COLOR_ON_PALE,
   type LayerId,
   LTS_COLORS,
-  NO_BIKES_COLOR,
   pathwayColors,
   ROUTE_COLORS,
   type RouteLevelId,
@@ -23,7 +22,8 @@ import {
 } from '../layers'
 import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
-import { comfortKeyOf, type Route, type RouteHighlight } from '../route/brouter'
+import { partLook, partOf, type RouteView } from '../route/breakdown'
+import type { Route, RouteHighlight } from '../route/brouter'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -52,10 +52,12 @@ export interface StyleState {
   /** Place kinds shown on the places layer. */
   placeKinds: readonly PlaceKind[]
   selected: Selected | null
-  /** Planned route to draw, coloured by comfort. */
+  /** Planned route to draw, coloured by what the route card shows (`routeView`). */
   route: Route | null
   /** Legend item to pick out on the route, the rest of it stepping back. */
   routeHighlight: RouteHighlight | null
+  /** What the route line is coloured by; comfort when not given. */
+  routeView?: RouteView
   /** A walking route is one colour; cycling comfort means nothing on foot. */
   routeOnFoot?: boolean
   /**
@@ -233,14 +235,18 @@ function lineWidth(extra = 0): ExpressionSpecification {
   return ['interpolate', ['exponential', 1.5], ['zoom'], 9, 0.8 + extra, 13, 2.2 + extra, 16, 5 + extra, 19, 12 + extra]
 }
 
-function routeData(route: Route | null): FeatureCollection {
+/** The route's stretches, each with its part of the view on show and that part's colour. */
+function routeData(route: Route | null, view: RouteView): FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: (route?.segments ?? []).map((segment) => ({
-      type: 'Feature',
-      properties: { lts: segment.lts, part: comfortKeyOf(segment) },
-      geometry: { type: 'LineString', coordinates: segment.coords },
-    })),
+    features: (route?.segments ?? []).map((segment) => {
+      const part = partOf(segment, view)
+      return {
+        type: 'Feature',
+        properties: { part, color: partLook(view, part).color },
+        geometry: { type: 'LineString', coordinates: segment.coords },
+      }
+    }),
   }
 }
 
@@ -260,7 +266,7 @@ export function stopImageId(kind: 'stop' | 'light' | ''): string {
   return `route-${kind}`
 }
 
-/** Marks the stretches picked out from the comfort breakdown. */
+/** Marks the stretches picked out from the route's breakdown. */
 const HIGHLIGHT_COLOR = '#FFD60A'
 
 /** Colour of a walking route. */
@@ -295,21 +301,7 @@ function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boo
       source: 'route',
       layout: round,
       paint: {
-        'line-color': onFoot
-          ? WALK_ROUTE_COLOR
-          : [
-              'match',
-              ['get', 'lts'],
-              1,
-              LTS_COLORS[0],
-              2,
-              LTS_COLORS[1],
-              3,
-              LTS_COLORS[2],
-              4,
-              LTS_COLORS[3],
-              NO_BIKES_COLOR,
-            ],
+        'line-color': onFoot ? WALK_ROUTE_COLOR : ['get', 'color'],
         'line-width': lineWidth(3.5),
         'line-opacity': rest,
       },
@@ -1055,7 +1047,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(night && { night: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/night.pmtiles` } }),
       route: {
         type: 'geojson',
-        data: routeData(state.route),
+        data: routeData(state.route, state.routeView ?? 'comfort'),
         ...(state.route && { attribution: ELEVATION_ATTRIBUTION }),
       },
       'route-stops': { type: 'geojson', data: stopsData(state.route) },

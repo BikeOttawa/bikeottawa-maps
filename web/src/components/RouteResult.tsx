@@ -1,15 +1,9 @@
 import { useMemo, useState } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
-import { LTS_COLORS, NO_BIKES_COLOR } from '../layers'
+import { LTS_COLORS } from '../layers'
 import { LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
-import {
-  COMFORT_KEYS,
-  type ComfortKey,
-  distanceByComfort,
-  type Route,
-  type RouteHighlight,
-  type RouteStop,
-} from '../route/brouter'
+import { distanceByPart, partLook, ROUTE_PARTS, ROUTE_VIEWS, type RouteView } from '../route/breakdown'
+import type { Route, RouteHighlight, RouteStop } from '../route/brouter'
 import { downloadText, toGpx } from '../route/gpx'
 import { routeProfile, smoothElevation } from '../route/profile'
 import { stressLevel, stressScore } from '../route/stress'
@@ -17,16 +11,6 @@ import type { Travel } from '../route/styles'
 import type { RouteState } from '../route/useRoute'
 import { visibleRoute } from '../route/useRoute'
 import { ElevationChart } from './ElevationChart'
-
-export const COMFORT: Record<ComfortKey, { color: string; label: MessageKey }> = {
-  lts1: { color: LTS_COLORS[0], label: 'lts.1' },
-  lts2: { color: LTS_COLORS[1], label: 'lts.2' },
-  lts3: { color: LTS_COLORS[2], label: 'lts.3' },
-  lts4: { color: LTS_COLORS[3], label: 'lts.4' },
-  sidewalk: { color: NO_BIKES_COLOR, label: 'sidewalk' },
-  stairs: { color: NO_BIKES_COLOR, label: 'stairs' },
-  other: { color: NO_BIKES_COLOR, label: 'walk' },
-}
 
 /** What the legend needs to pick things out on the map: pointing shows them, a click keeps them and zooms there. */
 interface Picking {
@@ -92,37 +76,64 @@ function StopCounts({ route, picking }: { route: Route; picking: Picking }) {
   )
 }
 
-/** How the route splits by comfort. Pointing at a part picks it out on the map; a click keeps it and zooms there. */
-function ComfortBar({ route, picking }: { route: Route; picking: Picking }) {
+/**
+ * How the route splits by comfort, bike infrastructure, surface, lighting or
+ * winter maintenance. Pointing at a part picks it out on the map; a click keeps
+ * it and zooms there.
+ */
+function Breakdown({
+  route,
+  view,
+  onViewChange,
+  picking,
+}: {
+  route: Route
+  view: RouteView
+  onViewChange: (view: RouteView) => void
+  picking: Picking
+}) {
   const { highlight, onPoint } = picking
   const { t } = useI18n()
-  const totals = distanceByComfort(route)
-  const sum = Object.values(totals).reduce((a, b) => a + b, 0) || 1
-  const parts = COMFORT_KEYS.filter((key) => totals[key] > 0)
+  const totals = distanceByPart(route, view)
+  const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1
+  const parts = ROUTE_PARTS[view].filter((key) => (totals.get(key) ?? 0) > 0)
   return (
     <div className="comfort">
-      <p className="footnote">{t('comfortAlong')}</p>
+      <p className="footnote">{t('routeAlong')}</p>
+      <div className="mode-switch route-views">
+        {ROUTE_VIEWS.map((id) => (
+          <button key={id} type="button" aria-pressed={id === view} onClick={() => onViewChange(id)}>
+            {t(`routeView.${id}`)}
+          </button>
+        ))}
+      </div>
       <div className="comfort-bar" aria-hidden="true">
         {parts.map((key) => (
           <span
             key={key}
             className={highlight && highlight !== key ? 'comfort-bar-part faded' : 'comfort-bar-part'}
-            style={{ flexGrow: totals[key], background: COMFORT[key].color }}
+            style={{ flexGrow: totals.get(key), background: partLook(view, key).color }}
             onPointerEnter={() => onPoint(key)}
             onPointerLeave={() => onPoint(null)}
           />
         ))}
       </div>
       <ul>
-        {parts.map((key) => (
-          <li key={key}>
-            <button type="button" className="comfort-part" title={t('showOnRoute')} {...pickingProps(key, picking)}>
-              <span className="swatch line" style={{ background: COMFORT[key].color }} />
-              <span>{t(COMFORT[key].label)}</span>
-              <span className="share">{Math.max(1, Math.round((totals[key] / sum) * 100))}%</span>
-            </button>
-          </li>
-        ))}
+        {parts.map((key) => {
+          const look = partLook(view, key)
+          return (
+            <li key={key}>
+              <button type="button" className="comfort-part" title={t('showOnRoute')} {...pickingProps(key, picking)}>
+                <span
+                  className={`swatch line ${look.pattern ?? ''}`}
+                  style={{ color: look.color, background: look.pattern ? undefined : look.color }}
+                />
+                <span>{t(look.label)}</span>
+                <span className="share">{Math.max(1, Math.round(((totals.get(key) ?? 0) / sum) * 100))}%</span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -132,6 +143,9 @@ interface Props {
   /** On foot, the cycling-only parts (comfort, stress, stops) are left out. */
   travel: Travel
   state: RouteState
+  /** What the route is split by. */
+  view: RouteView
+  onViewChange: (view: RouteView) => void
   /** Metres along the route being pointed at, on the chart or on the map. */
   hover: number | null
   onHover: (distance: number | null) => void
@@ -142,7 +156,18 @@ interface Props {
   onPinPart: (item: RouteHighlight | null) => void
 }
 
-export function RouteResult({ travel, state, hover, onHover, highlight, pinned, onPointPart, onPinPart }: Props) {
+export function RouteResult({
+  travel,
+  state,
+  view,
+  onViewChange,
+  hover,
+  onHover,
+  highlight,
+  pinned,
+  onPointPart,
+  onPinPart,
+}: Props) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   const route = visibleRoute(state)
@@ -194,7 +219,7 @@ export function RouteResult({ travel, state, hover, onHover, highlight, pinned, 
           </div>
         )}
       </dl>
-      {travel === 'bike' && <ComfortBar route={route} picking={picking} />}
+      {travel === 'bike' && <Breakdown route={route} view={view} onViewChange={onViewChange} picking={picking} />}
       {travel === 'bike' && <StopCounts route={route} picking={picking} />}
       <ElevationChart profile={profile} label={t('elevation')} hover={hover} onHover={onHover} />
       <div className="route-actions">

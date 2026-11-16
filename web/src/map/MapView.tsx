@@ -19,7 +19,8 @@ import { BasemapSwitch } from '../components/BasemapSwitch'
 import { ASSETS_BASE, REGION } from '../config'
 import type { BasemapId } from '../layers'
 import { isPlaceKind, placeImageId } from '../places'
-import { comfortKeyOf, type LngLat, type RouteHighlight } from '../route/brouter'
+import { partOf } from '../route/breakdown'
+import type { LngLat, RouteHighlight } from '../route/brouter'
 import { nearestOnRoute, pointAtDistance, routeProfile } from '../route/profile'
 import type { ReachShape } from '../route/reachArea'
 import type { RoutePoints } from '../route/state'
@@ -377,11 +378,11 @@ export function MapView({
   const zoomTo = routing?.zoomTo ?? null
   useEffect(() => {
     const map = mapRef.current
-    const route = latest.current.state.route
+    const { route, routeView = 'comfort' } = latest.current.state
     if (!map || !route || !zoomTo) return
     const bounds = new LngLatBounds()
     for (const segment of route.segments) {
-      if (comfortKeyOf(segment) === zoomTo) for (const point of segment.coords) bounds.extend(point)
+      if (partOf(segment, routeView) === zoomTo) for (const point of segment.coords) bounds.extend(point)
     }
     for (const stop of route.stops) {
       if (stop.kind === zoomTo) bounds.extend(stop.lngLat)
