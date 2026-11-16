@@ -68,13 +68,15 @@ describe('thefts', () => {
       from: 2019,
       to: 2024,
       minCount: 5,
+      minValue: 5000,
       groups: { where: ['outdoors'], season: ['summer', 'fall'], value: ['1000', '2500'] },
     }
     const text = formatTheftFilters(f)
-    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500')
+    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500;5000')
     expect(parseTheftFilters(text ?? '')).toEqual(f)
     expect(formatTheftFilters(DEFAULT_THEFT_FILTERS)).toBeNull()
-    expect(parseTheftFilters('1990-2050;0;where:moon')).toEqual(DEFAULT_THEFT_FILTERS)
+    expect(parseTheftFilters('1990-2050;0;where:moon;1234')).toEqual(DEFAULT_THEFT_FILTERS)
+    expect(parseTheftFilters(';;;10000').minValue).toBe(10000)
   })
 
   it('gathers thefts at their intersection, the most recent first', () => {

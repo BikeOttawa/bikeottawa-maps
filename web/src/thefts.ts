@@ -65,6 +65,8 @@ export interface TheftFilters {
   to: number
   /** Only spots with at least this many thefts: where bikes keep going missing. */
   minCount: number
+  /** Only spots where at least this many dollars were stolen: one of VALUE_STOPS. */
+  minValue: number
   /** Only these groups of each set; a set left out keeps them all. */
   groups: Partial<Record<TheftGroupId, readonly string[]>>
 }
@@ -73,6 +75,7 @@ export const DEFAULT_THEFT_FILTERS: TheftFilters = {
   from: THEFT_YEARS.first,
   to: THEFT_YEARS.last,
   minCount: 1,
+  minValue: 0,
   groups: {},
 }
 
@@ -123,9 +126,9 @@ export function theftsByMonth(all: readonly TheftProps[], f: TheftFilters): Map<
 }
 
 /**
- * In the URL as `thefts=2019-2024;5;where:outdoors.value:1000,2500` (the
- * years, the fewest thefts a spot needs, the groups picked), each part left
- * out when it is the default.
+ * In the URL as `thefts=2019-2024;5;where:outdoors.value:1000,2500;5000` (the
+ * years, the fewest thefts a spot needs, the groups picked, the least value
+ * stolen there), each part left out when it is the default.
  */
 export function formatTheftFilters(f: TheftFilters): string | null {
   const d = DEFAULT_THEFT_FILTERS
@@ -135,13 +138,14 @@ export function formatTheftFilters(f: TheftFilters): string | null {
     THEFT_GROUP_IDS.filter((id) => f.groups[id]?.length)
       .map((id) => `${id}:${f.groups[id]?.join(',')}`)
       .join('.'),
+    f.minValue === d.minValue ? '' : String(f.minValue),
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
 
 export function parseTheftFilters(text: string | undefined): TheftFilters {
   const d = DEFAULT_THEFT_FILTERS
-  const [yearText, minText, groupText] = (text ?? '').split(';')
+  const [yearText, minText, groupText, valueText] = (text ?? '').split(';')
   const [from, to] = (yearText ?? '').split('-').map(Number)
   const inRange = (y: number) => Number.isInteger(y) && y >= THEFT_YEARS.first && y <= THEFT_YEARS.last
   const years = inRange(from) && inRange(to) && from <= to ? { from, to } : { from: d.from, to: d.to }
@@ -156,6 +160,7 @@ export function parseTheftFilters(text: string | undefined): TheftFilters {
   return {
     ...years,
     minCount: Number.isInteger(Number(minText)) && Number(minText) >= 1 ? Number(minText) : d.minCount,
+    minValue: (VALUE_STOPS as readonly number[]).includes(Number(valueText)) ? Number(valueText) : d.minValue,
     groups,
   }
 }
@@ -186,6 +191,9 @@ export interface TheftSpot {
 
 /** Where the map's colours step up, in dollars stolen at an intersection: under the first, then each up to the next. */
 export const VALUE_STEPS = [1000, 5000, 10000, 25000] as const
+
+/** The value slider's stops: the start of each colour step. */
+export const VALUE_STOPS = [0, ...VALUE_STEPS] as const
 
 /** The thefts that pass the filters, by intersection: the police put each at one, so they share its point. */
 export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] {

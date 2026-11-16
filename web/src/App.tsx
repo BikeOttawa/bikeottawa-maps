@@ -707,8 +707,8 @@ export function App() {
     [allTheftSpots],
   )
   const shownTheftSpots = useMemo(
-    () => allTheftSpots?.filter((s) => s.items.length >= thefts.minCount) ?? null,
-    [allTheftSpots, thefts.minCount],
+    () => allTheftSpots?.filter((s) => s.items.length >= thefts.minCount && s.value >= thefts.minValue) ?? null,
+    [allTheftSpots, thefts.minCount, thefts.minValue],
   )
   const theftGeo = useMemo(() => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots) : null), [shownTheftSpots])
   const theftSpotByKey = useMemo(

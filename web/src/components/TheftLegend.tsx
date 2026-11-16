@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { type CSSProperties, useMemo, useState } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { type BasemapId, theftColors } from '../layers'
 import {
@@ -12,7 +12,7 @@ import {
   type TheftSpot,
   theftGroupCounts,
   theftsByMonth,
-  VALUE_STEPS,
+  VALUE_STOPS,
 } from '../thefts'
 import { GroupRow, HUES, OTHER, SEASON_HUES } from './GroupBars'
 import { MinCountSlider, YearRange } from './YearRange'
@@ -81,39 +81,64 @@ function TheftGroupRow({
 }
 
 /**
- * The map's colours: the value stolen at each intersection, a step per band,
- * the dollars where the steps change under the bar.
+ * The value slider: a stop per colour step, its track painted in them, each
+ * stop on the colour of the cheapest spots still shown. Dragged right, only
+ * the spots where the most was stolen stay.
  */
-function ValueKey({ basemap }: { basemap: BasemapId }) {
+function MinValueSlider({
+  value,
+  onChange,
+  basemap,
+}: {
+  value: number
+  onChange: (value: number) => void
+  basemap: BasemapId
+}) {
   const { t, lang } = useI18n()
+  const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
   const { values, noValue } = theftColors(basemap)
-  const dollars = (n: number) =>
-    n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      notation: 'compact',
-      maximumFractionDigits: 0,
-    })
+  const index = Math.max(0, (VALUE_STOPS as readonly number[]).indexOf(value))
+  const last = VALUE_STOPS.length - 1
+  // Hard-edged bands, each centred on its stop.
+  const bands = values.map((color, i) => {
+    const from = i === 0 ? 0 : ((i - 0.5) / last) * 100
+    const to = i === last ? 100 : ((i + 0.5) / last) * 100
+    return `${color} ${from}% ${to}%`
+  })
+  const money = (n: number) =>
+    n.toLocaleString(locale, { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
+  const short = (n: number) =>
+    n.toLocaleString(locale, { style: 'currency', currency: 'CAD', notation: 'compact', maximumFractionDigits: 0 })
   return (
-    <div className="value-key">
-      <span>{t('theft.valueKey')}</span>
-      <span className="value-key-bar" aria-hidden="true">
-        {values.map((color) => (
-          <span key={color} style={{ background: color }} />
-        ))}
-      </span>
-      <span className="value-key-ticks">
-        {VALUE_STEPS.map((step, i) => (
-          <span key={step} style={{ left: `${((i + 1) / values.length) * 100}%` }}>
-            {dollars(step)}
+    <label className="collision-min">
+      <span>{value > 0 ? t('theft.minValue').replace('{value}', money(value)) : t('theft.everyValue')}</span>
+      <input
+        className="pathway-range"
+        type="range"
+        min={0}
+        max={last}
+        step={1}
+        value={index}
+        aria-valuetext={money(value)}
+        style={
+          { '--track': `linear-gradient(to right, ${bands.join(', ')})`, '--thumb': values[index] } as CSSProperties
+        }
+        onChange={(e) => onChange(VALUE_STOPS[Number(e.target.value)])}
+      />
+      <span className="value-ticks" aria-hidden="true">
+        {VALUE_STOPS.map((stop, i) => (
+          <span key={stop} style={{ left: `calc(9px + (100% - 18px) * ${i / last})` }}>
+            {short(stop)}
           </span>
         ))}
       </span>
-      <span className="value-key-none">
-        <span className="swatch dot" style={{ background: noValue }} />
-        {t('theft.noValue')}
-      </span>
-    </div>
+      {value === 0 && (
+        <span className="value-none">
+          <span className="swatch dot" style={{ background: noValue }} />
+          {t('theft.noValue')}
+        </span>
+      )}
+    </label>
   )
 }
 
@@ -128,7 +153,6 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
 
   return (
     <div className="collision-legend">
-      <ValueKey basemap={basemap} />
       <YearRange
         years={THEFT_YEARS}
         from={filters.from}
@@ -164,6 +188,11 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
             : t('theft.minCount').replace('{count}', number(filters.minCount))
         }
         onChange={(minCount) => onChange({ ...filters, minCount })}
+      />
+      <MinValueSlider
+        value={filters.minValue}
+        onChange={(minValue) => onChange({ ...filters, minValue })}
+        basemap={basemap}
       />
       {shown !== null && spots && (
         <p className="collision-total">
