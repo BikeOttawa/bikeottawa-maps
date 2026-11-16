@@ -42,6 +42,7 @@ export function Legend({
   return (
     <section className="legend" aria-label={t('legend')}>
       <h2 className="eyebrow">{t('legend')}</h2>
+      <p className="legend-desc">{t(`layer.${layer}.desc`)}</p>
       {layer === 'comfort' && (
         <ul>
           {LTS_COLORS.map((color, i) => (

@@ -90,15 +90,13 @@ export function LayerPicker({ active, onChange }: Props) {
           type="button"
           className="layer-button"
           aria-pressed={id === active}
+          title={t(`layer.${id}.desc`)}
           onClick={() => onChange(id)}
         >
           <span className="layer-icon">
             <LayerIcon layer={id} />
           </span>
-          <span className="layer-text">
-            <span className="layer-label">{t(`layer.${id}`)}</span>
-            <span className="layer-desc">{t(`layer.${id}.desc`)}</span>
-          </span>
+          <span className="layer-label">{t(`layer.${id}`)}</span>
         </button>
       ))}
     </fieldset>
