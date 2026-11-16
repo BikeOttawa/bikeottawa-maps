@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n'
 import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
 import { GROUP_COLORS } from '../places'
+import { BarricadeIcon } from './OverlayIcons'
 
 interface Props {
   active: LayerId
@@ -56,6 +57,10 @@ function LayerIcon({ layer }: { layer: LayerId }) {
         <circle cx="12" cy="17.3" r="1.2" fill="#fff" />
       </svg>
     )
+  }
+  if (layer === 'construction') {
+    // A road-closed barricade, as on the map.
+    return <BarricadeIcon size={26} />
   }
   if (layer === 'thefts') {
     // An open padlock, its shackle pulled free.

@@ -69,5 +69,9 @@ tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
 OSM_TIMESTAMP="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$REGION")"
 printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s}\n' "$OSM_TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   "$(cat "$WORK/pathways.json")" > "$OUT/meta.json"
+# The City's construction forecast, for the construction layer. Its server being
+# down leaves that layer empty for a day rather than failing the build.
+node pipeline/fetch-construction.mjs "$OUT" || echo "construction: not fetched; the layer stays empty"
+
 ls -lh "$OUT/overlays.pmtiles" "$OUT/places.pmtiles" "$OUT/night.pmtiles" "$OUT/routes.pmtiles"
 cat "$OUT/meta.json"

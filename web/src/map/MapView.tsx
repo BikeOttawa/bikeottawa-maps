@@ -24,6 +24,7 @@ import { type LngLat, type RouteHighlight, STOP_KINDS } from '../route/brouter'
 import { nearestOnRoute, pointAtDistance, routeProfile } from '../route/profile'
 import type { ReachShape } from '../route/reachArea'
 import type { RoutePoints } from '../route/state'
+import { CLOSURE_IMAGE, renderClosureImage } from './closureImage'
 import { renderPlaceImage } from './placeImage'
 import { renderStopImage } from './stopImage'
 import {
@@ -31,6 +32,7 @@ import {
   INTERACTIVE_LAYERS,
   PLACES_SOURCE,
   REACH_SOURCE,
+  ROADWORK_LAYERS,
   ROUTE_LAYERS,
   type Selected,
   type StyleState,
@@ -58,6 +60,7 @@ interface Props {
   onBikeLanesChange: (on: boolean) => void
   onBikeRoutesChange: (on: boolean) => void
   onWardsChange: (on: boolean) => void
+  onRoadworkChange: (on: boolean) => void
   /** Details of the selection, shown in a popup beside it. Null where they go elsewhere (phones). */
   popup: ReactNode | null
   /** How far you get, drawn when the style has a reach source. */
@@ -131,6 +134,7 @@ export function MapView({
   onBikeLanesChange,
   onBikeRoutesChange,
   onWardsChange,
+  onRoadworkChange,
   popup,
   reach,
   found,
@@ -197,16 +201,19 @@ export function MapView({
       const stop = STOP_KINDS.find((kind) => id === stopImageId(kind))
       const marker = stop
         ? renderStopImage(stop)
-        : id.startsWith(placeImageId('')) && isPlaceKind(place)
-          ? renderPlaceImage(place)
-          : null
+        : id === CLOSURE_IMAGE
+          ? renderClosureImage()
+          : id.startsWith(placeImageId('')) && isPlaceKind(place)
+            ? renderPlaceImage(place)
+            : null
       if (marker) map.addImage(id, marker.image, { pixelRatio: marker.pixelRatio })
     })
 
     const featureAt = (point: { x: number; y: number }, lngLat: { lng: number; lat: number }): Selected | null => {
       // Planning a route or how far, only places are picked; a click anywhere else is a route point.
       const { routing, state } = latest.current
-      const layers = [...INTERACTIVE_LAYERS[state.layer], ...(routing ? [] : ROUTE_LAYERS)].filter(
+      const overlays = routing ? [] : [...ROADWORK_LAYERS, ...ROUTE_LAYERS]
+      const layers = [...INTERACTIVE_LAYERS[state.layer], ...overlays].filter(
         (id) => map.getLayer(id) && (!routing || INTERACTIVE_LAYERS.places.includes(id)),
       )
       if (!layers.length) return null
@@ -219,6 +226,15 @@ export function MapView({
       )
       const [feature] = hits
       if (!feature) return null
+      if (feature.layer.id === 'closures-icon' && feature.geometry.type === 'Point') {
+        const [x, y] = feature.geometry.coordinates
+        return { kind: 'closure', id: Number(feature.properties.id), at: [x, y] }
+      }
+      if (feature.layer.id === 'construction-line' || feature.layer.id === 'construction-point') {
+        // A point project is anchored at itself, a line where it was clicked.
+        const at = feature.geometry.type === 'Point' ? (feature.geometry.coordinates as [number, number]) : null
+        return { kind: 'construction', props: feature.properties, at: at ?? [lngLat.lng, lngLat.lat] }
+      }
       if (feature.layer.id === 'thefts-point' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'theft', spot: String(feature.properties.key), at: [x, y] }
@@ -561,6 +577,8 @@ export function MapView({
             onBikeRoutesChange={onBikeRoutesChange}
             wards={Boolean(state.wards)}
             onWardsChange={onWardsChange}
+            roadwork={Boolean(state.roadwork)}
+            onRoadworkChange={onRoadworkChange}
           />,
           styleControl,
         )}

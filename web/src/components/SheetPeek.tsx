@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import type { CollisionFilters, CollisionSpot } from '../collisions'
+import { CONSTRUCTION_TIMINGS } from '../construction'
 import { useI18n } from '../i18n'
 import {
   type BasemapId,
+  constructionColors,
   type LayerId,
   LTS_COLORS,
   lampColor,
@@ -128,6 +130,16 @@ export function LayerPeek({
     const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
     const shown = t('crash.shown').replace('{count}', number(count)).replace('{spots}', number(collisionSpots.length))
     return <span className="peek-text">{`${shown} · ${from === to ? from : `${from}–${to}`}`}</span>
+  }
+  if (layer === 'construction') {
+    const colors = constructionColors(basemap)
+    return (
+      <>
+        <span>{t('construction.peek.now')}</span>
+        <Bar parts={CONSTRUCTION_TIMINGS.map((timing) => [colors[timing], 1])} />
+        <span>{t('construction.peek.later')}</span>
+      </>
+    )
   }
   if (layer === 'thefts') {
     if (!theftSpots) return null

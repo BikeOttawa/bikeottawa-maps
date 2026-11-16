@@ -2,12 +2,19 @@ import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/ba
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
 import { SEVERITIES } from '../collisions'
+import {
+  CONSTRUCTION_TIMINGS,
+  type ConstructionFilters,
+  constructionFilter,
+  DEFAULT_CONSTRUCTION_FILTERS,
+} from '../construction'
 import type { Lang } from '../i18n'
 import {
   type BasemapId,
   type BikewayId,
   bikewayColors,
   collisionColors,
+  constructionColors,
   INK,
   LAMP_COLOR,
   LAMP_COLOR_ON_PALE,
@@ -27,6 +34,7 @@ import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { VALUE_STEPS } from '../thefts'
+import { CLOSURE_IMAGE } from './closureImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -43,6 +51,10 @@ export type Selected =
   | { kind: 'collision'; spot: string; at: [number, number] }
   /** An intersection on the thefts layer, by its key (see theftSpots). */
   | { kind: 'theft'; spot: string; at: [number, number] }
+  /** A project on the construction layer, with its properties. */
+  | { kind: 'construction'; props: Record<string, unknown>; at: [number, number] }
+  /** A closure on the construction layer, by its id on the City's traffic map. */
+  | { kind: 'closure'; id: number; at: [number, number] }
   /**
    * A way on the bike routes overlay: the routes it is directly on (relation
    * ids, best first) and the one picked out on the map, which may be a route
@@ -75,6 +87,12 @@ export interface StyleState {
   collisions: FeatureCollection | null
   /** The thefts layer's spots, built from the filters; null until loaded. */
   thefts?: FeatureCollection | null
+  /** What the construction layer shows. */
+  construction?: ConstructionFilters
+  /** The roadwork overlay: the closures on the City's traffic map right now, as cones. */
+  roadwork?: boolean
+  /** Those closures; null until loaded. */
+  closures?: FeatureCollection | null
   /** What the pathways layer shows, and how it colours it. */
   pathways?: PathwayFilters
   /** The bike lanes overlay, drawn over any basemap and data layer but the pathways one. */
@@ -90,6 +108,9 @@ export interface StyleState {
 /** Layers of the bike routes overlay a click can hit, under those of the data layer. */
 export const ROUTE_LAYERS = ['routes-band']
 
+/** Layers of the roadwork overlay a click can hit, over those of the data layer. */
+export const ROADWORK_LAYERS = ['closures-icon']
+
 /** Layers a click can hit, per data layer. */
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
@@ -99,6 +120,7 @@ export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   night: [],
   collisions: ['collisions-point'],
   thefts: ['thefts-point'],
+  construction: ['construction-point', 'construction-line'],
 }
 
 const ATTRIBUTION =
@@ -904,6 +926,12 @@ function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecificatio
 export const COLLISIONS_SOURCE = 'collisions'
 const COLLISIONS_ATTRIBUTION =
   'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
+export const CONSTRUCTION_SOURCE = 'construction'
+export const CLOSURES_SOURCE = 'closures'
+const CLOSURES_ATTRIBUTION =
+  'Roadwork: <a href="https://traffic.ottawa.ca/map/" target="_blank" rel="noopener">City of Ottawa traffic map</a>'
+const CONSTRUCTION_ATTRIBUTION =
+  'Construction: <a href="https://ottawa.ca/en/parking-roads-and-travel/road-construction-and-maintenance" target="_blank" rel="noopener">City of Ottawa</a>'
 export const THEFTS_SOURCE = 'thefts'
 const THEFTS_ATTRIBUTION =
   'Thefts: <a href="https://www.ottawapolice.ca/" target="_blank" rel="noopener">Ottawa Police Service</a>'
@@ -1106,6 +1134,97 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
   }
 }
 
+/**
+ * Projects: the City's construction projects, lines along the streets and
+ * paths and points for the rest, coloured by when the work happens.
+ */
+function constructionLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
+  if (state.layer !== 'construction' || state.reach) return { under: [], over: [] }
+  const f = state.construction ?? DEFAULT_CONSTRUCTION_FILTERS
+  const colors = constructionColors(state.basemap)
+  const pale = state.basemap === 'light' || state.basemap === 'grey'
+  const byTiming = [
+    'match',
+    ['get', 'timing'],
+    ...CONSTRUCTION_TIMINGS.flatMap((timing) => [timing, colors[timing]]),
+    colors.later,
+  ] as unknown as ExpressionSpecification
+  const chosen = constructionFilter(f)
+  const lines: FilterSpecification = ['all', ['==', ['geometry-type'], 'LineString'], chosen]
+  const points: FilterSpecification = ['all', ['==', ['geometry-type'], 'Point'], chosen]
+  const selected = state.selected?.kind === 'construction' ? String(state.selected.props.id) : ''
+  const width = (low: number, high: number): ExpressionSpecification => [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    10,
+    low,
+    16,
+    high,
+  ]
+  const round = { 'line-cap': 'round' as const, 'line-join': 'round' as const }
+  return {
+    under: [
+      {
+        id: 'construction-casing',
+        type: 'line',
+        source: CONSTRUCTION_SOURCE,
+        filter: lines,
+        layout: round,
+        paint: { 'line-color': pale ? '#ffffff' : '#111417', 'line-width': width(4, 10), 'line-opacity': 0.9 },
+      },
+      {
+        id: 'construction-selected',
+        type: 'line',
+        source: CONSTRUCTION_SOURCE,
+        filter: ['==', ['get', 'id'], selected],
+        layout: round,
+        paint: { 'line-color': '#FFD60A', 'line-width': width(9, 18) },
+      },
+      {
+        id: 'construction-line',
+        type: 'line',
+        source: CONSTRUCTION_SOURCE,
+        filter: lines,
+        layout: round,
+        paint: { 'line-color': byTiming, 'line-width': width(2, 6) },
+      },
+    ],
+    over: [
+      {
+        id: 'construction-point',
+        type: 'circle',
+        source: CONSTRUCTION_SOURCE,
+        filter: points,
+        paint: {
+          'circle-color': byTiming,
+          'circle-radius': width(3, 7),
+          'circle-stroke-color': pale ? '#ffffff' : '#111417',
+          'circle-stroke-width': 1,
+        },
+      },
+    ],
+  }
+}
+
+/** The roadwork overlay: a cone at each closure on the City's traffic map, over any layer. */
+function roadworkLayers(state: StyleState): LayerSpecification[] {
+  if (!state.roadwork) return []
+  return [
+    {
+      id: 'closures-icon',
+      type: 'symbol',
+      source: CLOSURES_SOURCE,
+      layout: {
+        'icon-image': CLOSURE_IMAGE,
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.75, 15, 1.05],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
+    },
+  ]
+}
+
 const PLACE_HIGHLIGHT_SOURCE = 'place-highlight'
 
 /** Places picked out from the How far list: a yellow ring and their marker, however far out. */
@@ -1182,6 +1301,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
   const night = state.layer === 'night'
   const collisions = collisionLayers(state)
   const thefts = theftLayers(state)
+  const construction = constructionLayers(state)
   const theme = night && state.basemap === 'dark' ? NIGHT_THEME : THEMES[state.basemap]
   const wards = wardLayers(state, theme)
   const drawn = basemapLayers('basemap', theme.flavor, { lang: state.lang, labelsOnly: theme.imagery })
@@ -1249,6 +1369,22 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           attribution: COLLISIONS_ATTRIBUTION,
         },
       }),
+      // Fetched by the map from its URL while the projects layer is on.
+      ...(construction.under.length && {
+        [CONSTRUCTION_SOURCE]: {
+          type: 'geojson',
+          data: `${assetsBase}/tiles/construction.geojson`,
+          attribution: CONSTRUCTION_ATTRIBUTION,
+        },
+      }),
+      // The closures, fetched live while the roadwork overlay is on.
+      ...(state.roadwork && {
+        [CLOSURES_SOURCE]: {
+          type: 'geojson',
+          data: state.closures ?? { type: 'FeatureCollection', features: [] },
+          attribution: CLOSURES_ATTRIBUTION,
+        },
+      }),
       // Loaded only while the thefts layer is on.
       ...(thefts.over.length && {
         [THEFTS_SOURCE]: {
@@ -1268,6 +1404,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...reachLayers(state.reach, state.basemap),
       ...collisions.under,
       ...thefts.under,
+      ...construction.under,
       ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false),
       ...base.slice(at),
       ...reachLabelLayers(state.reach, state.basemap, theme),
@@ -1277,6 +1414,8 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...placeHighlightLayers(state, theme),
       ...collisions.over,
       ...thefts.over,
+      ...construction.over,
+      ...roadworkLayers(state),
     ],
   }
 }

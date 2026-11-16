@@ -5,6 +5,7 @@ import light from '../assets/basemaps/light.webp'
 import satellite from '../assets/basemaps/satellite.webp'
 import { useI18n } from '../i18n'
 import { BASEMAP_IDS, type BasemapId, BIKEWAY_IDS, bikewayColors, ROUTE_LEVEL_IDS, routeBandColors } from '../layers'
+import { ConeIcon, LanesIcon, RoutesIcon, WardsIcon } from './OverlayIcons'
 
 /** A small picture of each map style, taken from the map itself. */
 const PREVIEWS: Record<BasemapId, string> = { light, grey, dark, satellite }
@@ -21,6 +22,9 @@ interface Props {
   /** Ottawa's wards and Gatineau's districts, with their councillors. */
   wards: boolean
   onWardsChange: (on: boolean) => void
+  /** Roadwork: the closures on the City's traffic map right now. */
+  roadwork: boolean
+  onRoadworkChange: (on: boolean) => void
 }
 
 /** Map control: a button that opens the list of map styles. */
@@ -33,6 +37,8 @@ export function BasemapSwitch({
   onBikeRoutesChange,
   wards,
   onWardsChange,
+  roadwork,
+  onRoadworkChange,
 }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -77,6 +83,7 @@ export function BasemapSwitch({
           ))}
           <label className="check bike-lanes-toggle">
             <input type="checkbox" checked={bikeLanes} onChange={(e) => onBikeLanesChange(e.target.checked)} />
+            <LanesIcon />
             {t('bikeLanes')}
           </label>
           {bikeLanes && (
@@ -94,6 +101,7 @@ export function BasemapSwitch({
           )}
           <label className="check bike-lanes-toggle">
             <input type="checkbox" checked={bikeRoutes} onChange={(e) => onBikeRoutesChange(e.target.checked)} />
+            <RoutesIcon />
             {t('bikeRoutes')}
           </label>
           {bikeRoutes && (
@@ -108,7 +116,13 @@ export function BasemapSwitch({
           )}
           <label className="check bike-lanes-toggle">
             <input type="checkbox" checked={wards} onChange={(e) => onWardsChange(e.target.checked)} />
+            <WardsIcon />
             {t('wards')}
+          </label>
+          <label className="check bike-lanes-toggle" title={t('roadworkHint')}>
+            <input type="checkbox" checked={roadwork} onChange={(e) => onRoadworkChange(e.target.checked)} />
+            <ConeIcon />
+            {t('roadwork')}
           </label>
         </fieldset>
       )}

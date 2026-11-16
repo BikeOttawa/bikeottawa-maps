@@ -2,7 +2,16 @@
 
 import { type KnownSurfaceId, WIDTH_STOPS } from './pathways'
 
-export const LAYER_IDS = ['places', 'pathways', 'comfort', 'winter', 'night', 'collisions', 'thefts'] as const
+export const LAYER_IDS = [
+  'places',
+  'pathways',
+  'comfort',
+  'winter',
+  'night',
+  'collisions',
+  'thefts',
+  'construction',
+] as const
 export type LayerId = (typeof LAYER_IDS)[number]
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
@@ -74,6 +83,18 @@ const THEFTS_ON_DARK: TheftColors = {
 
 export function theftColors(basemap: BasemapId): TheftColors {
   return basemap === 'light' || basemap === 'grey' ? THEFTS_ON_PALE : THEFTS_ON_DARK
+}
+
+/**
+ * Construction by when it happens, from work under way to work two to three
+ * years out: one orange, strongest for now, darkest on pale ground and
+ * brightest on dark.
+ */
+const CONSTRUCTION_ON_PALE = { now: '#B8330C', thisYear: '#E2611B', soon: '#EE9A2E', later: '#E3BD5E' }
+const CONSTRUCTION_ON_DARK = { now: '#FF8A50', thisYear: '#F5A050', soon: '#D9A85E', later: '#A08C62' }
+
+export function constructionColors(basemap: BasemapId): Record<'now' | 'thisYear' | 'soon' | 'later', string> {
+  return basemap === 'light' || basemap === 'grey' ? CONSTRUCTION_ON_PALE : CONSTRUCTION_ON_DARK
 }
 
 /**

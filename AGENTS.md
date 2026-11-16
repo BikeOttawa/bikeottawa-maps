@@ -34,6 +34,7 @@ What the code does not tell you. See README.md for what the project is and how i
 ## Outside services
 
 - Photon (place search, addresses) refuses bursts: keep lookups to two at a time (`web/src/route/geocode.ts`). Testing with many parallel requests got the network blocked for a while.
+- The Roadwork overlay reads the City's traffic map (`traffic.ottawa.ca/map/service/events`) from the browser, once per language while it is on; the Projects data comes from `maps.ottawa.ca` at build time only.
 - Cards fetch a feature's current tags from the OSM API only when "All OSM tags" is opened (`web/src/components/OsmTags.tsx`): one request per feature, never in bulk.
 - The Mapillary token comes from `VITE_MAPILLARY_TOKEN`: `web/.env.development.local` locally (git ignores it), the `MAPILLARY_TOKEN` repository variable when deployed. Never put it in code.
 

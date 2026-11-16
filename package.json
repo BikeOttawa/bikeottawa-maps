@@ -20,6 +20,7 @@
     "collisions": "node pipeline/fetch-collisions.mjs",
     "wards": "node pipeline/fetch-wards.mjs",
     "thefts": "node pipeline/fetch-thefts.mjs",
+    "construction": "node pipeline/fetch-construction.mjs",
     "osm": "pipeline/update-osm.sh"
   },
   "devDependencies": {

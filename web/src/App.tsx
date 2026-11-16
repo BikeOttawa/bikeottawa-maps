@@ -9,6 +9,7 @@ import {
 } from './collisions'
 import { BikeRouteCard } from './components/BikeRouteCard'
 import { CollisionCard } from './components/CollisionCard'
+import { ConstructionCard } from './components/ConstructionCard'
 import { FeatureCard } from './components/FeatureCard'
 import { LayerPicker } from './components/LayerPicker'
 import { Legend } from './components/Legend'
@@ -21,6 +22,12 @@ import { RouteResult } from './components/RouteResult'
 import { LayerPeek, ReachPeek, RoutePeek } from './components/SheetPeek'
 import { TheftCard } from './components/TheftCard'
 import { ASSETS_BASE, ROUTER_URL } from './config'
+import {
+  type ConstructionFilters,
+  closuresGeoJSON,
+  formatConstructionFilters,
+  parseConstructionFilters,
+} from './construction'
 import { osmViewUrl, parseHash, withHashParam } from './hash'
 import { initialLang, type Lang, LangContext, rememberLang, translator } from './i18n'
 import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
@@ -62,6 +69,7 @@ import {
 import { useReach, visibleReach } from './route/useReach'
 import { useRoute, visibleRoute } from './route/useRoute'
 import { formatTheftFilters, parseTheftFilters, type TheftFilters, theftSpots, theftSpotsGeoJSON } from './thefts'
+import { useClosures } from './useClosures'
 import { useCollisionData, useTheftData } from './usePoints'
 
 const DEFAULT_LAYER: LayerId = 'places'
@@ -79,6 +87,8 @@ interface UrlState {
   placeKinds: readonly PlaceKind[]
   /** Which collisions the collisions layer shows. */
   collisions: CollisionFilters
+  /** What the construction layer shows. */
+  construction: ConstructionFilters
   /** Which bike thefts the thefts layer shows. */
   thefts: TheftFilters
   /** Which pathways the pathways layer shows, and what it colours them by. */
@@ -103,6 +113,7 @@ function readUrl(): UrlState {
     placeKinds: (hash.places ?? '').split(',').filter(isPlaceKind),
     collisions: parseCollisionFilters(hash.collisions),
     thefts: parseTheftFilters(hash.thefts),
+    construction: parseConstructionFilters(hash.construction),
     pathways: parsePathwayFilters(hash.pathways),
     mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
     points: parsePoints(hash.route),
@@ -124,6 +135,7 @@ function writeUrl(state: UrlState): void {
     ['places', state.placeKinds.length ? state.placeKinds.join(',') : null],
     ['collisions', state.layer === 'collisions' ? formatCollisionFilters(state.collisions) : null],
     ['thefts', state.layer === 'thefts' ? formatTheftFilters(state.thefts) : null],
+    ['construction', state.layer === 'construction' ? formatConstructionFilters(state.construction) : null],
     ['pathways', state.layer === 'pathways' ? formatPathwayFilters(state.pathways) : null],
     ['mode', riding ? state.mode : null],
     // How far starts from the route's start, so the two modes share it.
@@ -167,6 +179,7 @@ function rememberBasemap(key: string, basemap: BasemapId) {
 const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
 const WARDS_KEY = 'wards'
+const ROADWORK_KEY = 'roadwork'
 const REACH_VIEW_KEY = 'reach-view'
 const ROUTE_VIEW_KEY = 'route-view'
 
@@ -202,6 +215,24 @@ function rememberRouteView(view: RouteView) {
   try {
     if (view === 'comfort') localStorage.removeItem(ROUTE_VIEW_KEY)
     else localStorage.setItem(ROUTE_VIEW_KEY, view)
+  } catch {
+    // Not remembered when storage is blocked.
+  }
+}
+
+/** The roadwork overlay: off unless turned on, remembered per browser. */
+function storedRoadwork(): boolean {
+  try {
+    return localStorage.getItem(ROADWORK_KEY) === 'on'
+  } catch {
+    return false
+  }
+}
+
+function rememberRoadwork(on: boolean) {
+  try {
+    if (on) localStorage.setItem(ROADWORK_KEY, 'on')
+    else localStorage.removeItem(ROADWORK_KEY)
   } catch {
     // Not remembered when storage is blocked.
   }
@@ -364,6 +395,7 @@ export function App() {
   const [pathwayBikeLanes, setPathwayBikeLanes] = useState(false)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
   const [wards, setWards] = useState(storedWards)
+  const [roadwork, setRoadwork] = useState(storedRoadwork)
   const [reachView, setReachView] = useState(storedReachView)
   const [routeView, setRouteView] = useState(storedRouteView)
   const [selected, setSelected] = useState<Selected | null>(null)
@@ -389,6 +421,7 @@ export function App() {
     placeKinds,
     collisions,
     thefts,
+    construction,
     pathways,
     mode,
     points,
@@ -453,6 +486,7 @@ export function App() {
   }, [layer])
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
   useEffect(() => rememberWards(wards), [wards])
+  useEffect(() => rememberRoadwork(roadwork), [roadwork])
   useEffect(() => rememberReachView(reachView), [reachView])
   useEffect(() => rememberRouteView(routeView), [routeView])
 
@@ -536,6 +570,14 @@ export function App() {
   const changeCollisions = useCallback(
     (next: CollisionFilters) => {
       update({ collisions: next })
+      setSelected(null)
+    },
+    [update],
+  )
+
+  const changeConstruction = useCallback(
+    (next: ConstructionFilters) => {
+      update({ construction: next })
       setSelected(null)
     },
     [update],
@@ -700,6 +742,9 @@ export function App() {
   const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots) : null), [spots])
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
   // Thefts, the same way: loaded with their layer, gathered at intersections.
+  // Roadwork: the closures, fetched live while the overlay is on (the projects load as a file the map fetches).
+  const closures = useClosures(roadwork, lang)
+  const closureGeo = useMemo(() => (closures ? closuresGeoJSON(closures) : null), [closures])
   const theftData = useTheftData(layer === 'thefts')
   const allTheftSpots = useMemo(() => (theftData ? theftSpots(theftData, thefts) : null), [theftData, thefts])
   const busiestTheftSpot = useMemo(
@@ -730,6 +775,9 @@ export function App() {
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
       thefts: layer === 'thefts' ? theftGeo : null,
+      construction,
+      roadwork,
+      closures: roadwork ? closureGeo : null,
       pathways,
       bikeLanes: lanes,
       bikeRoutes,
@@ -749,6 +797,9 @@ export function App() {
       reachStyle,
       collisionGeo,
       theftGeo,
+      construction,
+      roadwork,
+      closureGeo,
       pathways,
       lanes,
       bikeRoutes,
@@ -869,6 +920,15 @@ export function App() {
         basemap={basemap}
         onClose={() => setSelected(null)}
       />
+    ) : selected.kind === 'construction' ? (
+      <ConstructionCard project={selected.props} basemap={basemap} onClose={() => setSelected(null)} />
+    ) : selected.kind === 'closure' ? (
+      (() => {
+        const closure = closures?.find((c) => c.id === selected.id)
+        return closure ? (
+          <ConstructionCard closure={closure} basemap={basemap} onClose={() => setSelected(null)} />
+        ) : null
+      })()
     ) : selected.kind === 'theft' ? (
       <TheftCard
         items={theftSpotByKey.get(selected.spot)?.items ?? []}
@@ -893,6 +953,7 @@ export function App() {
         onBikeLanesChange={ownBikeLanes ? setPathwayBikeLanes : setBikeLanes}
         onBikeRoutesChange={changeBikeRoutes}
         onWardsChange={setWards}
+        onRoadworkChange={setRoadwork}
         routing={mapRouting}
         reach={reachShape}
         found={routing ? null : (found?.lngLat ?? null)}
@@ -1034,6 +1095,8 @@ export function App() {
                   busiestTheftSpot={busiestTheftSpot}
                   theftFilters={thefts}
                   onTheftFiltersChange={changeThefts}
+                  constructionFilters={construction}
+                  onConstructionFiltersChange={changeConstruction}
                   pathwayFilters={pathways}
                   onPathwayFiltersChange={changePathways}
                   pathwayKm={tileMeta?.pathways ?? null}

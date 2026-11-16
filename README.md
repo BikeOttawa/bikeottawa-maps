@@ -1,6 +1,6 @@
 # Bike Ottawa Maps
 
-Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface and width, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, collisions involving cyclists and pedestrians, and bike thefts. Over any of them go bike lanes, signed bike routes and wards. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
+Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface and width, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, collisions involving cyclists and pedestrians, bike thefts, and the City's construction projects. Over any of them go bike lanes, signed bike routes, wards and today's road closures. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
 
 No map vendor or API keys: the basemap and data layers are static [PMTiles](https://docs.protomaps.com/pmtiles/) files rendered with [MapLibre](https://maplibre.org). The light, grey and dark map styles are the same basemap tiles restyled in the browser; only the satellite style loads from elsewhere (Esri World Imagery, no key).
 
@@ -30,15 +30,16 @@ npm run dev
 
 Tiles land in `web/public/tiles` and are not committed. The app only loads the files the current layer draws, so the first visit fetches the basemap alone.
 
-| File                 | What                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| `basemap.pmtiles`    | Protomaps basemap                                                                   |
-| `overlays.pmtiles`   | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                 |
-| `places.pmtiles`     | Places                                                                              |
-| `night.pmtiles`      | Lit streets and street lamps                                                        |
-| `routes.pmtiles`     | Signed bike routes, with `routes.json` listing the routes                           |
-| `places/<kind>.json` | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach |
-| `meta.json`          | Date of the OSM data, when the tiles were built, km of pathway                      |
+| File                   | What                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `basemap.pmtiles`      | Protomaps basemap                                                                   |
+| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                 |
+| `places.pmtiles`       | Places                                                                              |
+| `night.pmtiles`        | Lit streets and street lamps                                                        |
+| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                           |
+| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach |
+| `meta.json`            | Date of the OSM data, when the tiles were built, km of pathway                      |
+| `construction.geojson` | The City's construction forecast, for Projects                                      |
 
 ## OSM data
 
@@ -61,6 +62,8 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 
 The data is kept in the repository as `web/public/data/collisions.geojson`, about 3,500 points. The city publishes a new year each summer; `npm run collisions` downloads it again.
 
+**Projects** shows the City of Ottawa's construction forecast: about 2,800 capital works under way or planned in the next three years, lines along streets and paths and points for the rest, coloured by when they happen (under way, this year, in one to two or two to three years). The legend filters them by when and by kind of work (cycling and walking, roads and intersections, sewers and water, bridges and culverts, transit, and buildings, parks and the like, left out by default); a card gives the project's type, its traffic impacts and its page. `pipeline/fetch-construction.mjs` (`npm run construction`, also run by `npm run tiles`) fetches it into `tiles/construction.geojson`, so it is as fresh as the tiles.
+
 **Thefts** shows the bikes reported stolen to the Ottawa Police Service, 2018 to 2025 ([open data](https://open.ottawa.ca/), Open Government Licence – Ottawa Police Service), at the intersection the police place each one: a heat map zoomed out; zoomed in, intersections sized by the number of thefts and coloured by the value stolen there as reported (grey where none was given). The legend filters them by year, on the same slider and timeline as collisions, and by where the bike was taken from (outdoors, a home break-in, another building), the time of day, the season, the kind of bike, its value and whether it was recovered, and by the fewest thefts or the least value stolen at an intersection, the value slider painted in the map's colours; a card steps through the thefts at an intersection, with each bike's make, model and colour, since one report often lists several bikes. The police data also lists bikes found, seized or disposed of; `npm run thefts` (`pipeline/fetch-thefts.mjs`) keeps only those stolen, recovered or not, leaves out e-scooters and records listed twice, and writes `web/public/data/thefts.geojson`, about 10,000 points, which is committed.
 
 ## Overlays
@@ -70,6 +73,7 @@ Switches in the map style menu draw these over any layer:
 - **Bike lanes** (on by default), as Google Maps does: segregated cycleways and pathways dark green, painted lanes (`cycleway*=lane`) a lighter green in dashes, shared lanes that green in dots, paved shoulders meant for riding (`cycleway*=shoulder`) yellow. Streets get a line down each side that has a lane. Lines are as wide as the bikeway (`cycleway:width`, else `width`; without a tag 3 m for a two-way path, 1.5 m for a one-way one, a lane or a shoulder).
 - **Bike routes** (off by default): signed routes from OSM route relations (`route=bicycle` and `route=mtb`) as wide soft bands under the bike lanes, coloured by rank: national (`ncn`: Trans Canada Trail, Route Verte), regional (`rcn`: Capital Pathway, Ottawa Valley Recreation Trail), local (`lcn`: Crosstown Bikeways and named pathways) and mountain-bike trails. Routes nest, so a way takes the rank of the most important route it is part of. Clicking one lists its routes with their length here and the routes they are part of, and picks out the one chosen.
 - **Wards** (off by default): Ottawa's 24 wards in plum and Gatineau's 19 districts in teal, each named with its councillor. `npm run wards` (`pipeline/fetch-wards.mjs`) fetches them from the City of Ottawa (Wards 2026-2030 and Elected Officials, Open Government Licence – Ottawa) and the Ville de Gatineau (Districts électoraux, CC BY 4.0) and writes `web/public/data/wards.geojson`, which is committed.
+- **Roadwork** (off by default): a cone at each closure on the City of Ottawa's [traffic map](https://traffic.ottawa.ca/map/) right now, fetched live from it in the language shown (`web/src/useClosures.ts`); a card gives what is closed, from when to when, and who reported it. Most are road and lane closures for construction.
 
 ## Route planner
 
@@ -145,6 +149,7 @@ docker compose pull && docker compose up -d   # pick up the nightly data
 - `npm run tiles` / `npm run basemap`: rebuild the tiles
 - `npm run osm`: bring the OSM data up to date without rebuilding anything
 - `npm run collisions` / `npm run thefts` / `npm run wards`: download the city and police data again
+- `npm run construction`: fetch the City's construction forecast for the Projects layer
 - `npm run router:build` / `npm run router`: build and run the local router
 
 ## Roadmap
