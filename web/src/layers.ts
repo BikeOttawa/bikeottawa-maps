@@ -230,7 +230,9 @@ export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<
   const { surface, unknown } = pathwayColors(basemap)
   return {
     surface: { ...surface, unknown },
-    type: { cycleway: HUES[0], path: HUES[1], footway: HUES[2] },
+    // Cycle paths blue, paths green, footpaths purple: darker than the blue on pale
+    // ground and lighter on dark, so colour-blind eyes tell the two apart.
+    type: { cycleway: HUES[0], path: HUES[2], footway: pale ? '#6B2E8F' : '#C58AE0' },
     width: pale
       ? { ...WIDTH_COLORS, unknown }
       : { '0': '#346B3D', '1.5': '#4C9C58', '2.5': '#7ACB83', '3.5': '#C2F2BC', unknown },
