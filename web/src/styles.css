@@ -1036,18 +1036,17 @@ a {
 .stop-counts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 6px;
   margin: -8px -6px 0;
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .stop-count {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-height: 28px;
-  padding: 2px 8px 2px 6px;
+  padding: 2px 5px 2px 4px;
   border: 0;
   border-radius: 6px;
   background: transparent;

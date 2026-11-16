@@ -8,14 +8,13 @@ export const STOP_RED = '#C8281B'
 export const LIGHT_BODY = '#1E2A30'
 export const LIGHT_COLORS = ['#E5483B', '#F2B632', '#3DB55C']
 
-/** A barrier is a barricade board in red and white stripes, in the 20-unit square both drawings use. */
-export const BARRIER_BOARD = { x: 1.5, y: 6, width: 17, height: 8, radius: 2 }
-export const BARRIER_STRIPES = [1.5, 6.5, 11.5].map((x) => [
-  [x, 14],
-  [x + 3, 14],
-  [x + 7, 6],
-  [x + 4, 6],
-])
+/**
+ * A barrier is two bollards with a gap between them: in the way, but most let a
+ * bike through. In the 20-unit square both drawings use.
+ */
+export const BOLLARD_XS = [3.5, 12] as const
+export const BOLLARD = { y: 3.5, width: 4.5, height: 13, radius: 2.25, bandY: 6.5, bandHeight: 2.5 }
+export const GROUND = { x1: 1.5, x2: 18.5, y: 17.5 }
 
 /** A small stop sign, traffic light or barrier for the map. The legend draws the same shapes in SVG. */
 export function renderStopImage(kind: StopKind): { image: ImageData; pixelRatio: number } | null {
@@ -42,26 +41,33 @@ export function renderStopImage(kind: StopKind): { image: ImageData; pixelRatio:
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(centre - 4.5, centre - 1.25, 9, 2.5)
   } else if (kind === 'barrier') {
-    // A striped board, ringed in white so it shows on any map.
-    const { x, y, width, height, radius } = BARRIER_BOARD
-    ctx.beginPath()
-    ctx.roundRect(x, y, width, height, radius)
-    ctx.lineWidth = 3
-    ctx.stroke()
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fill()
-    ctx.fillStyle = STOP_RED
-    for (const stripe of BARRIER_STRIPES) {
+    // Ringed in white first, so the posts and the ground show on any map.
+    const { y, width, height, radius, bandY, bandHeight } = BOLLARD
+    const ground = () => {
       ctx.beginPath()
-      for (const [px, py] of stripe) ctx.lineTo(px, py)
-      ctx.closePath()
-      ctx.fill()
+      ctx.moveTo(GROUND.x1, GROUND.y)
+      ctx.lineTo(GROUND.x2, GROUND.y)
+      ctx.stroke()
     }
-    ctx.beginPath()
-    ctx.roundRect(x, y, width, height, radius)
-    ctx.lineWidth = 1
+    ctx.lineCap = 'round'
+    ctx.lineWidth = 3
+    ground()
+    for (const x of BOLLARD_XS) {
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.stroke()
+    }
     ctx.strokeStyle = LIGHT_BODY
-    ctx.stroke()
+    ctx.lineWidth = 1.5
+    ground()
+    for (const x of BOLLARD_XS) {
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.fillStyle = LIGHT_BODY
+      ctx.fill()
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(x, bandY, width, bandHeight)
+    }
   } else {
     // A dark housing with red, amber and green lamps.
     ctx.beginPath()

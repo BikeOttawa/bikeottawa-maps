@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { LTS_COLORS } from '../layers'
-import { BARRIER_BOARD, BARRIER_STRIPES, LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
+import { BOLLARD, BOLLARD_XS, GROUND, LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
 import { distanceByPart, partLook, ROUTE_PARTS, ROUTE_VIEWS, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { downloadText, toGpx } from '../route/gpx'
@@ -36,14 +36,16 @@ function pickingProps(item: RouteHighlight, { pinned, onPoint, onPin }: Picking)
 const STOP_LABELS: Record<StopKind, MessageKey> = { stop: 'stopSigns', light: 'trafficLights', barrier: 'barriers' }
 
 function BarrierIcon() {
-  const { x, y, width, height, radius } = BARRIER_BOARD
+  const { y, width, height, radius, bandY, bandHeight } = BOLLARD
   return (
     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
-      <rect x={x} y={y} width={width} height={height} rx={radius} fill="#fff" />
-      {BARRIER_STRIPES.map((points) => (
-        <polygon key={points[0][0]} points={points.join(' ')} fill={STOP_RED} />
+      <path d={`M${GROUND.x1} ${GROUND.y}H${GROUND.x2}`} stroke={LIGHT_BODY} strokeWidth="1.5" strokeLinecap="round" />
+      {BOLLARD_XS.map((x) => (
+        <g key={x}>
+          <rect x={x} y={y} width={width} height={height} rx={radius} fill={LIGHT_BODY} />
+          <rect x={x} y={bandY} width={width} height={bandHeight} fill="#fff" />
+        </g>
       ))}
-      <rect x={x} y={y} width={width} height={height} rx={radius} fill="none" stroke={LIGHT_BODY} />
     </svg>
   )
 }
@@ -77,7 +79,7 @@ function StopCounts({ route, picking }: { route: Route; picking: Picking }) {
             key={kind}
             type="button"
             className="stop-count"
-            title={t('showOnRoute')}
+            title={kind === 'barrier' ? `${t('barriersHint')} ${t('showOnRoute')}` : t('showOnRoute')}
             disabled={count === 0}
             {...pickingProps(kind, picking)}
           >

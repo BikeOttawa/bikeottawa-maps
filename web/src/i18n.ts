@@ -394,6 +394,8 @@ const en = {
   stopSigns: 'Stop signs',
   trafficLights: 'Traffic lights',
   barriers: 'Barriers',
+  barriersHint:
+    'Bollards, gates, chicanes, raised kerbs: most let a bike through, but they can be tight with a cargo bike or a trailer.',
   via: 'Via',
   basemap: 'Map style',
   'basemap.light': 'Light',
@@ -805,6 +807,8 @@ const fr: Record<keyof typeof en, string> = {
   stopSigns: 'Arrêts',
   trafficLights: 'Feux',
   barriers: 'Barrières',
+  barriersHint:
+    'Bornes, barrières, chicanes, bordures hautes : on passe d’habitude, mais c’est parfois serré en vélo-cargo ou avec une remorque.',
   via: 'Via',
   basemap: 'Style de carte',
   'basemap.light': 'Clair',
