@@ -3,7 +3,7 @@ import { type BandTotals, bandKm, formatPicks, type Picks, parsePicks, shownKm }
 
 /**
  * The comfort layer's filters. The pipeline bands each way on the layer by its
- * type, speed limit, lanes, bike infrastructure and surface (pipeline/comfort.mjs),
+ * type, speed limit, lanes, bike infrastructure, surface and lighting (pipeline/comfort.mjs),
  * writes the bands into the tiles, and adds up the km of every combination
  * into meta.json for the legend's bars.
  */
@@ -14,6 +14,7 @@ export const COMFORT_GROUPS = {
   lanes: ['1', '2', '3', 'unknown'],
   bikeway: ['path', 'lane', 'shoulder', 'shared', 'none'],
   surface: ['paved', 'unpaved', 'unknown'],
+  lit: ['yes', 'no'],
 } as const
 export type ComfortSet = keyof typeof COMFORT_GROUPS
 export const COMFORT_SETS = Object.keys(COMFORT_GROUPS) as ComfortSet[]
@@ -26,6 +27,7 @@ const PROPERTY: Record<ComfortSet, string> = {
   lanes: 'lane_band',
   bikeway: 'bike_band',
   surface: 'surface_band',
+  lit: 'lit_band',
 }
 
 /** The groups picked of each set; none picked shows them all. */

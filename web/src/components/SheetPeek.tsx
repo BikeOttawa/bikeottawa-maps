@@ -8,15 +8,17 @@ import {
   type LayerId,
   LTS_COLORS,
   lampColor,
-  pathwayColors,
+  pathwaySetColors,
   reachRamp,
   WINTER_COLORS,
 } from '../layers'
+import { colorBy, PATHWAY_GROUPS, type PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
 import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
 import type { Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
 import type { TheftFilters, TheftSpot } from '../thefts'
+import { labelKey } from './PathwayLegend'
 import { PlaceIcon } from './PlaceIcon'
 
 /** The pathways' surfaces from paved to ground, as their peek bar. */
@@ -57,6 +59,7 @@ interface LayerProps {
   collisionFilters: CollisionFilters
   theftSpots: readonly TheftSpot[] | null
   theftFilters: TheftFilters
+  pathwayFilters: PathwayFilters
 }
 
 /** The active layer's key, small enough for one line. */
@@ -68,19 +71,26 @@ export function LayerPeek({
   collisionFilters,
   theftSpots,
   theftFilters,
+  pathwayFilters,
 }: LayerProps): ReactNode {
   const { t, lang } = useI18n()
   if (layer === 'pathways') {
-    const colors = pathwayColors(basemap)
+    // The colours of the row the map is coloured by, first to last, then not tagged.
+    const by = colorBy(pathwayFilters)
+    const colors = pathwaySetColors(basemap)[by]
+    const all: readonly string[] = PATHWAY_GROUPS[by]
+    const groups = by === 'surface' ? PAVED_TO_GROUND : all.filter((group) => group !== 'unknown')
     return (
       <>
-        <span>{t('pathways.surface.asphalt')}</span>
-        <Bar parts={PAVED_TO_GROUND.map((surface) => [colors.surface[surface], 1])} />
-        <span>{t('pathways.surface.ground')}</span>
-        <span className="peek-item">
-          <Swatch color={colors.unknown} />
-          {t('unknown')}
-        </span>
+        <span>{t(labelKey(by, groups[0]))}</span>
+        <Bar parts={groups.map((group) => [colors[group], 1])} />
+        <span>{t(labelKey(by, groups[groups.length - 1]))}</span>
+        {all.includes('unknown') && (
+          <span className="peek-item">
+            <Swatch color={colors.unknown} />
+            {t('unknown')}
+          </span>
+        )}
       </>
     )
   }

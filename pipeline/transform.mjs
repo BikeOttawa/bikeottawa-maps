@@ -132,6 +132,10 @@ for await (const line of lines()) {
     }
     counts.ways++
     counts.byLts[way.props.lts]++
+    // Lit by its tag, or by the street lamps along it: for the lights overlay
+    // and the comfort and pathways filters.
+    const isLitWay = isLit(tags, litShare(feature.geometry.coordinates))
+    if (way.props.lts > 0 || way.props.pathway) way.props.lit_band = isLitWay ? 'yes' : 'no'
     // The comfort layer's filters: its bands, and their km for the legend.
     if (way.props.lts > 0) {
       Object.assign(way.props, comfortBands(way.props, tags))
@@ -142,9 +146,9 @@ for await (const line of lines()) {
       Object.assign(way.props, pathwayBands(way.props))
       pathwayKm.add(way.props, metres(feature.geometry.coordinates))
     }
-    // Lit ways glow on the night layer. They go in a file of their own, bare, so
-    // that all of them can show however far out the map is zoomed.
-    if (isLit(tags, litShare(feature.geometry.coordinates))) {
+    // Lit ways glow on the street lights overlay. They go in a file of their own,
+    // bare, so that all of them can show however far out the map is zoomed.
+    if (isLitWay) {
       counts.lit++
       await write(lit, { type: 'Feature', properties: {}, geometry: feature.geometry })
     }

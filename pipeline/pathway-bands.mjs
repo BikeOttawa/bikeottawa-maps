@@ -57,8 +57,8 @@ export function pathwayBands(props) {
   return { path_type: pathTypeBand(props), width_band: widthBand(props), smooth_band: smoothBand(props) }
 }
 
-/** The sets the legend filters by, then the length band, in the order of each total's key. */
-export const PATHWAY_SETS = ['type', 'surface', 'width', 'snow', 'smoothness', 'length']
+/** The sets the legend filters by, then the length band, in the order of each total's key. Lit is set by the transform. */
+export const PATHWAY_SETS = ['type', 'surface', 'width', 'snow', 'smoothness', 'lit', 'length']
 
 /** Km of pathway for each combination of bands and island length step. */
 export function pathwayTotals() {
@@ -71,6 +71,7 @@ export function pathwayTotals() {
         props.width_band,
         props.winter ?? 'unknown',
         props.smooth_band,
+        props.lit_band ?? 'no',
         lengthBand(props.island_m ?? 0),
       ].join('|')
       metres.set(key, (metres.get(key) ?? 0) + length)

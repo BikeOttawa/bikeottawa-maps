@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
-import { type BasemapId, pathwayColors, WIDTH_COLORS, WINTER_COLORS } from '../layers'
+import { type BasemapId, pathwaySetColors } from '../layers'
 import {
   formatLength,
   LENGTH_STEPS,
@@ -12,7 +12,7 @@ import {
   pathwayKm,
   pathwayShownKm,
 } from '../pathways'
-import { GroupRow, HUES, OTHER } from './GroupBars'
+import { GroupRow, OTHER } from './GroupBars'
 
 interface Props {
   filters: PathwayFilters
@@ -22,39 +22,25 @@ interface Props {
   basemap: BasemapId
 }
 
-/** Smoothness is ordered: one violet, the smoothest lightest. */
-const SMOOTH_STEPS = ['#D9CCEB', '#B09AD3', '#8065B4', '#4F3487']
-
-/** Each set's colours: surface as the map draws it, the rest as their bars. */
-function setColors(basemap: BasemapId): Record<PathwaySet, Record<string, string>> {
-  const map = pathwayColors(basemap)
-  return {
-    surface: { ...map.surface, unknown: map.unknown },
-    type: { cycleway: HUES[0], path: HUES[1], footway: HUES[2] },
-    width: { ...WIDTH_COLORS, unknown: OTHER },
-    snow: { ...WINTER_COLORS, unknown: OTHER },
-    smoothness: Object.fromEntries(PATHWAY_GROUPS.smoothness.map((g, i) => [g, SMOOTH_STEPS[i] ?? OTHER])),
-  }
-}
-
-/** The labels: plowing as the cards name it, types as OSM's. */
-function labelKey(set: PathwaySet, group: string): MessageKey {
+/** The labels: plowing and lighting as the cards name them, types as OSM's. */
+export function labelKey(set: PathwaySet, group: string): MessageKey {
   if (group === 'unknown') return `pathways.${set}.unknown` as MessageKey
   if (set === 'type') return `highway.${group}` as MessageKey
   if (set === 'snow') return `winter.${group}` as MessageKey
+  if (set === 'lit') return `litPart.${group}` as MessageKey
   return `pathways.${set}.${group}` as MessageKey
 }
 
 /**
- * Which pathways the layer shows, as the other layers' filters: by surface
- * (the map's colours, its key), type, width, snow clearing and smoothness, each
- * a bar of km; and how much pathway they must join up with.
+ * Which pathways the layer shows, as the other layers' filters: by surface,
+ * type, width, snow clearing, smoothness and lighting, each a bar of km; and
+ * how much pathway they must join up with. The open row colours the map, in
+ * the colours of its bars, so it is the map's key too.
  */
 export function PathwayLegend({ filters, onChange, totals, basemap }: Props) {
   const { t, lang } = useI18n()
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
-  const [open, setOpen] = useState<PathwaySet | null>('surface')
-  const colors = setColors(basemap)
+  const colors = pathwaySetColors(basemap)
   const km = (n: number) => `${Math.round(n).toLocaleString(locale)} km`
   const counts = useMemo(
     () => (totals ? Object.fromEntries(PATHWAY_SETS.map((set) => [set, pathwayKm(totals, filters, set)])) : null),
@@ -82,8 +68,8 @@ export function PathwayLegend({ filters, onChange, totals, basemap }: Props) {
               label={(group) => t(labelKey(set, group))}
               amount={km}
               onPick={(next) => onChange({ ...filters, picks: { ...picks, [set]: next } })}
-              open={open === set}
-              onToggle={() => setOpen(open === set ? null : set)}
+              open={filters.by === set}
+              onToggle={() => onChange({ ...filters, by: filters.by === set ? null : set })}
             />
           ))}
           <p className="footnote">{t('pathways.hint')}</p>

@@ -9,7 +9,7 @@ import {
   comfortShownKm,
 } from '../comfort'
 import { isMessageKey, type MessageKey, useI18n } from '../i18n'
-import { bikewayColors, LTS_COLORS, pathwayColors } from '../layers'
+import { bikewayColors, LTS_COLORS, pathwayColors, pathwaySetColors } from '../layers'
 import { partLook } from '../route/breakdown'
 import { GroupRow, OTHER } from './GroupBars'
 
@@ -56,11 +56,13 @@ const COLORS: Record<ComfortSet, Record<string, string>> = {
     none: partLook('bikeway', 'traffic').color,
   },
   surface: { paved: surfaces.surface.asphalt, unpaved: surfaces.surface.gravel, unknown: OTHER },
+  lit: pathwaySetColors('light').lit,
 }
 
 /** The labels: the stress levels' short names, the bike infrastructure as the route card names it. */
 function labelKey(set: ComfortSet, group: string): MessageKey {
   if (set === 'stress') return `comfort.stress.${group}` as MessageKey
+  if (set === 'lit') return `litPart.${group}` as MessageKey
   if (set === 'bikeway') {
     const named: Record<string, MessageKey> = {
       path: 'comfort.bikeway.path',

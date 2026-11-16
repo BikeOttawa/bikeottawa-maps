@@ -905,6 +905,7 @@ export function App() {
       collisionFilters={collisions}
       theftSpots={shownTheftSpots}
       theftFilters={thefts}
+      pathwayFilters={pathways}
     />
   ) : route ? (
     <RoutePeek route={route} travel={travel} view={routeView} />

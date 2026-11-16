@@ -1,4 +1,7 @@
 import { useI18n } from '../i18n'
+import { HUES } from '../layers'
+
+export { HUES, OTHER } from '../layers'
 
 /**
  * Filters drawn as bars: a line per group with a bar, a line picks those
@@ -6,10 +9,6 @@ import { useI18n } from '../i18n'
  * pick shows how the items picked differ. Shared by the collisions and thefts
  * legends.
  */
-
-/** Categorical hues in a fixed order (validated light-mode set); other is a neutral grey. */
-export const HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'] as const
-export const OTHER = '#9AA1A6'
 
 /** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
 export const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }

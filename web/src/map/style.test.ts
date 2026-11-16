@@ -77,7 +77,7 @@ describe('buildStyle', () => {
     for (const other of ['places', 'night', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
   })
 
-  it('colours pathways by surface, unknown ones on top, and filters them by the picks', () => {
+  it('colours pathways by the open row, surface at first, unknown ones on top, and filters them by the picks', () => {
     const pathways = { ...DEFAULT_PATHWAY_FILTERS, picks: { width: ['2.5', '3.5'] } }
     const line = layer(build({ layer: 'pathways', pathways }), 'pathways-line') as {
       paint: { 'line-color': unknown }
@@ -87,6 +87,13 @@ describe('buildStyle', () => {
     expect(JSON.stringify(line.paint['line-color'])).toContain('surface_group')
     expect(JSON.stringify(line.layout['line-sort-key'])).toContain('surface_group')
     expect(JSON.stringify(line.filter)).toContain('["literal",["2.5","3.5"]]')
+    // The open row colours the map: snow clearing, untagged as unknown, on top.
+    const bySnow = layer(build({ layer: 'pathways', pathways: { ...pathways, by: 'snow' } }), 'pathways-line') as {
+      paint: { 'line-color': unknown }
+      layout: { 'line-sort-key': unknown }
+    }
+    expect(JSON.stringify(bySnow.paint['line-color'])).toContain('["coalesce",["get","winter"],"unknown"]')
+    expect(JSON.stringify(bySnow.layout['line-sort-key'])).toContain('winter')
   })
 
   it('loads the wards only when turned on, labelled in the language picked', () => {

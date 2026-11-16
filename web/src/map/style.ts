@@ -22,6 +22,7 @@ import {
   type LayerId,
   LTS_COLORS,
   pathwayColors,
+  pathwaySetColors,
   ROUTE_COLORS,
   type RouteLevelId,
   reachRamp,
@@ -30,7 +31,14 @@ import {
   WINTER_COLORS,
   wardColors,
 } from '../layers'
-import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH } from '../pathways'
+import {
+  colorBy,
+  DEFAULT_PATHWAY_FILTERS,
+  type PathwayFilters,
+  pathwayFilter,
+  pathwayGroupOf,
+  UNKNOWN_WIDTH,
+} from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
@@ -458,19 +466,21 @@ function pathwayWidth(extra = 0): ExpressionSpecification {
 }
 
 /**
- * Pathways coloured by surface, in yellow where it is not tagged yet; those go
- * on top, so the gaps show.
+ * Pathways coloured by the legend's open row (surface at first), in yellow
+ * where that is not tagged yet; those go on top, so the gaps show.
  */
 function pathwayLayers(state: StyleState, fade: number): LayerSpecification[] {
   const filters = state.pathways ?? DEFAULT_PATHWAY_FILTERS
-  const colors = pathwayColors(state.basemap)
+  const by = colorBy(filters)
+  const colors = pathwaySetColors(state.basemap)[by]
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  const unknown: ExpressionSpecification = ['!', ['has', 'surface_group']]
+  const group = pathwayGroupOf(by)
+  const unknown: ExpressionSpecification = ['==', group, 'unknown']
   const color = [
     'match',
-    ['get', 'surface_group'],
-    ...Object.entries(colors.surface).flat(),
-    colors.unknown,
+    group,
+    ...Object.entries(colors).flat(),
+    pathwayColors(state.basemap).unknown,
   ] as unknown as ExpressionSpecification
   const layout = {
     'line-cap': 'round' as const,

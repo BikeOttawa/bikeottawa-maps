@@ -100,8 +100,8 @@ export function comfortBands(props, tags = {}) {
   return bands
 }
 
-/** The sets the legend filters by, in the order of each total's key. */
-export const COMFORT_SETS = ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface']
+/** The sets the legend filters by, in the order of each total's key. Lit is set by the transform, from the lamps too. */
+export const COMFORT_SETS = ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface', 'lit']
 
 /**
  * Km of the comfort layer for each combination of bands: few enough rows (a
@@ -120,6 +120,7 @@ export function comfortTotals() {
         props.lane_band ?? '-',
         props.bike_band,
         props.surface_band,
+        props.lit_band ?? 'no',
       ].join('|')
       metres.set(key, (metres.get(key) ?? 0) + length)
     },

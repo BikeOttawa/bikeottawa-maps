@@ -65,7 +65,7 @@ test('adds up km by every combination of bands, the comfort layer only', () => {
   totals.add(street, 500)
   totals.add({ lts: 0, kind: 'street' }, 900)
   assert.deepEqual(totals.toJSON(), {
-    sets: ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface'],
-    rows: [['3', 'tertiary', '50', '1', 'none', 'paved', 2]],
+    sets: ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface', 'lit'],
+    rows: [['3', 'tertiary', '50', '1', 'none', 'paved', 'no', 2]],
   })
 })

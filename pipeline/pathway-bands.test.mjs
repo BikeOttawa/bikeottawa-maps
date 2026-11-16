@@ -54,15 +54,16 @@ test('adds up km by every combination of bands and length', () => {
     ...pathwayBands({ highway: 'path', width_m: 2 }),
     surface_group: 'asphalt',
     winter: 'yes',
+    lit_band: 'yes',
     island_m: 750,
   }
   totals.add(path, 1200)
   totals.add({ ...pathwayBands({ highway: 'cycleway' }), island_m: 50 }, 300)
   assert.deepEqual(totals.toJSON(), {
-    sets: ['type', 'surface', 'width', 'snow', 'smoothness', 'length'],
+    sets: ['type', 'surface', 'width', 'snow', 'smoothness', 'lit', 'length'],
     rows: [
-      ['path', 'asphalt', '1.5', 'yes', 'unknown', '500', 1.2],
-      ['cycleway', 'unknown', 'unknown', 'unknown', 'unknown', '0', 0.3],
+      ['path', 'asphalt', '1.5', 'yes', 'unknown', 'yes', '500', 1.2],
+      ['cycleway', 'unknown', 'unknown', 'unknown', 'unknown', 'no', '0', 0.3],
     ],
   })
 })

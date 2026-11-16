@@ -1,6 +1,6 @@
 /** The switchable data layers and their colours. Shared by the map style and the legend. */
 
-import type { KnownSurfaceId, WidthBand } from './pathways'
+import type { KnownSurfaceId, PathwaySet, WidthBand } from './pathways'
 
 export const LAYER_IDS = [
   'places',
@@ -18,6 +18,10 @@ export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
 export type BasemapId = (typeof BASEMAP_IDS)[number]
 
 export const INK = '#16242B'
+
+/** Categorical hues in a fixed order (validated light-mode set); other is a neutral grey. */
+export const HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'] as const
+export const OTHER = '#9AA1A6'
 
 /** Level of traffic stress 1 to 4. */
 export const LTS_COLORS = ['#1B5FAE', '#62B0E8', '#F2A33A', '#B5341F'] as const
@@ -212,6 +216,32 @@ export const WIDTH_COLORS: Record<WidthBand, string> = {
   '1.5': '#5DAE5E',
   '2.5': '#2A8540',
   '3.5': '#0D5A26',
+}
+
+/** Where lamps light a way: a deep amber on pale ground, a warm yellow on dark; unlit slate or grey. */
+const LIT_ON_PALE = { yes: LAMP_COLOR_ON_PALE, no: '#34404A' }
+const LIT_ON_DARK = { yes: '#FFC24A', no: '#6F7B80' }
+
+/**
+ * The pathways layer's colours for each set the map can be coloured by. Ordered
+ * sets run through one hue, strongest at the far end: darkest on pale ground,
+ * brightest on dark. Not tagged is yellow in every set, so the gaps always show.
+ */
+export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<string, string>> {
+  const pale = basemap === 'light' || basemap === 'grey'
+  const { surface, unknown } = pathwayColors(basemap)
+  return {
+    surface: { ...surface, unknown },
+    type: { cycleway: HUES[0], path: HUES[1], footway: HUES[2] },
+    width: pale
+      ? { ...WIDTH_COLORS, unknown }
+      : { '0': '#346B3D', '1.5': '#4C9C58', '2.5': '#7ACB83', '3.5': '#C2F2BC', unknown },
+    snow: pale ? { yes: '#1B5FAE', no: '#E07B1A', unknown } : { yes: '#5FA3EE', no: '#F08A2C', unknown },
+    smoothness: pale
+      ? { excellent: '#D9CCEB', good: '#B09AD3', intermediate: '#8065B4', bad: '#4F3487', unknown }
+      : { excellent: '#5B4391', good: '#8065B4', intermediate: '#B09AD3', bad: '#E2D6F5', unknown },
+    lit: pale ? LIT_ON_PALE : LIT_ON_DARK,
+  }
 }
 
 /**
