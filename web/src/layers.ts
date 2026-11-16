@@ -222,8 +222,9 @@ const LIT_ON_DARK = { yes: '#FFC24A', no: '#6F7B80' }
 
 /**
  * The pathways layer's colours for each set the map can be coloured by. Ordered
- * sets run through one hue, strongest at the far end: darkest on pale ground,
- * brightest on dark. Not tagged is yellow, so the gaps show; grey for lighting.
+ * sets run through one hue, strongest for the best (widest, smoothest): darkest
+ * on pale ground, brightest on dark. Not tagged is yellow, so the gaps show;
+ * grey for lighting.
  */
 export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<string, string>> {
   const pale = basemap === 'light' || basemap === 'grey'
@@ -238,8 +239,8 @@ export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<
       : { '0': '#346B3D', '1.5': '#4C9C58', '2.5': '#7ACB83', '3.5': '#C2F2BC', unknown },
     snow: pale ? { yes: '#1B5FAE', no: '#E07B1A', unknown } : { yes: '#5FA3EE', no: '#F08A2C', unknown },
     smoothness: pale
-      ? { excellent: '#D9CCEB', good: '#B09AD3', intermediate: '#8065B4', bad: '#4F3487', unknown }
-      : { excellent: '#5B4391', good: '#8065B4', intermediate: '#B09AD3', bad: '#E2D6F5', unknown },
+      ? { excellent: '#4F3487', good: '#8065B4', intermediate: '#B09AD3', bad: '#D9CCEB', unknown }
+      : { excellent: '#E2D6F5', good: '#B09AD3', intermediate: '#8065B4', bad: '#5B4391', unknown },
     // Lighting's gaps are grey: most are dark paths no one has tagged, not ones to map first.
     lit: { ...(pale ? LIT_ON_PALE : LIT_ON_DARK), unknown: OTHER },
   }
