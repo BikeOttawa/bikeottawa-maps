@@ -5,8 +5,6 @@ import {
   type Collision,
   type CollisionFilters,
   type CollisionSpot,
-  SEVERITIES,
-  type Severity,
 } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
@@ -109,25 +107,7 @@ export function CollisionLegend({ spots, collisions, busiestSpot, filters, onCha
         ))}
       </div>
       <YearRange from={filters.from} to={filters.to} onChange={(from, to) => onChange({ ...filters, from, to })} />
-      <ul className="collision-severities">
-        {[...SEVERITIES].reverse().map((severity: Severity) => (
-          <li key={severity}>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={filters.severities.includes(severity)}
-                onChange={() => onChange({ ...filters, severities: toggle(filters.severities, severity) })}
-              />
-              <span className={`swatch dot severity-${severity}`} style={{ background: colors[severity] }} />
-              <span>{t(`severity.${severity}`)}</span>
-              {counts && filters.severities.includes(severity) && (
-                <span className="share">{number(counts[severity])}</span>
-              )}
-            </label>
-          </li>
-        ))}
-      </ul>
-      <CollisionConditions collisions={collisions} filters={filters} onChange={onChange} />
+      <CollisionConditions collisions={collisions} filters={filters} onChange={onChange} basemap={basemap} />
       <label className="collision-min">
         <span>
           {filters.minCount <= 1

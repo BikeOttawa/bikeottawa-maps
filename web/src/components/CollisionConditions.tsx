@@ -7,14 +7,20 @@ import {
   type CollisionProps,
   type ConditionId,
   conditionCounts,
+  countBySeverity,
+  SEVERITIES,
+  type Severity,
 } from '../collisions'
 import { type MessageKey, useI18n } from '../i18n'
+import { type BasemapId, collisionColors } from '../layers'
 
 /**
- * The circumstances of the collisions shown, as a filter: each one a thin
- * split bar, opened into a line per group with its share. A line picks those
- * collisions; a tick on each bar marks its share before any injury or
- * circumstance was picked, so a pick shows how those collisions differ.
+ * The collisions shown, split by injury and by circumstance, as filters: a
+ * line per group with a bar, a line picks those collisions. A tick on each bar
+ * marks the group as it is before any pick, so a pick shows how those
+ * collisions differ. Injuries stay open, as the key to the map's colours, and
+ * count collisions; each circumstance is a thin split bar that opens into its
+ * groups' shares.
  */
 
 // Categorical hues in a fixed order (validated light-mode set); other is a neutral grey.
@@ -27,11 +33,139 @@ const colorOf = (id: ConditionId, group: string) =>
 const groupLabel = (id: ConditionId, group: string) =>
   (group === 'other' ? 'condition.other' : `condition.${id}.${group}`) as MessageKey
 
-const sum = (counts: Map<string, number>) => [...counts.values()].reduce((a, b) => a + b, 0)
+const sum = (counts: { values(): Iterable<number> }) => [...counts.values()].reduce((a, b) => a + b, 0)
 
 function percent(share: number): string {
   if (share === 0) return '0%'
   return share < 0.01 ? '<1%' : `${Math.round(share * 100)}%`
+}
+
+interface Line {
+  key: string
+  label: string
+  color: string
+  /** The swatch's colour when it differs from the bar's. */
+  swatch?: string
+  /** How long the bar is, and where the tick goes (null for none), on one scale. */
+  value: number
+  tick: number | null
+  /** The figure at the end of the line. */
+  figure: string
+  title: string
+}
+
+/** Lines of bars on one scale, the longest bar the full width, each picking its group. */
+function Lines({
+  lines,
+  picked,
+  onToggle,
+  onAll,
+  dot,
+}: {
+  lines: Line[]
+  picked: readonly string[]
+  onToggle: (key: string) => void
+  onAll: () => void
+  /** Round swatches, as the map draws collisions. */
+  dot?: boolean
+}) {
+  const { t } = useI18n()
+  const top = Math.max(...lines.map((l) => Math.max(l.value, l.tick ?? 0)), Number.MIN_VALUE)
+  const along = (value: number) => `${(value / top) * 100}%`
+  return (
+    <ul className="condition-groups">
+      {lines.map((line) => {
+        const isPicked = picked.includes(line.key)
+        return (
+          <li key={line.key}>
+            <button
+              type="button"
+              className={picked.length && !isPicked ? 'condition-group faded' : 'condition-group'}
+              aria-pressed={isPicked}
+              title={line.title}
+              onClick={() => onToggle(line.key)}
+            >
+              <span className={dot ? 'swatch dot' : 'swatch line'} style={{ background: line.swatch ?? line.color }} />
+              <span className="condition-label">{line.label}</span>
+              <span className="condition-bar">
+                <span className="condition-fill" style={{ width: along(line.value), background: line.color }} />
+                {line.tick !== null && <span className="condition-tick" style={{ left: along(line.tick) }} />}
+              </span>
+              <span className="share">{line.figure}</span>
+            </button>
+          </li>
+        )
+      })}
+      {picked.length > 0 && (
+        <li>
+          <button type="button" className="condition-all" onClick={onAll}>
+            {t('crash.showAll')}
+          </button>
+        </li>
+      )}
+    </ul>
+  )
+}
+
+const toggled = <T,>(list: readonly T[], value: T): T[] =>
+  list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
+
+/**
+ * Collisions by worst injury, worst first, in the map's colours. Picking some
+ * shows only those; with a circumstance picked, the tick is how many there
+ * would be if those collisions ended like the rest.
+ */
+function InjuryLines({
+  all,
+  filters,
+  onChange,
+  basemap,
+}: {
+  all: readonly CollisionProps[]
+  filters: CollisionFilters
+  onChange: (filters: CollisionFilters) => void
+  basemap: BasemapId
+}) {
+  const { t, lang } = useI18n()
+  const shown = useMemo(() => countBySeverity(all, filters), [all, filters])
+  const usual = useMemo(() => countBySeverity(all, { ...filters, conditions: {} }), [all, filters])
+  // The dots are the key to the map; the bars are on the pale panel, darker as injuries worsen.
+  const onMap = collisionColors(basemap)
+  const onPanel = collisionColors('light')
+  // Every injury shown is the same as none picked.
+  const picked: readonly Severity[] = filters.severities.length === SEVERITIES.length ? [] : filters.severities
+  const total = sum(Object.values(shown))
+  const usualTotal = sum(Object.values(usual))
+  const compared = CONDITION_IDS.some((id) => filters.conditions[id]?.length)
+  const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
+  const expected = (s: Severity) => (usualTotal ? (usual[s] / usualTotal) * total : 0)
+  const pick = (next: readonly Severity[]) => onChange({ ...filters, severities: next.length ? next : SEVERITIES })
+  const lines: Line[] = [...SEVERITIES].reverse().map((s) => ({
+    key: s,
+    label: t(`severity.${s}`),
+    color: onPanel[s],
+    swatch: onMap[s],
+    value: shown[s],
+    tick: compared ? expected(s) : null,
+    figure: number(shown[s]),
+    title: compared
+      ? t('crash.injuryExpected')
+          .replace('{count}', number(shown[s]))
+          .replace('{expected}', number(Math.round(expected(s))))
+      : number(shown[s]),
+  }))
+  return (
+    <fieldset className="conditions">
+      <legend>{t('crash.injury')}</legend>
+      <Lines
+        lines={lines}
+        picked={picked}
+        onToggle={(key) => pick(toggled(picked, key as Severity))}
+        onAll={() => pick([])}
+        dot
+      />
+    </fieldset>
+  )
 }
 
 interface RowProps {
@@ -57,12 +191,19 @@ function ConditionRow({ id, all, filters, onChange, open, onToggle }: RowProps) 
     filters.severities.length < 5 || CONDITION_IDS.some((other) => other !== id && filters.conditions[other]?.length)
   const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
   const pick = (next: string[]) => onChange({ ...filters, conditions: { ...filters.conditions, [id]: next } })
-  const toggle = (group: string) =>
-    pick(picked.includes(group) ? picked.filter((g) => g !== group) : [...picked, group])
   const present = groups.filter((group) => (counts.shown.get(group) ?? 0) > 0 || (counts.all.get(group) ?? 0) > 0)
-  // Bars run to the largest share in the list, so the small groups still show; the figures give the shares.
-  const top = Math.max(...present.map((g) => Math.max(share(g), compared ? shareAll(g) : 0)), 0.01)
-  const along = (value: number) => `${(value / top) * 100}%`
+  const lines: Line[] = present.map((group) => ({
+    key: group,
+    label: t(groupLabel(id, group)),
+    color: colorOf(id, group),
+    value: share(group),
+    tick: compared ? shareAll(group) : null,
+    figure: percent(share(group)),
+    title: t('crash.groupShare')
+      .replace('{count}', number(counts.shown.get(group) ?? 0))
+      .replace('{share}', percent(share(group)))
+      .replace('{all}', percent(shareAll(group))),
+  }))
 
   return (
     <div className={open ? 'condition open' : 'condition'}>
@@ -89,44 +230,7 @@ function ConditionRow({ id, all, filters, onChange, open, onToggle }: RowProps) 
         </svg>
       </button>
       {open && (
-        <ul className="condition-groups">
-          {present.map((group) => {
-            const isPicked = picked.includes(group)
-            const title = t('crash.groupShare')
-              .replace('{count}', number(counts.shown.get(group) ?? 0))
-              .replace('{share}', percent(share(group)))
-              .replace('{all}', percent(shareAll(group)))
-            return (
-              <li key={group}>
-                <button
-                  type="button"
-                  className={picked.length && !isPicked ? 'condition-group faded' : 'condition-group'}
-                  aria-pressed={isPicked}
-                  title={title}
-                  onClick={() => toggle(group)}
-                >
-                  <span className="swatch line" style={{ background: colorOf(id, group) }} />
-                  <span className="condition-label">{t(groupLabel(id, group))}</span>
-                  <span className="condition-bar">
-                    <span
-                      className="condition-fill"
-                      style={{ width: along(share(group)), background: colorOf(id, group) }}
-                    />
-                    {compared && <span className="condition-tick" style={{ left: along(shareAll(group)) }} />}
-                  </span>
-                  <span className="share">{percent(share(group))}</span>
-                </button>
-              </li>
-            )
-          })}
-          {picked.length > 0 && (
-            <li>
-              <button type="button" className="condition-all" onClick={() => pick([])}>
-                {t('crash.showAll')}
-              </button>
-            </li>
-          )}
-        </ul>
+        <Lines lines={lines} picked={picked} onToggle={(key) => pick(toggled(picked, key))} onAll={() => pick([])} />
       )}
     </div>
   )
@@ -137,28 +241,32 @@ interface Props {
   collisions: readonly Collision[] | null
   filters: CollisionFilters
   onChange: (filters: CollisionFilters) => void
+  basemap: BasemapId
 }
 
-export function CollisionConditions({ collisions, filters, onChange }: Props) {
+export function CollisionConditions({ collisions, filters, onChange, basemap }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState<ConditionId | null>(null)
   const all = useMemo(() => collisions?.map((c) => c.props) ?? null, [collisions])
   if (!all) return null
   return (
-    <fieldset className="conditions">
-      <legend>{t('crash.conditions')}</legend>
-      {CONDITION_IDS.map((id) => (
-        <ConditionRow
-          key={id}
-          id={id}
-          all={all}
-          filters={filters}
-          onChange={onChange}
-          open={open === id}
-          onToggle={() => setOpen(open === id ? null : id)}
-        />
-      ))}
-      <p className="footnote">{t('crash.conditionsHint')}</p>
-    </fieldset>
+    <>
+      <InjuryLines all={all} filters={filters} onChange={onChange} basemap={basemap} />
+      <fieldset className="conditions">
+        <legend>{t('crash.conditions')}</legend>
+        {CONDITION_IDS.map((id) => (
+          <ConditionRow
+            key={id}
+            id={id}
+            all={all}
+            filters={filters}
+            onChange={onChange}
+            open={open === id}
+            onToggle={() => setOpen(open === id ? null : id)}
+          />
+        ))}
+        <p className="footnote">{t('crash.conditionsHint')}</p>
+      </fieldset>
+    </>
   )
 }
