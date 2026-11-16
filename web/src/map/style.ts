@@ -739,6 +739,10 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
     shared: { cap: 'round', dash: [0, 2] },
     shoulder: { cap: 'round' },
   }
+  // On the comfort layer, the bike lanes follow its picks: picking primary roads shows their lanes alone.
+  const comfort = state.comfort ?? {}
+  const picks =
+    state.layer === 'comfort' && Object.values(comfort).some((picked) => picked?.length) ? comfortFilter(comfort) : null
   const layer = (
     id: string,
     kind: BikewayId,
@@ -748,7 +752,7 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   ): LayerSpecification => ({
     ...way,
     id,
-    filter,
+    filter: picks ? (['all', filter, picks] as FilterSpecification) : filter,
     layout: { 'line-cap': looks[kind].cap, 'line-join': 'round' },
     paint: {
       'line-color': colors[kind],
