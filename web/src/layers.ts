@@ -20,8 +20,8 @@ export const LTS_COLORS = ['#1B5FAE', '#62B0E8', '#F2A33A', '#B5341F'] as const
 /** Where cycling is not permitted, e.g. a sidewalk on a route. */
 export const NO_BIKES_COLOR = '#8A949A'
 
-/** Lit, as data (the route card, the lighting filters): a deep amber on pale ground. */
-export const LAMP_COLOR_ON_PALE = '#D9730D'
+/** Lit, as data (the route card, the lighting filters): a golden yellow on pale ground. */
+export const LAMP_COLOR_ON_PALE = '#E2A400'
 
 /**
  * The street lights overlay: soft warm white (LED) on dark ground; on pale
