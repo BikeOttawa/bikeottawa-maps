@@ -19,6 +19,7 @@
     "router:build": "routing/prepare-data.sh && docker build -t bikeottawa-router routing",
     "collisions": "node pipeline/fetch-collisions.mjs",
     "wards": "node pipeline/fetch-wards.mjs",
+    "thefts": "node pipeline/fetch-thefts.mjs",
     "osm": "pipeline/update-osm.sh"
   },
   "devDependencies": {

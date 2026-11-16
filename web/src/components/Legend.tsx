@@ -3,9 +3,11 @@ import { useI18n } from '../i18n'
 import { type BasemapId, type LayerId, LTS_COLORS, lampColor, WINTER_COLORS } from '../layers'
 import type { PathwayFilters, PathwayKm } from '../pathways'
 import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
+import type { Theft, TheftFilters, TheftSpot } from '../thefts'
 import { CollisionLegend } from './CollisionLegend'
 import { PathwayLegend } from './PathwayLegend'
 import { PlaceIcon } from './PlaceIcon'
+import { TheftLegend } from './TheftLegend'
 
 interface Props {
   layer: LayerId
@@ -16,6 +18,12 @@ interface Props {
   busiestSpot: number
   collisionFilters: CollisionFilters
   onCollisionFiltersChange: (filters: CollisionFilters) => void
+  /** The theft spots shown and every theft, null while they load; the most thefts at any one spot. */
+  theftSpots: readonly TheftSpot[] | null
+  thefts: readonly Theft[] | null
+  busiestTheftSpot: number
+  theftFilters: TheftFilters
+  onTheftFiltersChange: (filters: TheftFilters) => void
   pathwayFilters: PathwayFilters
   onPathwayFiltersChange: (filters: PathwayFilters) => void
   /** Km of pathway, from the pipeline; null when not known. */
@@ -36,6 +44,11 @@ export function Legend({
   busiestSpot,
   collisionFilters,
   onCollisionFiltersChange,
+  theftSpots,
+  thefts,
+  busiestTheftSpot,
+  theftFilters,
+  onTheftFiltersChange,
   pathwayFilters,
   onPathwayFiltersChange,
   pathwayKm,
@@ -94,6 +107,16 @@ export function Legend({
           busiestSpot={busiestSpot}
           filters={collisionFilters}
           onChange={onCollisionFiltersChange}
+          basemap={basemap}
+        />
+      )}
+      {layer === 'thefts' && (
+        <TheftLegend
+          spots={theftSpots}
+          thefts={thefts}
+          busiestSpot={busiestTheftSpot}
+          filters={theftFilters}
+          onChange={onTheftFiltersChange}
           basemap={basemap}
         />
       )}

@@ -219,6 +219,10 @@ export function MapView({
       )
       const [feature] = hits
       if (!feature) return null
+      if (feature.layer.id === 'thefts-point' && feature.geometry.type === 'Point') {
+        const [x, y] = feature.geometry.coordinates
+        return { kind: 'theft', spot: String(feature.properties.key), at: [x, y] }
+      }
       if (feature.layer.id === 'collisions-point' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'collision', spot: String(feature.properties.key), at: [x, y] }

@@ -19,6 +19,7 @@ import { formatArea, ReachResult } from './components/ReachResult'
 import { RouteForm } from './components/RouteForm'
 import { RouteResult } from './components/RouteResult'
 import { LayerPeek, ReachPeek, RoutePeek } from './components/SheetPeek'
+import { TheftCard } from './components/TheftCard'
 import { ASSETS_BASE, ROUTER_URL } from './config'
 import { osmViewUrl, parseHash, withHashParam } from './hash'
 import { initialLang, type Lang, LangContext, rememberLang, translator } from './i18n'
@@ -60,7 +61,8 @@ import {
 } from './route/styles'
 import { useReach, visibleReach } from './route/useReach'
 import { useRoute, visibleRoute } from './route/useRoute'
-import { useCollisionData } from './useCollisions'
+import { formatTheftFilters, parseTheftFilters, type TheftFilters, theftSpots, theftSpotsGeoJSON } from './thefts'
+import { useCollisionData, useTheftData } from './usePoints'
 
 const DEFAULT_LAYER: LayerId = 'places'
 const PHONE_LAYOUT = '(max-width: 720px)'
@@ -77,6 +79,8 @@ interface UrlState {
   placeKinds: readonly PlaceKind[]
   /** Which collisions the collisions layer shows. */
   collisions: CollisionFilters
+  /** Which bike thefts the thefts layer shows. */
+  thefts: TheftFilters
   /** Which pathways the pathways layer shows, and what it colours them by. */
   pathways: PathwayFilters
   mode: Mode
@@ -98,6 +102,7 @@ function readUrl(): UrlState {
     layer: isLayerId(hash.layer) ? hash.layer : DEFAULT_LAYER,
     placeKinds: (hash.places ?? '').split(',').filter(isPlaceKind),
     collisions: parseCollisionFilters(hash.collisions),
+    thefts: parseTheftFilters(hash.thefts),
     pathways: parsePathwayFilters(hash.pathways),
     mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
     points: parsePoints(hash.route),
@@ -118,6 +123,7 @@ function writeUrl(state: UrlState): void {
     ['layer', state.layer === DEFAULT_LAYER ? null : state.layer],
     ['places', state.placeKinds.length ? state.placeKinds.join(',') : null],
     ['collisions', state.layer === 'collisions' ? formatCollisionFilters(state.collisions) : null],
+    ['thefts', state.layer === 'thefts' ? formatTheftFilters(state.thefts) : null],
     ['pathways', state.layer === 'pathways' ? formatPathwayFilters(state.pathways) : null],
     ['mode', riding ? state.mode : null],
     // How far starts from the route's start, so the two modes share it.
@@ -378,7 +384,21 @@ export function App() {
   const { t } = i18n
   const tileMeta = useTileMeta()
   const dataDate = formatDataDate(tileMeta?.osmTimestamp, lang)
-  const { layer, placeKinds, collisions, pathways, mode, points, vias, travel, style, custom, walkStyle, minutes } = url
+  const {
+    layer,
+    placeKinds,
+    collisions,
+    thefts,
+    pathways,
+    mode,
+    points,
+    vias,
+    travel,
+    style,
+    custom,
+    walkStyle,
+    minutes,
+  } = url
   const profile = useMemo(() => profileFor(travel, style, custom, walkStyle), [travel, style, custom, walkStyle])
   const basemap = layer === 'night' ? nightBasemap : dayBasemap
   // Not exploring: planning a route, or seeing how far you get.
@@ -516,6 +536,14 @@ export function App() {
   const changeCollisions = useCallback(
     (next: CollisionFilters) => {
       update({ collisions: next })
+      setSelected(null)
+    },
+    [update],
+  )
+
+  const changeThefts = useCallback(
+    (next: TheftFilters) => {
+      update({ thefts: next })
       setSelected(null)
     },
     [update],
@@ -671,6 +699,22 @@ export function App() {
   )
   const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots) : null), [spots])
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
+  // Thefts, the same way: loaded with their layer, gathered at intersections.
+  const theftData = useTheftData(layer === 'thefts')
+  const allTheftSpots = useMemo(() => (theftData ? theftSpots(theftData, thefts) : null), [theftData, thefts])
+  const busiestTheftSpot = useMemo(
+    () => Math.max(1, ...(allTheftSpots ?? []).map((s) => s.items.length)),
+    [allTheftSpots],
+  )
+  const shownTheftSpots = useMemo(
+    () => allTheftSpots?.filter((s) => s.items.length >= thefts.minCount) ?? null,
+    [allTheftSpots, thefts.minCount],
+  )
+  const theftGeo = useMemo(() => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots) : null), [shownTheftSpots])
+  const theftSpotByKey = useMemo(
+    () => new Map((shownTheftSpots ?? []).map((spot) => [spot.key, spot])),
+    [shownTheftSpots],
+  )
 
   const styleState = useMemo<StyleState>(
     () => ({
@@ -685,6 +729,7 @@ export function App() {
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
+      thefts: layer === 'thefts' ? theftGeo : null,
       pathways,
       bikeLanes: lanes,
       bikeRoutes,
@@ -703,6 +748,7 @@ export function App() {
       travel,
       reachStyle,
       collisionGeo,
+      theftGeo,
       pathways,
       lanes,
       bikeRoutes,
@@ -790,6 +836,8 @@ export function App() {
       placeKinds={placeKinds}
       collisionSpots={spots}
       collisionFilters={collisions}
+      theftSpots={shownTheftSpots}
+      theftFilters={thefts}
       pathwayFilters={pathways}
     />
   ) : route ? (
@@ -819,6 +867,12 @@ export function App() {
         items={spotByKey.get(selected.spot)?.items ?? []}
         at={selected.at}
         basemap={basemap}
+        onClose={() => setSelected(null)}
+      />
+    ) : selected.kind === 'theft' ? (
+      <TheftCard
+        items={theftSpotByKey.get(selected.spot)?.items ?? []}
+        at={selected.at}
         onClose={() => setSelected(null)}
       />
     ) : (
@@ -975,6 +1029,11 @@ export function App() {
                   busiestSpot={busiestSpot}
                   collisionFilters={collisions}
                   onCollisionFiltersChange={changeCollisions}
+                  theftSpots={shownTheftSpots}
+                  thefts={theftData}
+                  busiestTheftSpot={busiestTheftSpot}
+                  theftFilters={thefts}
+                  onTheftFiltersChange={changeThefts}
                   pathwayFilters={pathways}
                   onPathwayFiltersChange={changePathways}
                   pathwayKm={tileMeta?.pathways ?? null}

@@ -18,6 +18,7 @@ import {
   type RouteLevelId,
   reachRamp,
   routeBandColors,
+  theftColors,
   WINTER_COLORS,
   wardColors,
 } from '../layers'
@@ -39,6 +40,8 @@ export type Selected =
     }
   /** A spot on the collisions layer, by its key (see collisionSpots). */
   | { kind: 'collision'; spot: string; at: [number, number] }
+  /** An intersection on the thefts layer, by its key (see theftSpots). */
+  | { kind: 'theft'; spot: string; at: [number, number] }
   /**
    * A way on the bike routes overlay: the routes it is directly on (relation
    * ids, best first) and the one picked out on the map, which may be a route
@@ -69,6 +72,8 @@ export interface StyleState {
   reach: { minutes: number; area: boolean } | null
   /** The collisions layer's spots, built from the filters; null until loaded. */
   collisions: FeatureCollection | null
+  /** The thefts layer's spots, built from the filters; null until loaded. */
+  thefts?: FeatureCollection | null
   /** What the pathways layer shows, and how it colours it. */
   pathways?: PathwayFilters
   /** The bike lanes overlay, drawn over any basemap and data layer but the pathways one. */
@@ -92,6 +97,7 @@ export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   places: ['places-icon'],
   night: [],
   collisions: ['collisions-point'],
+  thefts: ['thefts-point'],
 }
 
 const ATTRIBUTION =
@@ -897,6 +903,9 @@ function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecificatio
 export const COLLISIONS_SOURCE = 'collisions'
 const COLLISIONS_ATTRIBUTION =
   'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
+export const THEFTS_SOURCE = 'thefts'
+const THEFTS_ATTRIBUTION =
+  'Thefts: <a href="https://www.ottawapolice.ca/" target="_blank" rel="noopener">Ottawa Police Service</a>'
 /** The router's elevation (MRDEM-30), shown with a route. */
 const ELEVATION_ATTRIBUTION =
   'Elevation: <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener">NRCan</a>'
@@ -1000,6 +1009,95 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
   }
 }
 
+/**
+ * Bike thefts: where they cluster, zoomed out, and each intersection zoomed
+ * in, sized by how many bikes were taken there.
+ */
+function theftLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
+  if (state.layer !== 'thefts' || state.reach) return { under: [], over: [] }
+  const { spot, heat } = theftColors(state.basemap)
+  const pale = state.basemap === 'light' || state.basemap === 'grey'
+  // Area grows with the number of thefts: radius with its square root.
+  const radius = (one: number, step: number): ExpressionSpecification => [
+    '+',
+    one,
+    ['*', step, ['sqrt', ['-', ['get', 'count'], 1]]],
+  ]
+  const fadeIn: ExpressionSpecification = [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    COLLISION_POINTS_FROM,
+    0,
+    COLLISION_POINTS_FROM + 0.7,
+    1,
+  ]
+  return {
+    under: [
+      {
+        id: 'thefts-heat',
+        type: 'heatmap',
+        source: THEFTS_SOURCE,
+        maxzoom: COLLISION_POINTS_FROM + 1,
+        paint: {
+          // Even one theft shows when filters leave few; busy spots saturate.
+          'heatmap-weight': ['min', 1, ['+', 0.4, ['*', 0.15, ['get', 'count']]]],
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 9, 6, 12, 14, 13.5, 22],
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 13, 1.2],
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0,
+            'rgba(0, 0, 0, 0)',
+            0.15,
+            heat[0],
+            0.4,
+            heat[1],
+            0.7,
+            heat[2],
+            1,
+            heat[3],
+          ],
+          'heatmap-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            COLLISION_POINTS_FROM,
+            0.85,
+            COLLISION_POINTS_FROM + 1,
+            0,
+          ],
+        },
+      },
+    ],
+    over: [
+      {
+        id: 'thefts-point',
+        type: 'circle',
+        source: THEFTS_SOURCE,
+        minzoom: COLLISION_POINTS_FROM,
+        paint: {
+          'circle-color': spot,
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            COLLISION_POINTS_FROM,
+            radius(3, 1.4),
+            17,
+            radius(6, 3),
+          ],
+          'circle-stroke-color': pale ? '#ffffff' : '#111417',
+          'circle-stroke-width': 1,
+          'circle-opacity': fadeIn,
+          'circle-stroke-opacity': fadeIn,
+        },
+      },
+    ],
+  }
+}
+
 const PLACE_HIGHLIGHT_SOURCE = 'place-highlight'
 
 /** Places picked out from the How far list: a yellow ring and their marker, however far out. */
@@ -1075,6 +1173,7 @@ function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
 export function buildStyle(state: StyleState, assetsBase: string): StyleSpecification {
   const night = state.layer === 'night'
   const collisions = collisionLayers(state)
+  const thefts = theftLayers(state)
   const theme = night && state.basemap === 'dark' ? NIGHT_THEME : THEMES[state.basemap]
   const wards = wardLayers(state, theme)
   const drawn = basemapLayers('basemap', theme.flavor, { lang: state.lang, labelsOnly: theme.imagery })
@@ -1142,6 +1241,14 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           attribution: COLLISIONS_ATTRIBUTION,
         },
       }),
+      // Loaded only while the thefts layer is on.
+      ...(thefts.over.length && {
+        [THEFTS_SOURCE]: {
+          type: 'geojson',
+          data: state.thefts ?? { type: 'FeatureCollection', features: [] },
+          attribution: THEFTS_ATTRIBUTION,
+        },
+      }),
     },
     layers: [
       ...base.slice(0, at),
@@ -1152,6 +1259,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(night && !state.reach ? nightLayers(theme) : []),
       ...reachLayers(state.reach, state.basemap),
       ...collisions.under,
+      ...thefts.under,
       ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false),
       ...base.slice(at),
       ...reachLabelLayers(state.reach, state.basemap, theme),
@@ -1160,6 +1268,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(showsPlaces(state) ? [placesLayer(state, theme)] : []),
       ...placeHighlightLayers(state, theme),
       ...collisions.over,
+      ...thefts.over,
     ],
   }
 }

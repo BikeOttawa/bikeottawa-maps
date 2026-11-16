@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n'
 import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
 import { GROUP_COLORS } from '../places'
@@ -56,6 +57,17 @@ function LayerIcon({ layer }: { layer: LayerId }) {
       </svg>
     )
   }
+  if (layer === 'thefts') {
+    // An open padlock, its shackle pulled free.
+    return (
+      <svg aria-hidden="true" {...common} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 11V7.5a4 4 0 0 1 7.6-1.7" stroke="#7A3E9D" strokeWidth="2.2" />
+        <rect x="5" y="11" width="14" height="10" rx="2" fill="#7A3E9D" />
+        <circle cx="12" cy="15.5" r="1.4" fill="#fff" />
+        <path d="M12 16.5v2" stroke="#fff" strokeWidth="1.6" />
+      </svg>
+    )
+  }
   if (layer === 'night') {
     return (
       <svg aria-hidden="true" {...common}>
@@ -81,12 +93,19 @@ function LayerIcon({ layer }: { layer: LayerId }) {
 
 export function LayerPicker({ active, onChange }: Props) {
   const { t } = useI18n()
+  // On a phone the row scrolls sideways: keep the layer on show in view.
+  const activeButton = useRef<HTMLButtonElement>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scrolls when the layer changes
+  useEffect(() => {
+    activeButton.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [active])
   return (
     <fieldset className="layer-picker">
       <legend className="visually-hidden">{t('layers')}</legend>
       {LAYER_IDS.map((id) => (
         <button
           key={id}
+          ref={id === active ? activeButton : undefined}
           type="button"
           className="layer-button"
           aria-pressed={id === active}

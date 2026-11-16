@@ -16,6 +16,7 @@ import type { PlaceKind } from '../places'
 import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
 import type { Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
+import type { TheftFilters, TheftSpot } from '../thefts'
 import { PlaceIcon } from './PlaceIcon'
 
 /** A bar of coloured parts, as wide as the line it is on. */
@@ -51,6 +52,8 @@ interface LayerProps {
   placeKinds: readonly PlaceKind[]
   collisionSpots: readonly CollisionSpot[] | null
   collisionFilters: CollisionFilters
+  theftSpots: readonly TheftSpot[] | null
+  theftFilters: TheftFilters
   pathwayFilters: PathwayFilters
 }
 
@@ -61,6 +64,8 @@ export function LayerPeek({
   placeKinds,
   collisionSpots,
   collisionFilters,
+  theftSpots,
+  theftFilters,
   pathwayFilters,
 }: LayerProps): ReactNode {
   const { t, lang } = useI18n()
@@ -122,6 +127,14 @@ export function LayerPeek({
     )
     const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
     const shown = t('crash.shown').replace('{count}', number(count)).replace('{spots}', number(collisionSpots.length))
+    return <span className="peek-text">{`${shown} · ${from === to ? from : `${from}–${to}`}`}</span>
+  }
+  if (layer === 'thefts') {
+    if (!theftSpots) return null
+    const { from, to } = theftFilters
+    const count = theftSpots.reduce((sum, spot) => sum + spot.items.length, 0)
+    const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
+    const shown = t('theft.shown').replace('{count}', number(count)).replace('{spots}', number(theftSpots.length))
     return <span className="peek-text">{`${shown} · ${from === to ? from : `${from}–${to}`}`}</span>
   }
   if (!placeKinds.length) return <span className="peek-text">{t('peek.noPlaces')}</span>

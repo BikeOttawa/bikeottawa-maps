@@ -13,9 +13,9 @@ export const OLD_PAGES: Record<string, string> = {
   amenities: 'layer=places',
   routing: 'mode=route',
   isochrones: 'mode=reach',
-  // Nothing like them here: the map as it opens.
+  thefts: 'layer=thefts',
+  // Nothing like it here: the map as it opens.
   desire: '',
-  thefts: '',
 }
 
 /**

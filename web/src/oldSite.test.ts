@@ -10,7 +10,7 @@ describe('old site pages', () => {
 
   it('keep the old view', () => {
     expect(oldPageTarget('?lat=45.42&lng=-75.69&zoom=15', OLD_PAGES.lts)).toBe('../#map=15/45.42/-75.69&layer=comfort')
-    expect(oldPageTarget('?lng=-75.69&lat=45.42', OLD_PAGES.thefts)).toBe('../#map=18/45.42/-75.69')
+    expect(oldPageTarget('?lng=-75.69&lat=45.42', OLD_PAGES.desire)).toBe('../#map=18/45.42/-75.69')
     expect(oldPageTarget('?lat=north&lng=-75.69', OLD_PAGES.pathways)).toBe('../#layer=pathways')
   })
 

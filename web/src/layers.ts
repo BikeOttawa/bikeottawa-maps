@@ -2,7 +2,7 @@
 
 import { type KnownSurfaceId, WIDTH_STOPS } from './pathways'
 
-export const LAYER_IDS = ['places', 'pathways', 'comfort', 'winter', 'night', 'collisions'] as const
+export const LAYER_IDS = ['places', 'pathways', 'comfort', 'winter', 'night', 'collisions', 'thefts'] as const
 export type LayerId = (typeof LAYER_IDS)[number]
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
@@ -45,6 +45,17 @@ const COLLISIONS_ON_DARK = { none: '#6F777B', minimal: '#7A3B2E', minor: '#B5442
 
 export function collisionColors(basemap: BasemapId): Record<'none' | 'minimal' | 'minor' | 'major' | 'fatal', string> {
   return basemap === 'light' || basemap === 'grey' ? COLLISIONS_ON_PALE : COLLISIONS_ON_DARK
+}
+
+/**
+ * Bike thefts: one purple, apart from the collisions' reds. The spots and the
+ * heat map's strongest steps are darkest on pale ground, brightest on dark.
+ */
+const THEFTS_ON_PALE = { spot: '#7A3E9D', heat: ['rgba(167, 120, 205, 0.4)', '#A16BC9', '#7A3E9D', '#4E1F6B'] }
+const THEFTS_ON_DARK = { spot: '#C9A2EA', heat: ['rgba(98, 58, 130, 0.5)', '#8A5BB5', '#B98DE3', '#EAD8FB'] }
+
+export function theftColors(basemap: BasemapId): { spot: string; heat: readonly string[] } {
+  return basemap === 'light' || basemap === 'grey' ? THEFTS_ON_PALE : THEFTS_ON_DARK
 }
 
 /**

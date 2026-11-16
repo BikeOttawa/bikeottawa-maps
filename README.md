@@ -1,6 +1,6 @@
 # Bike Ottawa Maps
 
-Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface and width, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, and collisions involving cyclists and pedestrians. Over any of them go bike lanes, signed bike routes and wards. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
+Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface and width, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, collisions involving cyclists and pedestrians, and bike thefts. Over any of them go bike lanes, signed bike routes and wards. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
 
 No map vendor or API keys: the basemap and data layers are static [PMTiles](https://docs.protomaps.com/pmtiles/) files rendered with [MapLibre](https://maplibre.org). The light, grey and dark map styles are the same basemap tiles restyled in the browser; only the satellite style loads from elsewhere (Esri World Imagery, no key).
 
@@ -8,14 +8,14 @@ The site installs as an app on phones and desktops (`vite-plugin-pwa` in `web/vi
 
 ## Layout
 
-| Path          | What                                                                                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `web/`        | The app: React, TypeScript, Vite, MapLibre                                                                                                             |
-| `pipeline/`   | Builds the map tiles from OSM extracts (osmium, [stressmodel](https://github.com/BikeOttawa/stressmodel), tippecanoe) and fetches collisions and wards |
-| `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region  |
-| `docker/`     | nginx config for the site image                                                                                                                        |
-| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                        |
-| `region.json` | Area covered and the OSM extracts to use                                                                                                               |
+| Path          | What                                                                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `web/`        | The app: React, TypeScript, Vite, MapLibre                                                                                                                     |
+| `pipeline/`   | Builds the map tiles from OSM extracts (osmium, [stressmodel](https://github.com/BikeOttawa/stressmodel), tippecanoe) and fetches collisions, thefts and wards |
+| `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region          |
+| `docker/`     | nginx config for the site image                                                                                                                                |
+| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                                |
+| `region.json` | Area covered and the OSM extracts to use                                                                                                                       |
 
 ## Getting started
 
@@ -60,6 +60,8 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 - the fewest collisions a spot needs to stay on the map.
 
 The data is kept in the repository as `web/public/data/collisions.geojson`, about 3,500 points. The city publishes a new year each summer; `npm run collisions` downloads it again.
+
+**Thefts** shows the bikes reported stolen to the Ottawa Police Service, 2018 to 2025 ([open data](https://open.ottawa.ca/), Open Government Licence – Ottawa Police Service), at the intersection the police place each one: a heat map zoomed out, intersections sized by the number of thefts zoomed in. The legend filters them by year, on the same slider and timeline as collisions, and by where the bike was taken from (outdoors, a home break-in, another building), the time of day, the kind of bike and its value; a card steps through the thefts at an intersection. The police data also lists bikes found, seized or disposed of; `npm run thefts` (`pipeline/fetch-thefts.mjs`) keeps only those stolen, recovered or not, leaves out e-scooters, and writes `web/public/data/thefts.geojson`, about 10,000 points, which is committed.
 
 ## Overlays
 
@@ -142,7 +144,7 @@ docker compose pull && docker compose up -d   # pick up the nightly data
 - `npm run typecheck`: TypeScript check of the app
 - `npm run tiles` / `npm run basemap`: rebuild the tiles
 - `npm run osm`: bring the OSM data up to date without rebuilding anything
-- `npm run collisions` / `npm run wards`: download the city data again
+- `npm run collisions` / `npm run thefts` / `npm run wards`: download the city and police data again
 - `npm run router:build` / `npm run router`: build and run the local router
 
 ## Roadmap
