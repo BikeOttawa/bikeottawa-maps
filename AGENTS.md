@@ -8,6 +8,11 @@ What the code does not tell you. See README.md for what the project is and how i
 - Commit to `main`. Push only when asked: every push deploys the live site.
 - Keep comments, docs and commit messages short and plain.
 
+## Deploying
+
+- The site image (root `Dockerfile`) copies only `web/`, `region.json` and the files named there. A web import from elsewhere in the repo, such as `pipeline/surface-groups.json`, must be copied there too, or the deploy fails although lint, tests and the Pages build pass.
+- After a push, check that the Deploy run passed (`gh run list`). Pages waits for the site image, so a failed run leaves the old site live without any other sign.
+
 ## Text
 
 - Every string lives in `web/src/i18n.ts`, in English and in Quebec French (dépanneur, stationnement, casse-croûte), never one without the other.
