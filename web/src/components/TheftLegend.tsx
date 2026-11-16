@@ -83,9 +83,9 @@ function TheftGroupRow({
 }
 
 /**
- * The value slider: a stop per colour step, its track painted in them, each
- * stop on the colour of the cheapest spots still shown. Dragged right, only
- * the spots where the most was stolen stay.
+ * The value slider, painted as the map's scale: a tick at each stop, each
+ * colour the band between two ticks. The knob keeps the spots from its stop
+ * up; the bands left of it, filtered out, fade.
  */
 function MinValueSlider({
   value,
@@ -101,11 +101,11 @@ function MinValueSlider({
   const { values, noValue } = theftColors(basemap)
   const index = Math.max(0, (VALUE_STOPS as readonly number[]).indexOf(value))
   const last = VALUE_STOPS.length - 1
-  // Hard-edged bands, each centred on its stop.
+  // Where a stop's knob centre sits along the track: the knob is 18px wide.
+  const at = (i: number) => `calc(9px + (100% - 18px) * ${i / last})`
   const bands = values.map((color, i) => {
-    const from = i === 0 ? 0 : ((i - 0.5) / last) * 100
-    const to = i === last ? 100 : ((i + 0.5) / last) * 100
-    return `${color} ${from}% ${to}%`
+    const shown = i >= index ? color : `color-mix(in srgb, ${color} 30%, #e4e8ea)`
+    return `${shown} ${i === 0 ? '0%' : at(i)} ${i === values.length - 1 ? '100%' : at(i + 1)}`
   })
   const money = (n: number) =>
     n.toLocaleString(locale, { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
@@ -113,7 +113,11 @@ function MinValueSlider({
     n.toLocaleString(locale, { style: 'currency', currency: 'CAD', notation: 'compact', maximumFractionDigits: 0 })
   return (
     <label className="collision-min">
-      <span>{value > 0 ? t('theft.minValue').replace('{value}', money(value)) : t('theft.everyValue')}</span>
+      <span>
+        {t('theft.valueAt')}
+        {t('colon')}
+        {value > 0 ? t('theft.valueOrMore').replace('{value}', money(value)) : t('theft.valueAny')}
+      </span>
       <input
         className="pathway-range"
         type="range"
@@ -123,20 +127,23 @@ function MinValueSlider({
         value={index}
         aria-valuetext={money(value)}
         style={
-          { '--track': `linear-gradient(to right, ${bands.join(', ')})`, '--thumb': values[index] } as CSSProperties
+          {
+            '--track': `linear-gradient(to right, ${bands.join(', ')})`,
+            '--thumb': values[Math.min(index, values.length - 1)],
+          } as CSSProperties
         }
         onChange={(e) => onChange(VALUE_STOPS[Number(e.target.value)])}
       />
       <span className="value-ticks" aria-hidden="true">
         {VALUE_STOPS.map((stop, i) => (
-          <span key={stop} style={{ left: `calc(9px + (100% - 18px) * ${i / last})` }}>
+          <span key={stop} style={{ left: at(i) }}>
             {short(stop)}
           </span>
         ))}
       </span>
       {value === 0 && (
         <span className="value-none">
-          <span className="swatch dot" style={{ background: noValue }} />
+          <span className="value-none-dot" style={{ background: noValue }} />
           {t('theft.noValue')}
         </span>
       )}

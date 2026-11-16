@@ -194,8 +194,8 @@ export interface TheftSpot {
 /** Where the map's colours step up, in dollars stolen at an intersection: under the first, then each up to the next. */
 export const VALUE_STEPS = [1000, 5000, 10000, 25000] as const
 
-/** The value slider's stops: the start of each colour step. */
-export const VALUE_STOPS = [0, ...VALUE_STEPS] as const
+/** The value slider's stops: where each colour step starts, and its end, past which only the worst few spots are left. */
+export const VALUE_STOPS = [0, ...VALUE_STEPS, 50000] as const
 
 /** The thefts that pass the filters, by intersection: the police put each at one, so they share its point. */
 export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] {
