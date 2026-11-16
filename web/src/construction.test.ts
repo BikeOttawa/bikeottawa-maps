@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  constructionCounts,
+  constructionShown,
   DEFAULT_CONSTRUCTION_FILTERS,
   formatConstructionFilters,
   parseClosures,
@@ -7,9 +9,20 @@ import {
 } from './construction'
 
 describe('construction', () => {
-  it('leaves buildings and parks out by default', () => {
-    expect(DEFAULT_CONSTRUCTION_FILTERS.kinds).not.toContain('other')
-    expect(DEFAULT_CONSTRUCTION_FILTERS.timings).toContain('now')
+  it('picks nothing by default, which shows everything', () => {
+    expect(DEFAULT_CONSTRUCTION_FILTERS).toEqual({ timings: [], kinds: [] })
+  })
+
+  it("counts each set under the other's picks", () => {
+    const all = [
+      { id: 'a', kind: 'cycling', timing: 'now' },
+      { id: 'b', kind: 'roads', timing: 'now' },
+      { id: 'c', kind: 'roads', timing: 'later' },
+    ] as const
+    const f = { timings: ['now'] as const, kinds: [] }
+    expect(Object.fromEntries(constructionCounts(all, f, 'kind').shown)).toEqual({ cycling: 1, roads: 1 })
+    expect(Object.fromEntries(constructionCounts(all, f, 'timing').shown)).toEqual({ now: 2, later: 1 })
+    expect(constructionShown(all, f)).toBe(2)
   })
 
   it('round-trips its filters through the URL', () => {
@@ -19,6 +32,7 @@ describe('construction', () => {
     expect(parseConstructionFilters(text ?? undefined)).toEqual({ ...f, timings: [...f.timings], kinds: [...f.kinds] })
     expect(formatConstructionFilters(DEFAULT_CONSTRUCTION_FILTERS)).toBeNull()
     expect(parseConstructionFilters('soonish;moon')).toEqual(DEFAULT_CONSTRUCTION_FILTERS)
+    expect(parseConstructionFilters(undefined)).toEqual(DEFAULT_CONSTRUCTION_FILTERS)
   })
 
   it('reads the traffic map: coordinates as text, the span of its schedule', () => {

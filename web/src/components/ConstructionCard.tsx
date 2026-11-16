@@ -7,6 +7,9 @@ type Props = { onClose: () => void; basemap: BasemapId } & (
   | { closure: Closure; project?: undefined }
 )
 
+/** The City's notes stop mid-sentence at its field's length: show that they go on. */
+const cutShort = (text: string) => (/[.!?)»"]$/.test(text) ? text : `${text}…`)
+
 function CloseButton({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
   return (
@@ -74,11 +77,23 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
   const p = project ?? {}
   const timing = String(p.timing ?? '')
   const type = String((lang === 'fr' ? p.typeFr : p.type) ?? p.type ?? '')
-  const url = String((lang === 'fr' ? p.urlFr : p.url) ?? p.url ?? '')
+  // Only a real web page: the City's field also holds internal codes.
+  const page = String((lang === 'fr' ? p.urlFr : p.url) ?? p.url ?? '')
+  const url = /^https?:\/\//i.test(page) ? page : ''
   const color = constructionColors(basemap)[timing as keyof ReturnType<typeof constructionColors>]
+  const metres = Number(p.metres)
+  const length =
+    metres >= 1000
+      ? `${(metres / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })} km`
+      : metres > 0
+        ? `${Math.round(metres / 10) * 10} m`
+        : null
   const facts = [
     { label: t('construction.work'), value: label(`construction.kind.${p.kind}`) },
-    { label: t('construction.traffic'), value: p.impacts ? String(p.impacts) : null },
+    { label: t('construction.on'), value: p.street ? String(p.street) : null },
+    { label: t('construction.length'), value: length },
+    { label: t('construction.traffic'), value: p.impacts ? cutShort(String(p.impacts)) : null },
+    { label: t('construction.notes'), value: p.notes ? cutShort(String(p.notes)) : null },
   ]
   return (
     <section className="feature-card" aria-live="polite">

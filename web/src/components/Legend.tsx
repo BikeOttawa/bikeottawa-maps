@@ -1,5 +1,5 @@
 import type { Collision, CollisionFilters, CollisionSpot } from '../collisions'
-import type { ConstructionFilters } from '../construction'
+import type { ConstructionFilters, ConstructionProps } from '../construction'
 import { useI18n } from '../i18n'
 import { type BasemapId, type LayerId, LTS_COLORS, lampColor, WINTER_COLORS } from '../layers'
 import type { PathwayFilters, PathwayKm } from '../pathways'
@@ -28,6 +28,8 @@ interface Props {
   onTheftFiltersChange: (filters: TheftFilters) => void
   constructionFilters: ConstructionFilters
   onConstructionFiltersChange: (filters: ConstructionFilters) => void
+  /** The construction projects, for the counts; null while they load. */
+  projects: readonly ConstructionProps[] | null
   pathwayFilters: PathwayFilters
   onPathwayFiltersChange: (filters: PathwayFilters) => void
   /** Km of pathway, from the pipeline; null when not known. */
@@ -55,6 +57,7 @@ export function Legend({
   onTheftFiltersChange,
   constructionFilters,
   onConstructionFiltersChange,
+  projects,
   pathwayFilters,
   onPathwayFiltersChange,
   pathwayKm,
@@ -127,7 +130,12 @@ export function Legend({
         />
       )}
       {layer === 'construction' && (
-        <ConstructionLegend filters={constructionFilters} onChange={onConstructionFiltersChange} basemap={basemap} />
+        <ConstructionLegend
+          filters={constructionFilters}
+          onChange={onConstructionFiltersChange}
+          projects={projects}
+          basemap={basemap}
+        />
       )}
       {layer === 'places' &&
         PLACE_GROUP_IDS.map((group) => (

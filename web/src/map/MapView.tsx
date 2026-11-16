@@ -233,7 +233,19 @@ export function MapView({
       if (feature.layer.id === 'construction-line' || feature.layer.id === 'construction-point') {
         // A point project is anchored at itself, a line where it was clicked.
         const at = feature.geometry.type === 'Point' ? (feature.geometry.coordinates as [number, number]) : null
-        return { kind: 'construction', props: feature.properties, at: at ?? [lngLat.lng, lngLat.lat] }
+        // The City gives no place name: the street under the click, from the basemap, in the language shown.
+        const road = map
+          .queryRenderedFeatures([
+            [point.x - HIT_RADIUS, point.y - HIT_RADIUS],
+            [point.x + HIT_RADIUS, point.y + HIT_RADIUS],
+          ])
+          .find((f) => f.sourceLayer === 'roads' && f.properties.name)
+        const street = road ? String(road.properties[`name:${state.lang}`] ?? road.properties.name) : undefined
+        return {
+          kind: 'construction',
+          props: { ...feature.properties, ...(street && { street }) },
+          at: at ?? [lngLat.lng, lngLat.lat],
+        }
       }
       if (feature.layer.id === 'thefts-point' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates

@@ -16,50 +16,81 @@ export type ConstructionTiming = (typeof CONSTRUCTION_TIMINGS)[number]
 export const CONSTRUCTION_KINDS = ['cycling', 'roads', 'water', 'bridges', 'transit', 'other'] as const
 export type ConstructionKind = (typeof CONSTRUCTION_KINDS)[number]
 
+/** The groups picked of each set; none picked shows them all, as on the other layers' filters. */
 export interface ConstructionFilters {
   timings: readonly ConstructionTiming[]
   kinds: readonly ConstructionKind[]
 }
 
-/** Every timing, and every kind but buildings, parks and the like, which rarely touch a ride. */
-export const DEFAULT_CONSTRUCTION_FILTERS: ConstructionFilters = {
-  timings: CONSTRUCTION_TIMINGS,
-  kinds: CONSTRUCTION_KINDS.filter((kind) => kind !== 'other'),
+export const DEFAULT_CONSTRUCTION_FILTERS: ConstructionFilters = { timings: [], kinds: [] }
+
+/** A project as the map and the legend read it. */
+export interface ConstructionProps {
+  id: string
+  kind: ConstructionKind
+  timing: ConstructionTiming
+  type?: string
+  typeFr?: string
+  impacts?: string
+  notes?: string
+  metres?: number
+  url?: string
+  urlFr?: string
 }
 
 /** The same choice as a map filter on the projects. */
 export function constructionFilter(f: ConstructionFilters): ExpressionSpecification {
   return [
     'all',
-    ['in', ['get', 'timing'], ['literal', [...f.timings]]],
-    ['in', ['get', 'kind'], ['literal', [...f.kinds]]],
+    f.timings.length ? ['in', ['get', 'timing'], ['literal', [...f.timings]]] : true,
+    f.kinds.length ? ['in', ['get', 'kind'], ['literal', [...f.kinds]]] : true,
   ] as unknown as ExpressionSpecification
 }
 
-const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((v) => b.includes(v))
+/**
+ * How the projects split over one set: `shown` under the other set's picks,
+ * so this set's other groups stay to be picked; `all` with nothing picked.
+ */
+export function constructionCounts(
+  all: readonly ConstructionProps[],
+  f: ConstructionFilters,
+  set: 'timing' | 'kind',
+): { shown: Map<string, number>; all: Map<string, number> } {
+  const others = set === 'timing' ? f.kinds : f.timings
+  const shown = new Map<string, number>()
+  const every = new Map<string, number>()
+  for (const p of all) {
+    const group = p[set]
+    every.set(group, (every.get(group) ?? 0) + 1)
+    const other: string = set === 'timing' ? p.kind : p.timing
+    if (!others.length || (others as readonly string[]).includes(other)) shown.set(group, (shown.get(group) ?? 0) + 1)
+  }
+  return { shown, all: every }
+}
+
+/** How many projects the picks show. */
+export function constructionShown(all: readonly ConstructionProps[], f: ConstructionFilters): number {
+  return all.filter(
+    (p) => (!f.timings.length || f.timings.includes(p.timing)) && (!f.kinds.length || f.kinds.includes(p.kind)),
+  ).length
+}
 
 /**
- * In the URL as `construction=now,thisYear;cycling,roads` (the timings, then
- * the kinds), each part left out when it is the default.
+ * In the URL as `construction=now,thisYear;cycling,roads` (the timings picked,
+ * then the kinds), each part left out when none is picked.
  */
 export function formatConstructionFilters(f: ConstructionFilters): string | null {
-  const d = DEFAULT_CONSTRUCTION_FILTERS
-  const parts = [same(f.timings, d.timings) ? '' : f.timings.join(','), same(f.kinds, d.kinds) ? '' : f.kinds.join(',')]
+  const parts = [f.timings.join(','), f.kinds.join(',')]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
 
 export function parseConstructionFilters(text: string | undefined): ConstructionFilters {
-  const d = DEFAULT_CONSTRUCTION_FILTERS
   const [timingText, kindText] = (text ?? '').split(';')
-  const timings = (timingText ?? '')
-    .split(',')
-    .filter((v): v is ConstructionTiming => CONSTRUCTION_TIMINGS.includes(v as never))
-  const kinds = (kindText ?? '')
-    .split(',')
-    .filter((v): v is ConstructionKind => CONSTRUCTION_KINDS.includes(v as never))
   return {
-    timings: timings.length ? timings : d.timings,
-    kinds: kinds.length ? kinds : d.kinds,
+    timings: (timingText ?? '')
+      .split(',')
+      .filter((v): v is ConstructionTiming => CONSTRUCTION_TIMINGS.includes(v as never)),
+    kinds: (kindText ?? '').split(',').filter((v): v is ConstructionKind => CONSTRUCTION_KINDS.includes(v as never)),
   }
 }
 

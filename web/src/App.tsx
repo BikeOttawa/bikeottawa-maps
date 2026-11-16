@@ -71,6 +71,7 @@ import { useRoute, visibleRoute } from './route/useRoute'
 import { formatTheftFilters, parseTheftFilters, type TheftFilters, theftSpots, theftSpotsGeoJSON } from './thefts'
 import { useClosures } from './useClosures'
 import { useCollisionData, useTheftData } from './usePoints'
+import { useProjects } from './useProjects'
 
 const DEFAULT_LAYER: LayerId = 'places'
 const PHONE_LAYOUT = '(max-width: 720px)'
@@ -742,6 +743,8 @@ export function App() {
   const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots) : null), [spots])
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
   // Thefts, the same way: loaded with their layer, gathered at intersections.
+  // Projects: the map fetches the file itself; the legend counts them.
+  const projects = useProjects(layer === 'construction')
   // Roadwork: the closures, fetched live while the overlay is on (the projects load as a file the map fetches).
   const closures = useClosures(roadwork, lang)
   const closureGeo = useMemo(() => (closures ? closuresGeoJSON(closures) : null), [closures])
@@ -1097,6 +1100,7 @@ export function App() {
                   onTheftFiltersChange={changeThefts}
                   constructionFilters={construction}
                   onConstructionFiltersChange={changeConstruction}
+                  projects={projects}
                   pathwayFilters={pathways}
                   onPathwayFiltersChange={changePathways}
                   pathwayKm={tileMeta?.pathways ?? null}

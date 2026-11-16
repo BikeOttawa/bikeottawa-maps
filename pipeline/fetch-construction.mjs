@@ -5,7 +5,16 @@
 // Data: Open Government Licence – City of Ottawa.
 
 import { writeFile } from 'node:fs/promises'
-import { codedValues, impactsText, kindOf, NOT_HAPPENING, timingOf } from './construction.mjs'
+import {
+  codedValues,
+  impactsText,
+  kindOf,
+  lengthOf,
+  NOT_HAPPENING,
+  OFF_STREET,
+  timingOf,
+  webPage,
+} from './construction.mjs'
 
 const SERVICE = 'https://maps.ottawa.ca/arcgis/rest/services/ConstructionForecastData/MapServer'
 /** Lines (roads, pipes, paths) and points (bridges, buildings, parks). */
@@ -29,7 +38,8 @@ for (const id of LAYERS) {
   for (let offset = 0; ; offset += PAGE) {
     const params = new URLSearchParams({
       where: '1=1',
-      outFields: 'OBJECTID,FEATURE_TYPE,STATUS,TARGETED_START,TRAFFICIMPACTS,PROJECTWEBPAGE,PROJECTWEBPAGE_FR',
+      outFields:
+        'OBJECTID,FEATURE_TYPE,STATUS,TARGETED_START,TRAFFICIMPACTS,Coordination,PROJECTWEBPAGE,PROJECTWEBPAGE_FR',
       outSR: '4326',
       // About a metre: enough for a line along a street.
       geometryPrecision: '5',
@@ -42,7 +52,7 @@ for (const id of LAYERS) {
     const page = await json(`${SERVICE}/${id}/query?${params}`)
     for (const f of page.features) {
       const p = f.properties
-      if (!f.geometry || NOT_HAPPENING.includes(p.STATUS)) continue
+      if (!f.geometry || NOT_HAPPENING.includes(p.STATUS) || OFF_STREET.includes(p.FEATURE_TYPE)) continue
       const properties = {
         id: `${id}-${p.OBJECTID}`,
         kind: kindOf(p.FEATURE_TYPE),
@@ -50,8 +60,10 @@ for (const id of LAYERS) {
         type: typeEn.get(p.FEATURE_TYPE) ?? p.FEATURE_TYPE,
         typeFr: typeFr.get(p.FEATURE_TYPE) ?? typeEn.get(p.FEATURE_TYPE) ?? p.FEATURE_TYPE,
         impacts: impactsText(p.TRAFFICIMPACTS),
-        url: p.PROJECTWEBPAGE || undefined,
-        urlFr: p.PROJECTWEBPAGE_FR || undefined,
+        notes: impactsText(p.Coordination),
+        metres: lengthOf(f.geometry) || undefined,
+        url: webPage(p.PROJECTWEBPAGE),
+        urlFr: webPage(p.PROJECTWEBPAGE_FR),
       }
       for (const key of Object.keys(properties)) if (properties[key] === undefined) delete properties[key]
       features.push({ type: 'Feature', properties, geometry: f.geometry })
