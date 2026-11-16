@@ -88,6 +88,17 @@ describe('thefts', () => {
     expect(spots.map((s) => s.items.map((p) => p.id))).toEqual([[2, 1], [3]])
   })
 
+  it('adds up the value stolen at each intersection, and how many had one', () => {
+    const at: [number, number] = [-75.7, 45.4]
+    const all: Theft[] = [
+      { props: theft({ id: 1, value: 800 }), at },
+      { props: theft({ id: 2, value: 1200 }), at },
+      { props: theft({ id: 3 }), at },
+    ]
+    const [spot] = theftSpots(all, DEFAULT_THEFT_FILTERS)
+    expect([spot.value, spot.valued]).toEqual([2000, 2])
+  })
+
   it('writes the police place names plainly', () => {
     expect(theftPlace('MACLAREN ST, METCALFE ST')).toBe('Maclaren St & Metcalfe St')
     expect(theftPlace('YORK ST, 72M EAST OF SUSSEX DR')).toBe('York St, 72 m East of Sussex Dr')

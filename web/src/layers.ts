@@ -48,13 +48,31 @@ export function collisionColors(basemap: BasemapId): Record<'none' | 'minimal' |
 }
 
 /**
- * Bike thefts: one purple, apart from the collisions' reds. The spots and the
- * heat map's strongest steps are darkest on pale ground, brightest on dark.
+ * Bike thefts: one purple, apart from the collisions' reds. Intersections step
+ * through it by the value stolen there (a step per VALUE_STEPS band), the most
+ * darkest on pale ground and brightest on dark; grey where no value was given.
+ * The heat map's strongest steps go the same way.
  */
-const THEFTS_ON_PALE = { spot: '#7A3E9D', heat: ['rgba(167, 120, 205, 0.4)', '#A16BC9', '#7A3E9D', '#4E1F6B'] }
-const THEFTS_ON_DARK = { spot: '#C9A2EA', heat: ['rgba(98, 58, 130, 0.5)', '#8A5BB5', '#B98DE3', '#EAD8FB'] }
+interface TheftColors {
+  spot: string
+  values: readonly string[]
+  noValue: string
+  heat: readonly string[]
+}
+const THEFTS_ON_PALE: TheftColors = {
+  spot: '#7A3E9D',
+  values: ['#D7C2EA', '#B48AD6', '#8F5BBF', '#6A3496', '#43165F'],
+  noValue: '#9AA1A6',
+  heat: ['rgba(167, 120, 205, 0.4)', '#A16BC9', '#7A3E9D', '#4E1F6B'],
+}
+const THEFTS_ON_DARK: TheftColors = {
+  spot: '#C9A2EA',
+  values: ['#5B3A7A', '#7B52A8', '#9A6CC8', '#C6A0EC', '#F0DEFF'],
+  noValue: '#6F777B',
+  heat: ['rgba(98, 58, 130, 0.5)', '#8A5BB5', '#B98DE3', '#EAD8FB'],
+}
 
-export function theftColors(basemap: BasemapId): { spot: string; heat: readonly string[] } {
+export function theftColors(basemap: BasemapId): TheftColors {
   return basemap === 'light' || basemap === 'grey' ? THEFTS_ON_PALE : THEFTS_ON_DARK
 }
 

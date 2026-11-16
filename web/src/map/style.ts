@@ -26,6 +26,7 @@ import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WI
 import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
+import { VALUE_STEPS } from '../thefts'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -1015,7 +1016,14 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
  */
 function theftLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
   if (state.layer !== 'thefts' || state.reach) return { under: [], over: [] }
-  const { spot, heat } = theftColors(state.basemap)
+  const { values, noValue, heat } = theftColors(state.basemap)
+  // Coloured by the dollars stolen there, a step per band; grey where none was given.
+  const byValue = [
+    'case',
+    ['==', ['get', 'valued'], 0],
+    noValue,
+    ['step', ['get', 'value'], values[0], ...VALUE_STEPS.flatMap((step, i) => [step, values[i + 1]])],
+  ] as unknown as ExpressionSpecification
   const pale = state.basemap === 'light' || state.basemap === 'grey'
   // Area grows with the number of thefts: radius with its square root.
   const radius = (one: number, step: number): ExpressionSpecification => [
@@ -1078,7 +1086,7 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
         source: THEFTS_SOURCE,
         minzoom: COLLISION_POINTS_FROM,
         paint: {
-          'circle-color': spot,
+          'circle-color': byValue,
           'circle-radius': [
             'interpolate',
             ['linear'],

@@ -25,6 +25,9 @@ export function TheftCard({ items, at, onClose }: Props) {
   // The spot can be gone (the filters changed under it): nothing to show then.
   if (!p) return null
   const label = (key: string) => (isMessageKey(key) ? t(key) : null)
+  const money = (n: number) =>
+    n.toLocaleString(locale, { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
+  const total = items.reduce((sum, item) => sum + (item.value ?? 0), 0)
   // Several bikes taken at once differ only by these: "Trek FSX4 · grey".
   const colourNames = (p.colour ?? []).map((c) => label(`colour.${c}`)).filter((c): c is string => Boolean(c))
   // Dates are local days; read them as such, not as UTC midnight.
@@ -47,9 +50,20 @@ export function TheftCard({ items, at, onClose }: Props) {
     },
     {
       label: t('theftGroup.value'),
-      value: p.value
-        ? p.value.toLocaleString(locale, { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
-        : null,
+      value: p.value ? money(p.value) : null,
+    },
+    {
+      // With several bikes taken here, what they come to.
+      label: t('theft.here'),
+      value:
+        count > 1
+          ? [
+              t('theft.bikesHere').replace('{count}', String(count)),
+              total ? t('theft.worth').replace('{value}', money(total)) : null,
+            ]
+              .filter(Boolean)
+              .join(', ')
+          : null,
     },
     {
       label: t('theft.near'),

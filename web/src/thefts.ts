@@ -179,7 +179,13 @@ export interface TheftSpot {
   at: [number, number]
   /** The most recent first. */
   items: TheftProps[]
+  /** Dollars stolen there, as reported; `valued` thefts had a value given. */
+  value: number
+  valued: number
 }
+
+/** Where the map's colours step up, in dollars stolen at an intersection: under the first, then each up to the next. */
+export const VALUE_STEPS = [1000, 5000, 10000, 25000] as const
 
 /** The thefts that pass the filters, by intersection: the police put each at one, so they share its point. */
 export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] {
@@ -187,9 +193,13 @@ export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] 
   for (const t of all) {
     if (!matchesTheft(t.props, f)) continue
     const key = t.at.join(',')
-    const spot = byPoint.get(key)
-    if (spot) spot.items.push(t.props)
-    else byPoint.set(key, { key, at: t.at, items: [t.props] })
+    const spot = byPoint.get(key) ?? { key, at: t.at, items: [], value: 0, valued: 0 }
+    byPoint.set(key, spot)
+    spot.items.push(t.props)
+    if (t.props.value) {
+      spot.value += t.props.value
+      spot.valued++
+    }
   }
   const spots = [...byPoint.values()]
   for (const spot of spots) spot.items.sort((a, b) => b.date.localeCompare(a.date))
@@ -204,7 +214,7 @@ export function theftSpotsGeoJSON(spots: readonly TheftSpot[]): FeatureCollectio
       .sort((a, b) => b.items.length - a.items.length)
       .map((spot) => ({
         type: 'Feature',
-        properties: { key: spot.key, count: spot.items.length },
+        properties: { key: spot.key, count: spot.items.length, value: spot.value, valued: spot.valued },
         geometry: { type: 'Point', coordinates: spot.at },
       })),
   }

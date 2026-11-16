@@ -12,6 +12,7 @@ import {
   type TheftSpot,
   theftGroupCounts,
   theftsByMonth,
+  VALUE_STEPS,
 } from '../thefts'
 import { GroupRow, HUES, OTHER, SEASON_HUES } from './GroupBars'
 import { MinCountSlider, YearRange } from './YearRange'
@@ -29,13 +30,13 @@ interface Props {
 }
 
 /** Values are ordered, so one purple from light to dark; the other sets take the categorical hues. */
-const VALUE_STEPS = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
+const VALUE_HUES = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
 
 function colorOf(id: TheftGroupId, group: string): string {
   if (group === 'other' || group === 'unknown') return OTHER
   if (id === 'season') return SEASON_HUES[group] ?? OTHER
   const index = (THEFT_GROUPS[id] as readonly string[]).indexOf(group)
-  return id === 'value' ? VALUE_STEPS[index] : HUES[index]
+  return id === 'value' ? VALUE_HUES[index] : HUES[index]
 }
 
 function labelKey(id: TheftGroupId, group: string): MessageKey {
@@ -79,6 +80,43 @@ function TheftGroupRow({
   )
 }
 
+/**
+ * The map's colours: the value stolen at each intersection, a step per band,
+ * the dollars where the steps change under the bar.
+ */
+function ValueKey({ basemap }: { basemap: BasemapId }) {
+  const { t, lang } = useI18n()
+  const { values, noValue } = theftColors(basemap)
+  const dollars = (n: number) =>
+    n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      notation: 'compact',
+      maximumFractionDigits: 0,
+    })
+  return (
+    <div className="value-key">
+      <span>{t('theft.valueKey')}</span>
+      <span className="value-key-bar" aria-hidden="true">
+        {values.map((color) => (
+          <span key={color} style={{ background: color }} />
+        ))}
+      </span>
+      <span className="value-key-ticks">
+        {VALUE_STEPS.map((step, i) => (
+          <span key={step} style={{ left: `${((i + 1) / values.length) * 100}%` }}>
+            {dollars(step)}
+          </span>
+        ))}
+      </span>
+      <span className="value-key-none">
+        <span className="swatch dot" style={{ background: noValue }} />
+        {t('theft.noValue')}
+      </span>
+    </div>
+  )
+}
+
 /** Which years and which thefts the thefts layer shows, with how many of each. */
 export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, basemap }: Props) {
   const { t, lang } = useI18n()
@@ -90,6 +128,7 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
 
   return (
     <div className="collision-legend">
+      <ValueKey basemap={basemap} />
       <YearRange
         years={THEFT_YEARS}
         from={filters.from}
@@ -118,7 +157,7 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
       <MinCountSlider
         value={filters.minCount}
         busiest={busiestSpot}
-        color={theftColors(basemap).spot}
+        color={theftColors(basemap).values[2]}
         label={
           filters.minCount <= 1
             ? t('theft.everySpot')
