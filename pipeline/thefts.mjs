@@ -52,7 +52,8 @@ export function makeNamer(makes) {
     for (const [other, n] of counts) {
       if (other.length > 4 && other.startsWith(key) && (!best || n > counts.get(best))) best = other
     }
-    if (best) full.set(key, best)
+    // Only a make written out more often than cut short: Trek is a whole make, not a short Trek FX.
+    if (best && counts.get(best) > counts.get(key)) full.set(key, best)
   }
   return (make) => {
     const key = String(make ?? '')
@@ -70,4 +71,77 @@ export function makeNamer(makes) {
 /** The day in Ottawa of a time in milliseconds, as YYYY-MM-DD. */
 export function ottawaDay(ms) {
   return new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })
+}
+
+/** The police's three-letter colour codes, in the colours the card names; shades go to their colour. */
+const COLOURS = {
+  BLK: 'black',
+  GRY: 'grey',
+  GRA: 'grey',
+  GEY: 'grey',
+  WHI: 'white',
+  SIL: 'silver',
+  RED: 'red',
+  MRN: 'red',
+  ONG: 'orange',
+  ORG: 'orange',
+  YEL: 'yellow',
+  GLD: 'gold',
+  GRN: 'green',
+  DGR: 'green',
+  LGR: 'green',
+  BLU: 'blue',
+  DBL: 'blue',
+  LBL: 'blue',
+  TRQ: 'turquoise',
+  PLE: 'purple',
+  PNK: 'pink',
+  BRN: 'brown',
+  BRZ: 'brown',
+  CPR: 'brown',
+  BGE: 'beige',
+  CRM: 'beige',
+  TAN: 'beige',
+}
+
+/** "BLKRED" → ["black", "red"]: a code per colour, run together; codes not known are left out. */
+export function colours(code) {
+  const text = String(code ?? '')
+    .trim()
+    .toUpperCase()
+  const found = []
+  for (let i = 0; i + 3 <= text.length; i += 3) {
+    const colour = COLOURS[text.slice(i, i + 3)]
+    if (colour && !found.includes(colour)) found.push(colour)
+  }
+  return found
+}
+
+const NO_MODEL = new Set(['', 'UNKNOWN', 'UNK', 'NODATA', 'NODA', 'NONE', 'N/A', 'OTHER'])
+
+/** "DUAL SPORT 3" → "Dual Sport 3", "FSX4" stays: words with numbers are model codes. */
+export function modelName(model) {
+  const text = String(model ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (NO_MODEL.has(text.toUpperCase())) return undefined
+  return text
+    .split(' ')
+    .map((word) => (/\d/.test(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+    .join(' ')
+}
+
+/**
+ * The records left once exact copies are dropped: the police data lists some
+ * thefts two or more times, the same in every field but the record id.
+ * @param {{ attributes: Record<string, unknown> }[]} rows
+ */
+export function withoutCopies(rows, ids = ['OBJECTID', 'ID']) {
+  const seen = new Set()
+  return rows.filter(({ attributes }) => {
+    const key = JSON.stringify(Object.entries(attributes).filter(([k]) => !ids.includes(k)))
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }

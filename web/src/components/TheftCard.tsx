@@ -25,6 +25,8 @@ export function TheftCard({ items, at, onClose }: Props) {
   // The spot can be gone (the filters changed under it): nothing to show then.
   if (!p) return null
   const label = (key: string) => (isMessageKey(key) ? t(key) : null)
+  // Several bikes taken at once differ only by these: "Trek FSX4 · grey".
+  const colourNames = (p.colour ?? []).map((c) => label(`colour.${c}`)).filter((c): c is string => Boolean(c))
   // Dates are local days; read them as such, not as UTC midnight.
   const date = new Date(`${p.date}T12:00:00`).toLocaleDateString(locale, { dateStyle: 'long' })
   const hour =
@@ -32,7 +34,17 @@ export function TheftCard({ items, at, onClose }: Props) {
   const facts: { label: string; value: string | null; title?: string }[] = [
     { label: t('theftGroup.where'), value: label(`theft.where.${p.where}`) },
     { label: t('theft.when'), value: [label(`theft.time.${p.time}`), hour].filter(Boolean).join(', ') || null },
-    { label: t('theftGroup.type'), value: [label(`theft.type.${p.type}`), p.make].filter(Boolean).join(' · ') || null },
+    {
+      label: t('theftGroup.type'),
+      value:
+        [
+          label(`theft.type.${p.type}`),
+          [p.make, p.model].filter(Boolean).join(' '),
+          colourNames.length ? new Intl.ListFormat(locale, { type: 'conjunction' }).format(colourNames) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null,
+    },
     {
       label: t('theftGroup.value'),
       value: p.value

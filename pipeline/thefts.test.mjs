@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bikeType, makeNamer, ottawaDay, takenFrom } from './thefts.mjs'
+import { bikeType, colours, makeNamer, modelName, ottawaDay, takenFrom, withoutCopies } from './thefts.mjs'
 
 test('tells where a bike was taken from by the offence', () => {
   assert.equal(takenFrom('Theft< Bicycle'), 'outdoors')
@@ -31,6 +31,31 @@ test('cleans makes: cut-off names, unknowns, case', () => {
   assert.equal(name(null), undefined)
   // A four-letter make with no longer one to stand for is kept.
   assert.equal(name('TREK'), 'Trek')
+  // Nor does a whole four-letter make become a longer name written less often.
+  const treks = makeNamer(['TREK', 'TREK', 'TREK FX'])
+  assert.equal(treks('TREK'), 'Trek')
+})
+
+test('reads colour codes run together', () => {
+  assert.deepEqual(colours('BLKRED'), ['black', 'red'])
+  assert.deepEqual(colours('DBLLBL'), ['blue'])
+  assert.deepEqual(colours('noda'), [])
+  assert.deepEqual(colours(null), [])
+})
+
+test('writes models plainly, codes in capitals', () => {
+  assert.equal(modelName('DUAL SPORT 3'), 'Dual Sport 3')
+  assert.equal(modelName('FSX4'), 'FSX4')
+  assert.equal(modelName(' unknown '), undefined)
+})
+
+test('drops exact copies of a record, keeps different bikes', () => {
+  const row = (id, model) => ({ attributes: { ID: id, OBJECTID: id, OCC_DATE: 1, BIKE_MODEL: model } })
+  const kept = withoutCopies([row(1, 'FSX4'), row(2, 'DUAL SPORT 3'), row(3, 'FSX4')])
+  assert.deepEqual(
+    kept.map((r) => r.attributes.ID),
+    [1, 2],
+  )
 })
 
 test('reads dates as days in Ottawa', () => {

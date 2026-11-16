@@ -36,6 +36,9 @@ export interface TheftProps {
   where: string
   type: string
   make?: string
+  model?: string
+  /** Its colours, as the card names them: black, grey, red… */
+  colour?: string[]
   /** Dollars, as reported. */
   value?: number
   /** Found again since. */
