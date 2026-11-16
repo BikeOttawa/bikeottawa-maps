@@ -9,7 +9,6 @@ describe('pathway filters', () => {
 
   it('round-trips through the URL', () => {
     const filters = {
-      show: false,
       by: 'width' as const,
       surfaces: ['paved', 'unknown'] as const,
       minWidth: 2.5,
@@ -17,7 +16,7 @@ describe('pathway filters', () => {
       minLength: 1000,
     }
     const text = formatPathwayFilters(filters)
-    expect(text).toBe('width;paved,unknown;2.5;1000;known;off')
+    expect(text).toBe('width;paved,unknown;2.5;1000;known')
     expect(parsePathwayFilters(text ?? '')).toEqual(filters)
     expect(parsePathwayFilters('width')).toEqual({ ...DEFAULT_PATHWAY_FILTERS, by: 'width' })
     expect(parsePathwayFilters(';none').surfaces).toEqual([])

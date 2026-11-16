@@ -88,9 +88,7 @@ describe('buildStyle', () => {
     expect(JSON.stringify(paint('width').layout['line-sort-key'])).toContain('width_m')
   })
 
-  it('hides the pathways when unticked, and the bike lanes overlay on their layer', () => {
-    const hidden = build({ layer: 'pathways', pathways: { ...DEFAULT_PATHWAY_FILTERS, show: false } })
-    expect(layer(hidden, 'pathways-line').layout?.visibility).toBe('none')
+  it('hides the bike lanes overlay on the pathways layer', () => {
     expect(build({ layer: 'pathways', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(false)
     expect(build({ layer: 'comfort', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(true)
   })

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../i18n'
 import { type BasemapId, pathwayColors, widthGradient } from '../layers'
 import {
@@ -40,9 +41,6 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
         : [...filters.surfaces, surface],
     })
   const surfaceColor = (surface: SurfaceId) => (surface === 'unknown' ? colors.unknown : colors.surface[surface])
-  const allColors = bySurface
-    ? `linear-gradient(to right, ${Object.values(colors.surface).join(', ')})`
-    : widthGradient(basemap)
   const atLeast = (value: number, text: string) =>
     value ? t('pathways.atLeast').replace('{value}', text) : t('pathways.any')
   const width = atLeast(filters.minWidth, metres(filters.minWidth))
@@ -50,13 +48,7 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
 
   return (
     <div className="pathway-legend">
-      <label className="check pathway-all">
-        <input type="checkbox" checked={filters.show} onChange={() => onChange({ ...filters, show: !filters.show })} />
-        <span className="swatch line" style={{ background: allColors }} />
-        <span>{t('layer.pathways')}</span>
-        {distance(km?.km)}
-      </label>
-      <fieldset className="pathway-group" disabled={!filters.show}>
+      <fieldset className="pathway-group">
         <legend>{t('pathways.colorBy')}</legend>
         <div className="mode-switch">
           {COLOR_BY.map((by) => (
@@ -71,7 +63,7 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           ))}
         </div>
       </fieldset>
-      <fieldset className="pathway-group" disabled={!filters.show}>
+      <fieldset className="pathway-group">
         <legend>{t('pathways.by.surface')}</legend>
         {SURFACE_IDS.map((surface) => (
           <label key={surface} className="check">
@@ -85,7 +77,7 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           </label>
         ))}
       </fieldset>
-      <fieldset className="pathway-group" disabled={!filters.show}>
+      <fieldset className="pathway-group">
         <legend>
           {t('pathways.by.width')}
           {t('colon')}
@@ -100,11 +92,11 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           value={filters.minWidth}
           aria-label={t('pathways.by.width')}
           aria-valuetext={width}
+          style={bySurface ? undefined : ({ '--track': widthGradient(basemap) } as CSSProperties)}
           onChange={(e) => onChange({ ...filters, minWidth: Number(e.target.value) })}
         />
         {!bySurface && (
           <span className="pathway-ramp" aria-hidden="true">
-            <span className="pathway-ramp-bar" style={{ background: widthGradient(basemap) }} />
             <span>{t('pathways.narrow')}</span>
             <span>{t('pathways.wide')}</span>
           </span>
@@ -123,7 +115,7 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           {distance(km?.unknownWidth)}
         </label>
       </fieldset>
-      <fieldset className="pathway-group" disabled={!filters.show}>
+      <fieldset className="pathway-group">
         <legend>
           {t('pathways.length')}
           {t('colon')}

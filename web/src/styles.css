@@ -1844,10 +1844,6 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-.pathway-all {
-  font-weight: 600;
-}
-
 .pathway-group {
   display: flex;
   flex-direction: column;
@@ -1877,17 +1873,53 @@ a {
   min-height: 34px;
 }
 
+/* Sliders with a plain track, or the width colours when colouring by width. */
 .pathway-range {
+  --track: var(--border);
   width: 100%;
-  margin: 4px 0;
-  accent-color: var(--accent);
+  height: 24px;
+  margin: 2px 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
 }
 
-/* The width colours under the slider, narrow to wide. */
+.pathway-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+
+.pathway-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+
+.pathway-range::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgb(22 36 43 / 35%);
+  appearance: none;
+}
+
+.pathway-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgb(22 36 43 / 35%);
+}
+
+/* Which end of the width colours is which. */
 .pathway-ramp {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px 0;
   font-size: 12px;
   color: var(--muted);
 }
@@ -1895,12 +1927,6 @@ a {
 .pathway-note {
   font-size: 12px;
   color: var(--muted);
-}
-
-.pathway-ramp-bar {
-  grid-column: 1 / -1;
-  height: 6px;
-  border-radius: 3px;
 }
 
 .pathway-ramp > span:last-child {

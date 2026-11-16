@@ -462,7 +462,7 @@ function pathwayLayers(state: StyleState, fade: number): LayerSpecification[] {
     'line-cap': 'round' as const,
     'line-join': 'round' as const,
     'line-sort-key': ['case', unknown, 1, 0] as ExpressionSpecification,
-    visibility: state.layer === 'pathways' && filters.show && !state.reach ? ('visible' as const) : ('none' as const),
+    visibility: state.layer === 'pathways' && !state.reach ? ('visible' as const) : ('none' as const),
   }
   const way = { type: 'line' as const, source: WAYS_SOURCE, 'source-layer': 'ways', filter: pathwayFilter(filters) }
   return [

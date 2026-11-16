@@ -17,8 +17,6 @@ export const COLOR_BY = ['surface', 'width'] as const
 export type ColorBy = (typeof COLOR_BY)[number]
 
 export interface PathwayFilters {
-  /** The pathways are drawn at all. */
-  show: boolean
   by: ColorBy
   surfaces: readonly SurfaceId[]
   /** Only pathways at least this wide, in metres; 0 for any width. */
@@ -30,7 +28,6 @@ export interface PathwayFilters {
 }
 
 export const DEFAULT_PATHWAY_FILTERS: PathwayFilters = {
-  show: true,
   by: 'surface',
   surfaces: SURFACE_IDS,
   minWidth: 0,
@@ -45,7 +42,7 @@ export const WIDTH_RANGE = { max: 4, step: 0.5 }
 export const UNKNOWN_WIDTH = 1.5
 
 /** The length slider's steps, in metres: short stubs first, then whole neighbourhoods. */
-export const LENGTH_STEPS = [0, 100, 200, 300, 500, 1000, 2000, 5000] as const
+export const LENGTH_STEPS = [0, 100, 200, 300, 500, 1000, 2000, 5000, 10000] as const
 
 /** Widths the colours change at, narrowest first. */
 export const WIDTH_STOPS = [1, 2, 3, 4] as const
@@ -86,9 +83,9 @@ export function nearestLength(metres: number): number {
 }
 
 /**
- * In the URL as `pathways=width;paved,gravel;2.5;1000;known;off`: colour,
- * surfaces, least width, least island length, `known` to leave out unknown
- * widths and `off` to hide them all, each part left out when it is the default.
+ * In the URL as `pathways=width;paved,gravel;2.5;1000;known`: colour, surfaces,
+ * least width, least island length and `known` to leave out unknown widths,
+ * each part left out when it is the default.
  */
 export function formatPathwayFilters(f: PathwayFilters): string | null {
   const d = DEFAULT_PATHWAY_FILTERS
@@ -99,21 +96,17 @@ export function formatPathwayFilters(f: PathwayFilters): string | null {
     f.minWidth === d.minWidth ? '' : String(f.minWidth),
     f.minLength === d.minLength ? '' : String(f.minLength),
     f.unknownWidth ? '' : 'known',
-    f.show ? '' : 'off',
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
 
 export function parsePathwayFilters(text: string | undefined): PathwayFilters {
   const d = DEFAULT_PATHWAY_FILTERS
-  const [byText = '', surfaceText = '', widthText = '', lengthText = '', unknownText = '', showText = ''] = (
-    text ?? ''
-  ).split(';')
+  const [byText = '', surfaceText = '', widthText = '', lengthText = '', unknownText = ''] = (text ?? '').split(';')
   const width = Number(widthText)
   const length = Number(lengthText)
   const inRange = widthText !== '' && width >= 0 && width <= WIDTH_RANGE.max
   return {
-    show: showText !== 'off',
     by: isColorBy(byText) ? byText : d.by,
     surfaces: surfaceText === 'none' ? [] : surfaceText ? surfaceText.split(',').filter(isSurfaceId) : d.surfaces,
     minWidth: inRange ? Math.round(width / WIDTH_RANGE.step) * WIDTH_RANGE.step : d.minWidth,
