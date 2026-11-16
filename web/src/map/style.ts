@@ -676,7 +676,8 @@ function routeLabelLayers(state: StyleState, theme: Theme): LayerSpecification[]
 
 /**
  * Bike lanes over the basemap: dedicated ways solid green, painted lanes dashed,
- * shared lanes dotted. Under the data layers, How far's lines and the street names.
+ * shared lanes dotted, paved shoulders yellow. Under the data layers, How far's
+ * lines and the street names.
  */
 function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   if (!state.bikeLanes) return []
@@ -700,12 +701,14 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   const width = scaled('bikeway_width')
   const whole: FilterSpecification = ['all', ['!', ['has', 'bikeway_left']], ['!', ['has', 'bikeway_right']]]
   // Told apart by pattern as well as colour: dedicated solid, painted lanes in
-  // long dashes, shared lanes in dots. Dash lengths are in line widths; the
-  // dashes have square ends so they stay long, the dots round ones.
+  // long dashes, shared lanes in dots, shoulders solid but yellow. Dash lengths
+  // are in line widths; the dashes have square ends so they stay long, the dots
+  // round ones.
   const looks: Record<BikewayId, { cap: 'round' | 'butt'; dash?: number[] }> = {
     dedicated: { cap: 'round' },
     lane: { cap: 'butt', dash: [3, 1.5] },
     shared: { cap: 'round', dash: [0, 2] },
+    shoulder: { cap: 'round' },
   }
   const layer = (
     id: string,
@@ -728,7 +731,7 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   // Streets: a line down each side that has a bike lane, left and right as the
   // way is drawn. Paths, which have no sides, are one line down the middle.
   // Dedicated ways go on top where they meet the others.
-  const order: BikewayId[] = ['shared', 'lane', 'dedicated']
+  const order: BikewayId[] = ['shoulder', 'shared', 'lane', 'dedicated']
   const sideLayers = (['left', 'right'] as const).flatMap((side) =>
     order.map((kind) =>
       layer(

@@ -318,7 +318,8 @@ test('bike lanes: dedicated ways, painted lanes and shared lanes', () => {
     [{ highway: 'residential', 'cycleway:both': 'shared_lane' }, 'shared'],
     [{ highway: 'primary', cycleway: 'track' }, 'dedicated'],
     [{ highway: 'primary', 'cycleway:both': 'separate' }, undefined],
-    [{ highway: 'tertiary', cycleway: 'shoulder' }, undefined],
+    [{ highway: 'tertiary', cycleway: 'shoulder' }, 'shoulder'],
+    [{ highway: 'secondary', 'cycleway:right': 'shoulder', 'cycleway:left': 'lane' }, 'lane'],
   ]
   for (const [tags, kind] of cases) assert.equal(bikeway(tags), kind, JSON.stringify(tags))
   assert.equal(classifyWay({ highway: 'tertiary', cycleway: 'lane' }).props.bikeway, 'lane')

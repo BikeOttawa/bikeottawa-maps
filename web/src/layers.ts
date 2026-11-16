@@ -49,13 +49,23 @@ export function collisionColors(basemap: BasemapId): Record<'none' | 'minimal' |
 
 /**
  * The bike lanes overlay: dedicated ways solid green, painted lanes a paler green
- * dashed, shared lanes that green dotted. The dedicated green stands out most on
- * any ground: darkest on pale maps, brightest on dark ones.
+ * dashed, shared lanes that green dotted, paved shoulders yellow. The dedicated
+ * green stands out most on any ground: darkest on pale maps, brightest on dark ones.
  */
-export const BIKEWAY_IDS = ['dedicated', 'lane', 'shared'] as const
+export const BIKEWAY_IDS = ['dedicated', 'lane', 'shared', 'shoulder'] as const
 export type BikewayId = (typeof BIKEWAY_IDS)[number]
-const BIKEWAYS_ON_PALE: Record<BikewayId, string> = { dedicated: '#1E7B34', lane: '#3FA34D', shared: '#3FA34D' }
-const BIKEWAYS_ON_DARK: Record<BikewayId, string> = { dedicated: '#7BE38A', lane: '#3FA557', shared: '#3FA557' }
+const BIKEWAYS_ON_PALE: Record<BikewayId, string> = {
+  dedicated: '#1E7B34',
+  lane: '#3FA34D',
+  shared: '#3FA34D',
+  shoulder: '#E3AE00',
+}
+const BIKEWAYS_ON_DARK: Record<BikewayId, string> = {
+  dedicated: '#7BE38A',
+  lane: '#3FA557',
+  shared: '#3FA557',
+  shoulder: '#F2C94C',
+}
 
 export function bikewayColors(basemap: BasemapId): Record<BikewayId, string> {
   return basemap === 'light' || basemap === 'grey' ? BIKEWAYS_ON_PALE : BIKEWAYS_ON_DARK

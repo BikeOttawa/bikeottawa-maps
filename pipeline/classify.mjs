@@ -56,18 +56,20 @@ function pick(tags, keys, out) {
 }
 
 /** Best first. */
-const BIKEWAYS = ['dedicated', 'lane', 'shared']
+const BIKEWAYS = ['dedicated', 'lane', 'shared', 'shoulder']
 const STREET_BIKEWAYS = {
   track: 'dedicated',
   lane: 'lane',
   opposite_lane: 'lane',
   shared_lane: 'shared',
+  shoulder: 'shoulder',
 }
 
 /**
  * The bike lanes overlay, as on Google Maps: `dedicated` for cycleways and
  * pathways bikes are meant for (and cycle tracks along a street), `lane` for a
- * painted bike lane, `shared` for a shared-lane marking. A street whose bike
+ * painted bike lane, `shared` for a shared-lane marking, `shoulder` for a paved
+ * shoulder meant for riding (`cycleway=shoulder`). A street whose bike
  * lane is drawn as a way of its own (`cycleway=separate`) gets nothing; that
  * way is drawn instead. `ignoreTrack` does the same for a street tagged
  * `cycleway=track` whose track is mapped on its own as well.
