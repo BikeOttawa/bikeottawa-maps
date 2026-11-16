@@ -1,6 +1,6 @@
 import type { ExpressionSpecification, FilterSpecification } from 'maplibre-gl'
 import LENGTHS from '../../pipeline/pathway-lengths.json'
-import { type BandTotals, bandKm, formatPicks, type Picks, parsePicks, shownKm } from './bands'
+import { type BandTotals, bandKm, formatBy, formatPicks, type Picks, parseBy, parsePicks, shownKm } from './bands'
 
 /**
  * The pathways layer: every path bikes are not kept off, coloured by the
@@ -115,22 +115,19 @@ export function nearestLength(metres: number): number {
  * map is coloured by (`none` for none open), each unless it is the default.
  */
 export function formatPathwayFilters(f: PathwayFilters): string | null {
-  const d = DEFAULT_PATHWAY_FILTERS
   const parts = formatPicks(PATHWAY_GROUPS, f.picks)
-  if (f.minLength !== d.minLength) parts.push(`length:${f.minLength}`)
-  if (f.by !== d.by) parts.push(`by:${f.by ?? 'none'}`)
+  if (f.minLength !== DEFAULT_PATHWAY_FILTERS.minLength) parts.push(`length:${f.minLength}`)
+  const by = formatBy(f.by, 'surface')
+  if (by) parts.push(by)
   return parts.join(';') || null
 }
 
 export function parsePathwayFilters(text: string | undefined): PathwayFilters {
-  const d = DEFAULT_PATHWAY_FILTERS
-  const parts = (text ?? '').split(';')
-  const value = (key: string) => parts.find((part) => part.startsWith(`${key}:`))?.slice(key.length + 1)
-  const metres = Number(value('length') || Number.NaN)
-  const by = value('by')
+  const length = (text ?? '').split(';').find((part) => part.startsWith('length:'))
+  const metres = Number(length?.slice('length:'.length) || Number.NaN)
   return {
     picks: parsePicks(PATHWAY_GROUPS, text),
-    minLength: metres >= 0 ? nearestLength(metres) : d.minLength,
-    by: by === 'none' ? null : PATHWAY_SETS.includes(by as PathwaySet) ? (by as PathwaySet) : d.by,
+    minLength: metres >= 0 ? nearestLength(metres) : DEFAULT_PATHWAY_FILTERS.minLength,
+    by: parseBy(text, PATHWAY_SETS, 'surface'),
   }
 }

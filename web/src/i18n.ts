@@ -322,7 +322,7 @@ const en = {
   'comfort.lit': 'Lighting',
   'comfort.lit.unknown': 'Not tagged',
   'comfort.hint':
-    'Tap a line to show only those streets. The thin mark is how it stands before anything else is picked. Pathways count as 30 km/h or less; picking lanes leaves them out.',
+    'The open row colours the map. Tap a line to show only those streets; the thin mark is how it stands before anything else is picked. Pathways count as 30 km/h or less; picking lanes leaves them out.',
   'comfort.shown': '{km} shown',
   'lts.1': 'Comfortable for everyone',
   'lts.2': 'Fine for most adults',
@@ -899,7 +899,7 @@ const fr: Record<keyof typeof en, string> = {
   'comfort.lit': 'Éclairage',
   'comfort.lit.unknown': 'Non indiqué',
   'comfort.hint':
-    'Touchez une ligne pour ne montrer que ces rues. Le trait fin : où elle en est avant tout autre choix. Les sentiers comptent comme 30 km/h ou moins; choisir des voies les laisse de côté.',
+    'La rangée ouverte colore la carte. Touchez une ligne pour ne montrer que ces rues; le trait fin\u00a0: où elle en est avant tout autre choix. Les sentiers comptent comme 30 km/h ou moins; choisir des voies les laisse de côté.',
   'comfort.shown': '{km} montrés',
   'lts.1': 'Confortable pour tous',
   'lts.2': 'Convient à la plupart des adultes',

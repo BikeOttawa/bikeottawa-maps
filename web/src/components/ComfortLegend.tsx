@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   COMFORT_GROUPS,
   COMFORT_SETS,
@@ -9,8 +9,7 @@ import {
   comfortShownKm,
 } from '../comfort'
 import { isMessageKey, type MessageKey, useI18n } from '../i18n'
-import { bikewayColors, LTS_COLORS, pathwayColors, pathwaySetColors } from '../layers'
-import { partLook } from '../route/breakdown'
+import { comfortSetColors, LTS_COLORS } from '../layers'
 import { GroupRow, OTHER } from './GroupBars'
 
 interface Props {
@@ -20,47 +19,11 @@ interface Props {
   totals: ComfortTotals | null
 }
 
-/** Speed limits are ordered: one red from light to dark, the slowest lightest. */
-const SPEED_STEPS = ['#F6D5B8', '#EDAF7F', '#E2804A', '#C8502A', '#8E2A12']
-
-/** Road classes, minor to major: one slate from light to dark; pathways green, tracks brown. */
-const TYPE_COLORS: Record<string, string> = {
-  path: '#1E7B34',
-  residential: '#C8D3DB',
-  service: '#AFBBC4',
-  minor: '#94A6B6',
-  tertiary: '#7690A8',
-  secondary: '#56748F',
-  primary: '#3A5873',
-  trunk: '#22394F',
-  track: '#B39264',
-  other: OTHER,
-}
-
-/** Lanes each way, ordered too: one blue, a single lane lightest. */
-const LANE_STEPS = ['#A9CBEA', '#4D8FCC', '#1F4E8C']
-
-const surfaces = pathwayColors('light')
-
-/** Each set's colours: stress in the map's own, the rest in the colours they have elsewhere in the app. */
-const COLORS: Record<ComfortSet, Record<string, string>> = {
-  stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
-  type: TYPE_COLORS,
-  speed: Object.fromEntries(COMFORT_GROUPS.speed.map((g, i) => [g, SPEED_STEPS[i] ?? OTHER])),
-  lanes: { '1': LANE_STEPS[0], '2': LANE_STEPS[1], '3': LANE_STEPS[2], unknown: OTHER },
-  bikeway: {
-    path: partLook('bikeway', 'path').color,
-    lane: partLook('bikeway', 'lane').color,
-    shoulder: partLook('bikeway', 'shoulder').color,
-    shared: bikewayColors('light').shared,
-    none: partLook('bikeway', 'traffic').color,
-  },
-  surface: { paved: surfaces.surface.asphalt, unpaved: surfaces.surface.gravel, unknown: OTHER },
-  lit: pathwaySetColors('light').lit,
-}
+/** Each set's colours, as the map draws them. */
+const COLORS = comfortSetColors()
 
 /** The labels: the stress levels' short names, the bike infrastructure as the route card names it. */
-function labelKey(set: ComfortSet, group: string): MessageKey {
+export function labelKey(set: ComfortSet, group: string): MessageKey {
   if (set === 'stress') return `comfort.stress.${group}` as MessageKey
   if (set === 'lit' && group !== 'unknown') return `litPart.${group}` as MessageKey
   if (set === 'bikeway') {
@@ -81,13 +44,12 @@ function labelKey(set: ComfortSet, group: string): MessageKey {
 }
 
 /**
- * Which ways the comfort layer shows, as the other layers' filters: by stress
- * (the map's colours, its key), speed limit, lanes, bike infrastructure and
- * surface, each a bar of km.
+ * Which ways the comfort layer shows, as the other layers' filters: by stress,
+ * type, speed limit, lanes, bike infrastructure, surface and lighting, each a
+ * bar of km. The open row colours the map, in the colours of its bars.
  */
 export function ComfortLegend({ filters, onChange, totals }: Props) {
   const { t, lang } = useI18n()
-  const [open, setOpen] = useState<ComfortSet | null>('stress')
   const km = (n: number) => `${Math.round(n).toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')} km`
   const counts = useMemo(
     () => (totals ? Object.fromEntries(COMFORT_SETS.map((set) => [set, comfortKm(totals, filters, set)])) : null),
@@ -116,14 +78,14 @@ export function ComfortLegend({ filters, onChange, totals }: Props) {
             name={t(`comfort.${set}`)}
             groups={COMFORT_GROUPS[set]}
             counts={counts[set]}
-            picked={filters[set] ?? []}
-            compared={COMFORT_SETS.some((other) => other !== set && filters[other]?.length)}
+            picked={filters.picks[set] ?? []}
+            compared={COMFORT_SETS.some((other) => other !== set && filters.picks[other]?.length)}
             color={(group) => COLORS[set][group] ?? OTHER}
             label={(group) => t(labelKey(set, group))}
             amount={km}
-            onPick={(next) => onChange({ ...filters, [set]: next })}
-            open={open === set}
-            onToggle={() => setOpen(open === set ? null : set)}
+            onPick={(next) => onChange({ ...filters, picks: { ...filters.picks, [set]: next } })}
+            open={filters.by === set}
+            onToggle={() => onChange({ ...filters, by: filters.by === set ? null : set })}
           />
         ))}
         <p className="footnote">{t('comfort.hint')}</p>

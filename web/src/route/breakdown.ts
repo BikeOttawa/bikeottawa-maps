@@ -1,6 +1,14 @@
 import surfaceGroups from '../../../pipeline/surface-groups.json'
 import type { MessageKey } from '../i18n'
-import { bikewayColors, LAMP_COLOR_ON_PALE, LTS_COLORS, NO_BIKES_COLOR, pathwayColors, WINTER_COLORS } from '../layers'
+import {
+  BIKEWAY_PART_COLORS,
+  bikewayColors,
+  LAMP_COLOR_ON_PALE,
+  LTS_COLORS,
+  NO_BIKES_COLOR,
+  pathwayColors,
+  WINTER_COLORS,
+} from '../layers'
 import { COMFORT_KEYS, comfortKeyOf, type Route, type RouteSegment } from './brouter'
 
 /**
@@ -147,11 +155,9 @@ const LOOKS: Record<RouteView, Record<string, PartLook>> = {
   },
   bikeway: {
     path: { color: bikeways.dedicated, label: 'bikewayPart.path' },
-    // Green to orange, from apart from cars to among them; shoulders, often
-    // beside fast traffic, in a sand of their own.
-    lane: { color: '#F2C200', label: 'bikeway.lane', pattern: 'dashed' },
-    shoulder: { color: '#BFA05A', label: 'bikeway.shoulder' },
-    traffic: { color: '#E8701A', label: 'bikewayPart.traffic' },
+    lane: { color: BIKEWAY_PART_COLORS.lane, label: 'bikeway.lane', pattern: 'dashed' },
+    shoulder: { color: BIKEWAY_PART_COLORS.shoulder, label: 'bikeway.shoulder' },
+    traffic: { color: BIKEWAY_PART_COLORS.traffic, label: 'bikewayPart.traffic' },
     walk: { color: NO_BIKES_COLOR, label: 'walk' },
   },
   surface: {

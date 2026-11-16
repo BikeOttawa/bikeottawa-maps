@@ -1,5 +1,5 @@
 import type { ExpressionSpecification } from 'maplibre-gl'
-import { type BandTotals, bandKm, formatPicks, type Picks, parsePicks, shownKm } from './bands'
+import { type BandTotals, bandKm, formatBy, formatPicks, type Picks, parseBy, parsePicks, shownKm } from './bands'
 
 /**
  * The comfort layer's filters. The pipeline bands each way on the layer by its
@@ -30,18 +30,35 @@ const PROPERTY: Record<ComfortSet, string> = {
   lit: 'lit_band',
 }
 
-/** The groups picked of each set; none picked shows them all. */
-export type ComfortFilters = Picks<ComfortSet>
+/** The groups picked of each set, and the row the map is coloured by. */
+export interface ComfortFilters {
+  /** None picked of a set shows them all. */
+  picks: Picks<ComfortSet>
+  /** The legend's open row; none open colours the map by stress. */
+  by: ComfortSet | null
+}
 
-/** Every way on the comfort layer. */
-export const DEFAULT_COMFORT_FILTERS: ComfortFilters = {}
+/** Every way on the comfort layer, by stress. */
+export const DEFAULT_COMFORT_FILTERS: ComfortFilters = { picks: {}, by: 'stress' }
+
+/** The set the map is coloured by. */
+export const comfortColorBy = (f: ComfortFilters): ComfortSet => f.by ?? 'stress'
+
+/** Whether anything is picked. */
+export const comfortPicked = (f: ComfortFilters) => COMFORT_SETS.some((set) => f.picks[set]?.length)
+
+/** A way's group in one set, as a map expression: `-` where the set does not apply (a path's lanes). */
+export const comfortGroupOf = (set: ComfortSet): ExpressionSpecification => [
+  'to-string',
+  ['coalesce', ['get', PROPERTY[set]], '-'],
+]
 
 /** The picks as a map filter. A path has no lanes, so picking lanes leaves paths out. */
 export function comfortFilter(f: ComfortFilters): ExpressionSpecification {
-  const picked = COMFORT_SETS.filter((set) => f[set]?.length)
+  const picked = COMFORT_SETS.filter((set) => f.picks[set]?.length)
   return [
     'all',
-    ...picked.map((set) => ['in', ['to-string', ['get', PROPERTY[set]]], ['literal', [...(f[set] ?? [])]]]),
+    ...picked.map((set) => ['in', comfortGroupOf(set), ['literal', [...(f.picks[set] ?? [])]]]),
   ] as unknown as ExpressionSpecification
 }
 
@@ -49,16 +66,20 @@ export function comfortFilter(f: ComfortFilters): ExpressionSpecification {
 export type ComfortTotals = BandTotals
 
 /** Km in each group of one set, under the other sets' picks and with none. */
-export const comfortKm = (totals: ComfortTotals, f: ComfortFilters, set: ComfortSet) => bandKm(totals, f, set)
+export const comfortKm = (totals: ComfortTotals, f: ComfortFilters, set: ComfortSet) => bandKm(totals, f.picks, set)
 
 /** Km of the comfort layer the picks show. */
-export const comfortShownKm = (totals: ComfortTotals, f: ComfortFilters) => shownKm(totals, f)
+export const comfortShownKm = (totals: ComfortTotals, f: ComfortFilters) => shownKm(totals, f.picks)
 
-/** In the URL as `comfort=stress:3,4;speed:60,70`: the groups picked of each set. */
+/**
+ * In the URL as `comfort=stress:3,4;speed:60,70;by:speed`: the groups picked
+ * of each set, then the row the map is coloured by unless it is stress.
+ */
 export function formatComfortFilters(f: ComfortFilters): string | null {
-  return formatPicks(COMFORT_GROUPS, f).join(';') || null
+  const by = formatBy(f.by, DEFAULT_COMFORT_FILTERS.by as ComfortSet)
+  return [...formatPicks(COMFORT_GROUPS, f.picks), ...(by ? [by] : [])].join(';') || null
 }
 
 export function parseComfortFilters(text: string | undefined): ComfortFilters {
-  return parsePicks(COMFORT_GROUPS, text)
+  return { picks: parsePicks(COMFORT_GROUPS, text), by: parseBy(text, COMFORT_SETS, 'stress') }
 }

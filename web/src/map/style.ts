@@ -2,7 +2,14 @@ import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/ba
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
 import { SEVERITIES } from '../collisions'
-import { type ComfortFilters, comfortFilter } from '../comfort'
+import {
+  type ComfortFilters,
+  comfortColorBy,
+  comfortFilter,
+  comfortGroupOf,
+  comfortPicked,
+  DEFAULT_COMFORT_FILTERS,
+} from '../comfort'
 import {
   CONSTRUCTION_TIMINGS,
   type ConstructionFilters,
@@ -15,11 +22,13 @@ import {
   type BikewayId,
   bikewayColors,
   collisionColors,
+  comfortSetColors,
   constructionColors,
   INK,
   LAMP_COLOR,
   type LayerId,
-  LTS_COLORS,
+  NOT_APPLICABLE,
+  OTHER,
   pathwayColors,
   pathwaySetColors,
   ROUTE_COLORS,
@@ -518,7 +527,18 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   const round = { 'line-cap': 'round' as const, 'line-join': 'round' as const }
   const bikeable: FilterSpecification = ['>', ['get', 'lts'], 0]
   // The comfort layer's picks, on top.
-  const comfortable: FilterSpecification = ['all', bikeable, comfortFilter(state.comfort ?? {})]
+  const comfort = state.comfort ?? DEFAULT_COMFORT_FILTERS
+  const comfortable: FilterSpecification = ['all', bikeable, comfortFilter(comfort)]
+  // Coloured by the legend's open row, stress at first.
+  const comfortColors = Object.entries(comfortSetColors()[comfortColorBy(comfort)])
+  const comfortColor = [
+    'match',
+    comfortGroupOf(comfortColorBy(comfort)),
+    ...comfortColors.flat(),
+    '-',
+    NOT_APPLICABLE,
+    OTHER,
+  ] as unknown as ExpressionSpecification
   const selectedWay: FilterSpecification = ['==', ['id'], state.selected?.kind === 'way' ? state.selected.id : -1]
   const selectedPlace: FilterSpecification = [
     '==',
@@ -551,7 +571,7 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
       filter: comfortable,
       layout: { ...round, ...show('comfort') },
       paint: {
-        'line-color': ['match', ['get', 'lts'], 1, LTS_COLORS[0], 2, LTS_COLORS[1], 3, LTS_COLORS[2], LTS_COLORS[3]],
+        'line-color': comfortColor,
         'line-width': lineWidth(),
         'line-opacity': fade,
       },
@@ -702,9 +722,8 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
     shoulder: { cap: 'round' },
   }
   // On the comfort layer, the bike lanes follow its picks: picking primary roads shows their lanes alone.
-  const comfort = state.comfort ?? {}
-  const picks =
-    state.layer === 'comfort' && Object.values(comfort).some((picked) => picked?.length) ? comfortFilter(comfort) : null
+  const comfort = state.comfort ?? DEFAULT_COMFORT_FILTERS
+  const picks = state.layer === 'comfort' && comfortPicked(comfort) ? comfortFilter(comfort) : null
   const layer = (
     id: string,
     kind: BikewayId,

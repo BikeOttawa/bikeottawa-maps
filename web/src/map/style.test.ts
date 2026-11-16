@@ -210,6 +210,19 @@ describe('buildStyle', () => {
     expect(layer(picked, 'route-highlight').filter).toEqual(['==', ['get', 'part'], 'light'])
   })
 
+  it('colours the comfort layer by its open row, stress at first', () => {
+    const color = (comfort?: { picks: Record<string, string[]>; by: 'stress' | 'lanes' | null }) =>
+      JSON.stringify(
+        (layer(build({ layer: 'comfort', comfort }), 'comfort-line') as { paint: Record<string, unknown> }).paint[
+          'line-color'
+        ],
+      )
+    expect(color()).toContain('"lts"')
+    // Paths have no lanes: drawn as not applying, apart from lanes not tagged.
+    expect(color({ picks: {}, by: 'lanes' })).toContain('["to-string",["coalesce",["get","lane_band"],"-"]]')
+    expect(color({ picks: {}, by: null })).toContain('"lts"')
+  })
+
   it('lights the street lamps with the street lights overlay, the glow under the data lines', () => {
     const night = build({ layer: 'comfort', lights: true, basemap: 'dark' })
     expect(night.sources.night).toMatchObject({ type: 'vector' })

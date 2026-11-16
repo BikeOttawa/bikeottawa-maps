@@ -1,14 +1,24 @@
 import type { ReactNode } from 'react'
 import type { CollisionFilters, CollisionSpot } from '../collisions'
+import { COMFORT_GROUPS, type ComfortFilters, comfortColorBy } from '../comfort'
 import { CONSTRUCTION_TIMINGS } from '../construction'
 import { useI18n } from '../i18n'
-import { type BasemapId, constructionColors, type LayerId, LTS_COLORS, pathwaySetColors, reachRamp } from '../layers'
+import {
+  type BasemapId,
+  comfortSetColors,
+  constructionColors,
+  type LayerId,
+  LTS_COLORS,
+  pathwaySetColors,
+  reachRamp,
+} from '../layers'
 import { colorBy, PATHWAY_GROUPS, type PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
 import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
 import type { Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
 import type { TheftFilters, TheftSpot } from '../thefts'
+import { labelKey as comfortLabelKey } from './ComfortLegend'
 import { labelKey } from './PathwayLegend'
 import { PlaceIcon } from './PlaceIcon'
 
@@ -40,6 +50,7 @@ interface LayerProps {
   theftSpots: readonly TheftSpot[] | null
   theftFilters: TheftFilters
   pathwayFilters: PathwayFilters
+  comfortFilters: ComfortFilters
 }
 
 /** The active layer's key, small enough for one line. */
@@ -52,6 +63,7 @@ export function LayerPeek({
   theftSpots,
   theftFilters,
   pathwayFilters,
+  comfortFilters,
 }: LayerProps): ReactNode {
   const { t, lang } = useI18n()
   if (layer === 'pathways') {
@@ -74,14 +86,34 @@ export function LayerPeek({
       </>
     )
   }
-  if (layer === 'comfort')
+  if (layer === 'comfort') {
+    const by = comfortColorBy(comfortFilters)
+    if (by === 'stress')
+      return (
+        <>
+          <span>{t('peek.lowStress')}</span>
+          <Bar parts={LTS_COLORS.map((color) => [color, 1])} />
+          <span>{t('peek.highStress')}</span>
+        </>
+      )
+    // The colours of the open row, first to last, then not tagged.
+    const colors = comfortSetColors()[by]
+    const all: readonly string[] = COMFORT_GROUPS[by]
+    const groups = all.filter((group) => group !== 'unknown' && group !== 'other')
     return (
       <>
-        <span>{t('peek.lowStress')}</span>
-        <Bar parts={LTS_COLORS.map((color) => [color, 1])} />
-        <span>{t('peek.highStress')}</span>
+        <span>{t(comfortLabelKey(by, groups[0]))}</span>
+        <Bar parts={groups.map((group) => [colors[group], 1])} />
+        <span>{t(comfortLabelKey(by, groups[groups.length - 1]))}</span>
+        {all.includes('unknown') && (
+          <span className="peek-item">
+            <Swatch color={colors.unknown} />
+            {t('unknown')}
+          </span>
+        )}
       </>
     )
+  }
   if (layer === 'collisions') {
     if (!collisionSpots) return null
     const { from, to, severities } = collisionFilters

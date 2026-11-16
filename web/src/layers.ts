@@ -1,5 +1,6 @@
 /** The switchable data layers and their colours. Shared by the map style and the legend. */
 
+import type { ComfortSet } from './comfort'
 import type { KnownSurfaceId, PathwaySet, WidthBand } from './pathways'
 
 export const LAYER_IDS = ['places', 'pathways', 'comfort', 'collisions', 'thefts', 'construction'] as const
@@ -257,6 +258,61 @@ export function wardColors(basemap: BasemapId): { ottawa: string; gatineau: stri
 }
 
 export const WINTER_COLORS = { yes: '#1B5FAE', no: '#E07B1A', unknown: '#6F7B80' } as const
+
+/** Bike infrastructure ridden, on the route card and the comfort layer: green to orange, from apart from cars to among them; shoulders, often beside fast traffic, in a sand of their own. */
+export const BIKEWAY_PART_COLORS = { lane: '#F2C200', shoulder: '#BFA05A', traffic: '#E8701A' } as const
+
+/** Speed limits are ordered: one red from light to dark, the slowest lightest. */
+const SPEED_STEPS = ['#F6D5B8', '#EDAF7F', '#E2804A', '#C8502A', '#8E2A12']
+
+/** Lanes each way, ordered too: one blue, a single lane lightest. */
+const LANE_STEPS = ['#A9CBEA', '#4D8FCC', '#1F4E8C']
+
+/** Where a set does not apply (a path's lanes), pale and out of the way. */
+export const NOT_APPLICABLE = '#C9CED1'
+
+/**
+ * The comfort layer's colours for each set the map can be coloured by: stress
+ * in its own colours, the rest in the colours they have elsewhere in the app.
+ * The same on every map style, as the stress colours are.
+ */
+export function comfortSetColors(): Record<ComfortSet, Record<string, string>> {
+  const bikeways = bikewayColors('light')
+  return {
+    stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
+    // Road classes, minor to major: one slate from light to dark; pathways green, tracks brown.
+    type: {
+      path: '#1E7B34',
+      residential: '#C8D3DB',
+      service: '#AFBBC4',
+      minor: '#94A6B6',
+      tertiary: '#7690A8',
+      secondary: '#56748F',
+      primary: '#3A5873',
+      trunk: '#22394F',
+      track: '#B39264',
+      other: OTHER,
+    },
+    speed: {
+      '30': SPEED_STEPS[0],
+      '40': SPEED_STEPS[1],
+      '50': SPEED_STEPS[2],
+      '60': SPEED_STEPS[3],
+      '70': SPEED_STEPS[4],
+      unknown: OTHER,
+    },
+    lanes: { '1': LANE_STEPS[0], '2': LANE_STEPS[1], '3': LANE_STEPS[2], unknown: OTHER },
+    bikeway: {
+      path: bikeways.dedicated,
+      lane: BIKEWAY_PART_COLORS.lane,
+      shoulder: BIKEWAY_PART_COLORS.shoulder,
+      shared: bikeways.shared,
+      none: BIKEWAY_PART_COLORS.traffic,
+    },
+    surface: { paved: PATHWAYS_ON_PALE.surface.asphalt, unpaved: PATHWAYS_ON_PALE.surface.gravel, unknown: OTHER },
+    lit: { ...LIT_ON_PALE, unknown: OTHER },
+  }
+}
 
 export function isBasemapId(value: unknown): value is BasemapId {
   return BASEMAP_IDS.includes(value as BasemapId)

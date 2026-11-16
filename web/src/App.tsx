@@ -930,6 +930,7 @@ export function App() {
       theftSpots={shownTheftSpots}
       theftFilters={thefts}
       pathwayFilters={pathways}
+      comfortFilters={comfortPicks}
     />
   ) : route ? (
     <RoutePeek route={route} travel={travel} view={routeView} />
