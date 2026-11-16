@@ -21,12 +21,28 @@ export function speedBand(props) {
   return '70'
 }
 
-/** Lanes in all: one or two (a lane each way, or less), three or more; unknown when not tagged. Paths have none. */
-export function laneBand(props) {
+const ONE_WAY = new Set(['yes', 'true', '1', '-1'])
+
+/**
+ * Lanes each way: 1, 2, or 3 and up; unknown when not tagged. Per-direction
+ * tags (lanes:forward, lanes:backward) say so outright: the busier way counts.
+ * Otherwise a one-way street's lanes all go one way, and a two-way street's
+ * are split, rounded up (3 lanes in all is 2 one way). Paths have none.
+ */
+export function laneBand(props, tags = {}) {
   if (props.kind === 'path') return undefined
-  const lanes = number(props.lanes)
-  if (lanes === null) return 'unknown'
-  return lanes <= 2 ? 'few' : 'many'
+  const forward = number(tags['lanes:forward'])
+  const backward = number(tags['lanes:backward'])
+  let each
+  if (forward !== null || backward !== null) {
+    each = Math.max(forward ?? 0, backward ?? 0)
+  } else {
+    const lanes = number(props.lanes ?? tags.lanes)
+    if (lanes === null) return 'unknown'
+    const oneWay = ONE_WAY.has(tags.oneway) || tags.junction === 'roundabout'
+    each = oneWay ? lanes : Math.ceil(lanes / 2)
+  }
+  return each <= 1 ? '1' : each === 2 ? '2' : '3'
 }
 
 const STREET_BIKEWAYS = { dedicated: 'path', lane: 'lane', shoulder: 'shoulder', shared: 'shared' }
@@ -44,11 +60,11 @@ export function surfaceBand(props) {
   return props.kind === 'street' ? 'paved' : 'unknown'
 }
 
-/** The bands of a way on the comfort layer, as tile properties. */
-export function comfortBands(props) {
+/** The bands of a way on the comfort layer, as tile properties; the OSM tags tell which way it runs. */
+export function comfortBands(props, tags = {}) {
   const bands = {
     speed_band: speedBand(props),
-    lane_band: laneBand(props),
+    lane_band: laneBand(props, tags),
     bike_band: bikeBand(props),
     surface_band: surfaceBand(props),
   }

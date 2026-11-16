@@ -11,7 +11,7 @@ import {
 import { isMessageKey, type MessageKey, useI18n } from '../i18n'
 import { bikewayColors, LTS_COLORS, pathwayColors } from '../layers'
 import { partLook } from '../route/breakdown'
-import { GroupRow, HUES, OTHER } from './GroupBars'
+import { GroupRow, OTHER } from './GroupBars'
 
 interface Props {
   filters: ComfortFilters
@@ -23,13 +23,16 @@ interface Props {
 /** Speed limits are ordered: one red from light to dark, the slowest lightest. */
 const SPEED_STEPS = ['#F6D5B8', '#EDAF7F', '#E2804A', '#C8502A', '#8E2A12']
 
+/** Lanes each way, ordered too: one blue, a single lane lightest. */
+const LANE_STEPS = ['#A9CBEA', '#4D8FCC', '#1F4E8C']
+
 const surfaces = pathwayColors('light')
 
 /** Each set's colours: stress in the map's own, the rest in the colours they have elsewhere in the app. */
 const COLORS: Record<ComfortSet, Record<string, string>> = {
   stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
   speed: Object.fromEntries(COMFORT_GROUPS.speed.map((g, i) => [g, SPEED_STEPS[i] ?? OTHER])),
-  lanes: { few: HUES[0], many: HUES[1], unknown: OTHER },
+  lanes: { '1': LANE_STEPS[0], '2': LANE_STEPS[1], '3': LANE_STEPS[2], unknown: OTHER },
   bikeway: {
     path: partLook('bikeway', 'path').color,
     lane: partLook('bikeway', 'lane').color,

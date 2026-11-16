@@ -134,7 +134,7 @@ for await (const line of lines()) {
     counts.byLts[way.props.lts]++
     // The comfort layer's filters: its bands, and their km for the legend.
     if (way.props.lts > 0) {
-      Object.assign(way.props, comfortBands(way.props))
+      Object.assign(way.props, comfortBands(way.props, tags))
       comfort.add(way.props, metres(feature.geometry.coordinates))
     }
     if (way.props.pathway) {

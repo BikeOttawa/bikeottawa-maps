@@ -4,9 +4,9 @@ import { type ComfortTotals, comfortKm, comfortShownKm, formatComfortFilters, pa
 const totals: ComfortTotals = {
   sets: ['stress', 'speed', 'lanes', 'bikeway', 'surface'],
   rows: [
-    ['4', '60', 'many', 'none', 'paved', 10],
-    ['3', '50', 'few', 'lane', 'paved', 20],
-    ['1', '40', 'few', 'none', 'paved', 30],
+    ['4', '60', '3', 'none', 'paved', 10],
+    ['3', '50', '1', 'lane', 'paved', 20],
+    ['1', '40', '1', 'none', 'paved', 30],
     ['1', '-', '-', 'path', 'unpaved', 40],
   ],
 }

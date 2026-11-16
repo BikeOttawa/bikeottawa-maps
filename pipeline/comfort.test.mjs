@@ -12,11 +12,21 @@ test('bands speed limits, untagged as unknown, none on paths', () => {
   assert.equal(speedBand({ kind: 'path' }), undefined)
 })
 
-test('bands lanes in all', () => {
-  assert.equal(laneBand({ kind: 'street', lanes: '2' }), 'few')
-  assert.equal(laneBand({ kind: 'street', lanes: '4' }), 'many')
-  assert.equal(laneBand({ kind: 'street' }), 'unknown')
-  assert.equal(laneBand({ kind: 'path' }), undefined)
+test('bands lanes each way', () => {
+  const street = { kind: 'street', lanes: '2' }
+  // Two-way: split, rounded up.
+  assert.equal(laneBand(street, {}), '1')
+  assert.equal(laneBand({ kind: 'street', lanes: '3' }, {}), '2')
+  assert.equal(laneBand({ kind: 'street', lanes: '4' }, {}), '2')
+  assert.equal(laneBand({ kind: 'street', lanes: '6' }, {}), '3')
+  // One-way: all one way.
+  assert.equal(laneBand(street, { oneway: 'yes' }), '2')
+  assert.equal(laneBand({ kind: 'street', lanes: '3' }, { oneway: '-1' }), '3')
+  assert.equal(laneBand({ kind: 'street', lanes: '2' }, { junction: 'roundabout' }), '2')
+  // Tagged each way: the busier way.
+  assert.equal(laneBand({ kind: 'street', lanes: '3' }, { 'lanes:forward': '2', 'lanes:backward': '1' }), '2')
+  assert.equal(laneBand({ kind: 'street' }, {}), 'unknown')
+  assert.equal(laneBand({ kind: 'path' }, {}), undefined)
 })
 
 test('sorts bike infrastructure and surface', () => {
@@ -32,12 +42,12 @@ test('sorts bike infrastructure and surface', () => {
 
 test('adds up km by every combination of bands, the comfort layer only', () => {
   const totals = comfortTotals()
-  const street = { lts: 3, kind: 'street', ...comfortBands({ kind: 'street', maxspeed: '50', lanes: '2' }) }
+  const street = { lts: 3, kind: 'street', ...comfortBands({ kind: 'street', maxspeed: '50', lanes: '2' }, {}) }
   totals.add(street, 1500)
   totals.add(street, 500)
   totals.add({ lts: 0, kind: 'street' }, 900)
   assert.deepEqual(totals.toJSON(), {
     sets: ['stress', 'speed', 'lanes', 'bikeway', 'surface'],
-    rows: [['3', '50', 'few', 'none', 'paved', 2]],
+    rows: [['3', '50', '1', 'none', 'paved', 2]],
   })
 })

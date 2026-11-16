@@ -9,7 +9,7 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 export const COMFORT_GROUPS = {
   stress: ['1', '2', '3', '4'],
   speed: ['30', '40', '50', '60', '70', 'unknown'],
-  lanes: ['few', 'many', 'unknown'],
+  lanes: ['1', '2', '3', 'unknown'],
   bikeway: ['path', 'lane', 'shoulder', 'shared', 'none'],
   surface: ['paved', 'unpaved', 'unknown'],
 } as const
