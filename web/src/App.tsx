@@ -314,6 +314,8 @@ export function App() {
   // The night layer keeps a map style of its own: dark unless another is picked while it is on.
   const [nightBasemap, setNightBasemap] = useState<BasemapId>(() => storedBasemap(NIGHT_BASEMAP_KEY, 'dark'))
   const [bikeLanes, setBikeLanes] = useState(storedBikeLanes)
+  // The pathways layer draws the paths itself: there the bike lanes start off, each time it is picked.
+  const [pathwayBikeLanes, setPathwayBikeLanes] = useState(false)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
   const [reachView, setReachView] = useState(storedReachView)
   const [selected, setSelected] = useState<Selected | null>(null)
@@ -384,6 +386,9 @@ export function App() {
   useEffect(() => rememberBasemap(BASEMAP_KEY, dayBasemap), [dayBasemap])
   useEffect(() => rememberBasemap(NIGHT_BASEMAP_KEY, nightBasemap), [nightBasemap])
   useEffect(() => rememberBikeLanes(bikeLanes), [bikeLanes])
+  useEffect(() => {
+    if (layer !== 'pathways') setPathwayBikeLanes(false)
+  }, [layer])
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
   useEffect(() => rememberReachView(reachView), [reachView])
 
@@ -606,6 +611,8 @@ export function App() {
     () => (reaching ? { minutes, area: reachView === 'area' } : null),
     [reaching, minutes, reachView],
   )
+  const ownBikeLanes = layer === 'pathways' && !reachStyle
+  const lanes = ownBikeLanes ? pathwayBikeLanes : bikeLanes
   // Collisions: loaded once the layer is first shown, grouped into spots by the filters.
   const collisionData = useCollisionData(layer === 'collisions')
   const allSpots = useMemo(
@@ -634,7 +641,7 @@ export function App() {
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
       pathways,
-      bikeLanes,
+      bikeLanes: lanes,
       bikeRoutes,
       placeHighlight,
     }),
@@ -650,7 +657,7 @@ export function App() {
       reachStyle,
       collisionGeo,
       pathways,
-      bikeLanes,
+      lanes,
       bikeRoutes,
       placeHighlight,
     ],
@@ -775,7 +782,7 @@ export function App() {
         onSelect={setSelected}
         popup={details && !phone ? details : null}
         onBasemapChange={layer === 'night' ? setNightBasemap : setDayBasemap}
-        onBikeLanesChange={setBikeLanes}
+        onBikeLanesChange={ownBikeLanes ? setPathwayBikeLanes : setBikeLanes}
         onBikeRoutesChange={changeBikeRoutes}
         routing={mapRouting}
         reach={reachShape}

@@ -88,9 +88,9 @@ describe('buildStyle', () => {
     expect(JSON.stringify(paint('width').layout['line-sort-key'])).toContain('width_m')
   })
 
-  it('hides the bike lanes overlay on the pathways layer', () => {
-    expect(build({ layer: 'pathways', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(false)
-    expect(build({ layer: 'comfort', bikeLanes: true }).layers.some((l) => l.id.startsWith('bike-lanes'))).toBe(true)
+  it('draws the bike lanes overlay under the pathways', () => {
+    const ids = build({ layer: 'pathways', bikeLanes: true }).layers.map((l) => l.id)
+    expect(ids.findLastIndex((id) => id.startsWith('bike-lanes'))).toBeLessThan(ids.indexOf('pathways-casing'))
   })
 
   it('loads place tiles for a selected place, to pick out one found by a search', () => {

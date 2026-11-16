@@ -679,7 +679,7 @@ function routeLabelLayers(state: StyleState, theme: Theme): LayerSpecification[]
  * shared lanes dotted. Under the data layers, How far's lines and the street names.
  */
 function bikeLaneLayers(state: StyleState): LayerSpecification[] {
-  if (!showsBikeLanes(state)) return []
+  if (!state.bikeLanes) return []
   const colors = bikewayColors(state.basemap)
   const way = { type: 'line' as const, source: WAYS_SOURCE, 'source-layer': 'ways' }
   // Line width by zoom, from the full width at each zoom stop.
@@ -746,10 +746,6 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
   return [...sideLayers, ...wholeLayers]
 }
 
-/** The pathways layer draws the paths its own way, and leaves the lanes out for now. */
-function showsBikeLanes(state: StyleState): boolean {
-  return Boolean(state.bikeLanes) && (state.layer !== 'pathways' || Boolean(state.reach))
-}
 export const PLACES_SOURCE = 'places'
 
 /** Lit streets hand over to the individual lamps between these zooms. */
@@ -1043,7 +1039,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           attribution: IMAGERY_ATTRIBUTION,
         },
       }),
-      ...((showsWays(state) || showsBikeLanes(state)) && {
+      ...((showsWays(state) || state.bikeLanes) && {
         [WAYS_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/overlays.pmtiles` },
       }),
       ...(state.bikeRoutes && {
