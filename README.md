@@ -10,6 +10,8 @@ The Pathways layer shows every path bikes are not kept off (cycleways, paths unl
 
 A "Bike routes" switch below it (off by default) draws signed routes from OSM route relations (`route=bicycle` and `route=mtb`) as wide soft bands under the bike lanes, coloured by rank: national (`ncn`: Trans Canada Trail, Route Verte), regional (`rcn`: Capital Pathway, Ottawa Valley Recreation Trail), local (`lcn`: Crosstown Bikeways and named pathways) and mountain-bike trails. Routes nest, so a way takes the rank of the most important route it is part of. Clicking one lists its routes with their length here and the routes they are part of, and picks out the one chosen. The pipeline writes the ways to `routes.pmtiles` and the routes to `routes.json`.
 
+A "Wards and councillors" switch below them (off by default) outlines Ottawa's 24 wards and Gatineau's 19 districts, each named with its councillor at a spot well inside it. `npm run wards` (`pipeline/fetch-wards.mjs`) fetches them from the City of Ottawa (Wards 2026-2030 and Elected Officials, Open Government Licence – Ottawa) and the Ville de Gatineau (Districts électoraux, which names each district's councillor; CC BY 4.0) and writes `web/public/data/wards.geojson`, which is committed.
+
 The site installs as an app on phones and desktops (`vite-plugin-pwa` in `web/vite.config.ts`). Its service worker keeps the app's own files, so it opens offline; tiles, routing and search always need the network. A new version takes over once the app has been closed.
 
 ## Layout

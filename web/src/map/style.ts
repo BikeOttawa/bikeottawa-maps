@@ -19,6 +19,7 @@ import {
   reachRamp,
   routeBandColors,
   WINTER_COLORS,
+  wardColor,
 } from '../layers'
 import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
@@ -74,6 +75,8 @@ export interface StyleState {
   bikeLanes?: boolean
   /** The bike routes overlay: signed routes and mountain-bike trails. */
   bikeRoutes?: boolean
+  /** Ottawa's wards and Gatineau's districts, with their councillors. */
+  wards?: boolean
   /** Places of one kind picked out on the map: those within reach on How far. */
   placeHighlight?: { kind: PlaceKind; points: readonly [number, number][] } | null
 }
@@ -830,6 +833,66 @@ const PLACE_LABEL_ZOOM = 15
  * data layers because it sits above the basemap's labels: MapLibre gives the
  * topmost labels first pick, and here a shop's name matters more than the street's.
  */
+export const WARDS_SOURCE = 'wards'
+const WARDS_ATTRIBUTION =
+  'Wards: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>, <a href="https://www.donneesquebec.ca/organisation/ville-de-gatineau/" target="_blank" rel="noopener">Ville de Gatineau</a>'
+
+/**
+ * Ward and district boundaries, dashed, with each ward's name and councillor
+ * at a spot well inside it (worked out by pipeline/fetch-wards.mjs).
+ */
+function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecification[]; labels: LayerSpecification[] } {
+  if (!state.wards) return { lines: [], labels: [] }
+  const color = wardColor(state.basemap)
+  const name = ['get', state.lang === 'fr' ? 'name_fr' : 'name_en'] as ExpressionSpecification
+  return {
+    // A soft band under a dashed line, so the boundary shows among busy streets.
+    lines: [
+      {
+        id: 'wards-band',
+        type: 'line',
+        source: WARDS_SOURCE,
+        filter: ['!=', ['geometry-type'], 'Point'],
+        layout: { 'line-join': 'round' },
+        paint: {
+          'line-color': color,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 4, 14, 9],
+          'line-opacity': 0.25,
+        },
+      },
+      {
+        id: 'wards-line',
+        type: 'line',
+        source: WARDS_SOURCE,
+        filter: ['!=', ['geometry-type'], 'Point'],
+        layout: { 'line-join': 'round' },
+        paint: {
+          'line-color': color,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 14, 2.4],
+          'line-dasharray': [3, 2],
+        },
+      },
+    ],
+    labels: [
+      {
+        id: 'wards-label',
+        type: 'symbol',
+        source: WARDS_SOURCE,
+        filter: ['==', ['geometry-type'], 'Point'],
+        minzoom: 10,
+        layout: {
+          'text-field': ['format', name, { 'font-scale': 1 }, '\n', {}, ['get', 'councillor'], { 'font-scale': 0.85 }],
+          'text-font': ['Noto Sans Medium'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 14],
+          'text-max-width': 10,
+          'text-padding': 8,
+        },
+        paint: { 'text-color': color, 'text-halo-color': theme.halo, 'text-halo-width': 2 },
+      },
+    ],
+  }
+}
+
 export const COLLISIONS_SOURCE = 'collisions'
 const COLLISIONS_ATTRIBUTION =
   'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
@@ -1012,6 +1075,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
   const night = state.layer === 'night'
   const collisions = collisionLayers(state)
   const theme = night && state.basemap === 'dark' ? NIGHT_THEME : THEMES[state.basemap]
+  const wards = wardLayers(state, theme)
   const drawn = basemapLayers('basemap', theme.flavor, { lang: state.lang, labelsOnly: theme.imagery })
   const base: LayerSpecification[] = theme.imagery
     ? [{ id: 'imagery', type: 'raster', source: 'imagery' }, ...drawn]
@@ -1039,6 +1103,10 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       }),
       ...(state.bikeRoutes && {
         [ROUTES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/routes.pmtiles` },
+      }),
+      // A small file, fetched by the map from its URL once the overlay is turned on.
+      ...(state.wards && {
+        [WARDS_SOURCE]: { type: 'geojson', data: `${assetsBase}/data/wards.geojson`, attribution: WARDS_ATTRIBUTION },
       }),
       ...(loadsPlaces(state) && {
         [PLACES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/places.pmtiles` },
@@ -1079,6 +1147,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...routeBandLayers(state),
       ...bikeLaneLayers(state),
       ...overlayLayers(state, theme),
+      ...wards.lines,
       ...(night && !state.reach ? nightLayers(theme) : []),
       ...reachLayers(state.reach, state.basemap),
       ...collisions.under,
@@ -1086,6 +1155,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...base.slice(at),
       ...reachLabelLayers(state.reach, state.basemap, theme),
       ...routeLabelLayers(state, theme),
+      ...wards.labels,
       ...(showsPlaces(state) ? [placesLayer(state, theme)] : []),
       ...placeHighlightLayers(state, theme),
       ...collisions.over,

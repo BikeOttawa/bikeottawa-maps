@@ -152,6 +152,11 @@ export function widthGradient(basemap: BasemapId): string {
   return `linear-gradient(to right, ${width[0]} 0%, ${stops.join(', ')})`
 }
 
+/** Ward boundaries and names: a plum that reads on any ground and is used for nothing else. */
+export function wardColor(basemap: BasemapId): string {
+  return basemap === 'light' || basemap === 'grey' ? '#7A3B8F' : '#D6A6EC'
+}
+
 export const WINTER_COLORS = { yes: '#1B5FAE', no: '#E07B1A', unknown: '#6F7B80' } as const
 
 export function isBasemapId(value: unknown): value is BasemapId {

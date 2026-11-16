@@ -18,6 +18,9 @@ interface Props {
   /** The bike routes overlay: signed routes and mountain-bike trails. */
   bikeRoutes: boolean
   onBikeRoutesChange: (on: boolean) => void
+  /** Ottawa's wards and Gatineau's districts, with their councillors. */
+  wards: boolean
+  onWardsChange: (on: boolean) => void
 }
 
 /** Map control: a button that opens the list of map styles. */
@@ -28,6 +31,8 @@ export function BasemapSwitch({
   onBikeLanesChange,
   bikeRoutes,
   onBikeRoutesChange,
+  wards,
+  onWardsChange,
 }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -101,6 +106,10 @@ export function BasemapSwitch({
               ))}
             </ul>
           )}
+          <label className="check bike-lanes-toggle">
+            <input type="checkbox" checked={wards} onChange={(e) => onWardsChange(e.target.checked)} />
+            {t('wards')}
+          </label>
         </fieldset>
       )}
     </>

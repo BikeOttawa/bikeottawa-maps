@@ -17,6 +17,7 @@ What the code does not tell you. See README.md for what the project is and how i
 
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
 - Collisions are committed (`web/public/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
+- Wards are committed (`web/public/data/wards.geojson`); `npm run wards` refreshes them after an election or by-election. Check the councillors it prints: Ottawa's table also keeps a ward's past councillors, and the script takes the one marked "to present".
 
 ## Router
 

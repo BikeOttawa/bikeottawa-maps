@@ -18,6 +18,7 @@
     "router": "docker run --rm -p 17777:17777 -v \"$PWD/routing/profiles/ottbike.brf:/profiles2/ottbike.brf:ro\" -v \"$PWD/routing/profiles/ottwalk.brf:/profiles2/ottwalk.brf:ro\" bikeottawa-router",
     "router:build": "routing/prepare-data.sh && docker build -t bikeottawa-router routing",
     "collisions": "node pipeline/fetch-collisions.mjs",
+    "wards": "node pipeline/fetch-wards.mjs",
     "osm": "pipeline/update-osm.sh"
   },
   "devDependencies": {

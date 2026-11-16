@@ -89,6 +89,17 @@ describe('buildStyle', () => {
     expect(JSON.stringify(paint('width').layout['line-sort-key'])).toContain('width_m')
   })
 
+  it('loads the wards only when turned on, labelled in the language picked', () => {
+    expect(build().sources.wards).toBeUndefined()
+    expect(build().layers.some((l) => l.id.startsWith('wards'))).toBe(false)
+    const on = build({ wards: true, lang: 'fr' })
+    expect((on.sources.wards as { data: string }).data).toContain('/data/wards.geojson')
+    const label = layer(on, 'wards-label') as { layout: Record<string, unknown> }
+    expect(JSON.stringify(label.layout['text-field'])).toContain('name_fr')
+    const ids = on.layers.map((l) => l.id)
+    expect(ids.indexOf('wards-line')).toBeLessThan(ids.indexOf('route-line'))
+  })
+
   it('draws the bike lanes overlay under the pathways', () => {
     const ids = build({ layer: 'pathways', bikeLanes: true }).layers.map((l) => l.id)
     expect(ids.findLastIndex((id) => id.startsWith('bike-lanes'))).toBeLessThan(ids.indexOf('pathways-casing'))

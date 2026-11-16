@@ -160,6 +160,7 @@ function rememberBasemap(key: string, basemap: BasemapId) {
 
 const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
+const WARDS_KEY = 'wards'
 const REACH_VIEW_KEY = 'reach-view'
 const ROUTE_VIEW_KEY = 'route-view'
 
@@ -195,6 +196,24 @@ function rememberRouteView(view: RouteView) {
   try {
     if (view === 'comfort') localStorage.removeItem(ROUTE_VIEW_KEY)
     else localStorage.setItem(ROUTE_VIEW_KEY, view)
+  } catch {
+    // Not remembered when storage is blocked.
+  }
+}
+
+/** The wards overlay: off unless turned on, remembered per browser. */
+function storedWards(): boolean {
+  try {
+    return localStorage.getItem(WARDS_KEY) === 'on'
+  } catch {
+    return false
+  }
+}
+
+function rememberWards(on: boolean) {
+  try {
+    if (on) localStorage.setItem(WARDS_KEY, 'on')
+    else localStorage.removeItem(WARDS_KEY)
   } catch {
     // Not remembered when storage is blocked.
   }
@@ -338,6 +357,7 @@ export function App() {
   // The pathways layer draws the paths itself: there the bike lanes start off, each time it is picked.
   const [pathwayBikeLanes, setPathwayBikeLanes] = useState(false)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
+  const [wards, setWards] = useState(storedWards)
   const [reachView, setReachView] = useState(storedReachView)
   const [routeView, setRouteView] = useState(storedRouteView)
   const [selected, setSelected] = useState<Selected | null>(null)
@@ -412,6 +432,7 @@ export function App() {
     if (layer !== 'pathways') setPathwayBikeLanes(false)
   }, [layer])
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
+  useEffect(() => rememberWards(wards), [wards])
   useEffect(() => rememberReachView(reachView), [reachView])
   useEffect(() => rememberRouteView(routeView), [routeView])
 
@@ -667,6 +688,7 @@ export function App() {
       pathways,
       bikeLanes: lanes,
       bikeRoutes,
+      wards,
       placeHighlight,
     }),
     [
@@ -684,6 +706,7 @@ export function App() {
       pathways,
       lanes,
       bikeRoutes,
+      wards,
       placeHighlight,
     ],
   )
@@ -815,6 +838,7 @@ export function App() {
         onBasemapChange={layer === 'night' ? setNightBasemap : setDayBasemap}
         onBikeLanesChange={ownBikeLanes ? setPathwayBikeLanes : setBikeLanes}
         onBikeRoutesChange={changeBikeRoutes}
+        onWardsChange={setWards}
         routing={mapRouting}
         reach={reachShape}
         found={routing ? null : (found?.lngLat ?? null)}
