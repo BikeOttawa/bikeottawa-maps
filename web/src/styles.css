@@ -320,11 +320,17 @@ a {
   color: var(--muted);
 }
 
+/* Cards are compact, so most fit their popup without scrolling. */
 .feature-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 210px;
+}
+
+/* One width beside the map, so a photo loading or stepping through items never resizes the popup. */
+.feature-popup .feature-card {
+  width: 300px;
 }
 
 .feature-card header {
@@ -406,10 +412,10 @@ a {
 
 .feature-card dl {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 5px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
   font-size: 13px;
   line-height: 1.35;
@@ -516,7 +522,7 @@ a {
 
 /* Details of a clicked place or street, beside it on the map. */
 .feature-popup .maplibregl-popup-content {
-  max-height: min(60vh, 460px);
+  max-height: min(70vh, 520px);
   overflow-y: auto;
   padding: 14px 16px 12px;
   border-radius: 14px;
@@ -1545,7 +1551,7 @@ a {
 
 /* A street-level photo of a place, above its details. */
 .place-photo {
-  margin: 0 0 10px;
+  margin: 0;
 }
 
 .place-photo-open {
@@ -1561,7 +1567,7 @@ a {
 .place-photo-loading {
   display: block;
   width: 100%;
-  height: 170px;
+  height: 130px;
   border-radius: 10px;
   object-fit: cover;
   background: #eef1f0;
@@ -2163,25 +2169,7 @@ a {
   margin-top: 6px;
 }
 
-/* Theft card: the intersection on top, a line, then the thefts one at a time; short enough not to scroll. */
-.theft-card {
-  gap: 8px;
-}
-
-/* One width beside the map, so stepping through thefts never resizes the popup. */
-.feature-popup .theft-card {
-  width: 300px;
-}
-
-.theft-card .place-photo {
-  margin: 0;
-}
-
-.theft-card .place-photo img,
-.theft-card .place-photo-loading {
-  height: 130px;
-}
-
+/* Theft card: the intersection on top, a line, then the thefts one at a time. */
 .theft-spot {
   margin: 0;
   overflow: hidden;
