@@ -314,6 +314,16 @@ export function comfortSetColors(): Record<ComfortSet, Record<string, string>> {
   }
 }
 
+/** Projects by kind of work, in the categorical hues: cycling green, roads orange, water blue, bridges amber, transit pink. */
+export const CONSTRUCTION_KIND_COLORS: Record<string, string> = {
+  cycling: HUES[2],
+  roads: HUES[1],
+  water: HUES[0],
+  bridges: HUES[3],
+  transit: HUES[4],
+  other: OTHER,
+}
+
 export function isBasemapId(value: unknown): value is BasemapId {
   return BASEMAP_IDS.includes(value as BasemapId)
 }

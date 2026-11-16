@@ -13,6 +13,7 @@ import {
 import {
   CONSTRUCTION_TIMINGS,
   type ConstructionFilters,
+  constructionColorBy,
   constructionFilter,
   DEFAULT_CONSTRUCTION_FILTERS,
 } from '../construction'
@@ -21,6 +22,7 @@ import {
   type BasemapId,
   type BikewayId,
   bikewayColors,
+  CONSTRUCTION_KIND_COLORS,
   collisionColors,
   comfortSetColors,
   constructionColors,
@@ -1133,19 +1135,22 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
 
 /**
  * Projects: the City's construction projects, lines along the streets and
- * paths and points for the rest, coloured by when the work happens.
+ * paths and points for the rest, coloured by the legend's open row: when the
+ * work happens at first, or what kind it is.
  */
 function constructionLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
   if (state.layer !== 'construction' || state.reach) return { under: [], over: [] }
   const f = state.construction ?? DEFAULT_CONSTRUCTION_FILTERS
   const colors = constructionColors(state.basemap)
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  const byTiming = [
-    'match',
-    ['get', 'timing'],
-    ...CONSTRUCTION_TIMINGS.flatMap((timing) => [timing, colors[timing]]),
-    colors.later,
-  ] as unknown as ExpressionSpecification
+  const color = (constructionColorBy(f) === 'kind'
+    ? ['match', ['get', 'kind'], ...Object.entries(CONSTRUCTION_KIND_COLORS).flat(), OTHER]
+    : [
+        'match',
+        ['get', 'timing'],
+        ...CONSTRUCTION_TIMINGS.flatMap((timing) => [timing, colors[timing]]),
+        colors.later,
+      ]) as unknown as ExpressionSpecification
   const chosen = constructionFilter(f)
   const lines: FilterSpecification = ['all', ['==', ['geometry-type'], 'LineString'], chosen]
   const points: FilterSpecification = ['all', ['==', ['geometry-type'], 'Point'], chosen]
@@ -1184,7 +1189,7 @@ function constructionLayers(state: StyleState): { under: LayerSpecification[]; o
         source: CONSTRUCTION_SOURCE,
         filter: lines,
         layout: round,
-        paint: { 'line-color': byTiming, 'line-width': width(2, 6) },
+        paint: { 'line-color': color, 'line-width': width(2, 6) },
       },
     ],
     over: [
@@ -1194,7 +1199,7 @@ function constructionLayers(state: StyleState): { under: LayerSpecification[]; o
         source: CONSTRUCTION_SOURCE,
         filter: points,
         paint: {
-          'circle-color': byTiming,
+          'circle-color': color,
           'circle-radius': width(3, 7),
           'circle-stroke-color': pale ? '#ffffff' : '#111417',
           'circle-stroke-width': 1,

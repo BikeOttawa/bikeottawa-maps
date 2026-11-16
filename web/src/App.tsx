@@ -931,6 +931,7 @@ export function App() {
       theftFilters={thefts}
       pathwayFilters={pathways}
       comfortFilters={comfortPicks}
+      constructionFilters={construction}
     />
   ) : route ? (
     <RoutePeek route={route} travel={travel} view={routeView} />

@@ -1,5 +1,6 @@
 import type { FeatureCollection, LineString, MultiLineString } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
+import { formatBy, parseBy } from './bands'
 
 /**
  * Construction: the City of Ottawa's forecast of capital works, roads, sewers,
@@ -16,13 +17,22 @@ export type ConstructionTiming = (typeof CONSTRUCTION_TIMINGS)[number]
 export const CONSTRUCTION_KINDS = ['cycling', 'roads', 'water', 'bridges', 'transit', 'other'] as const
 export type ConstructionKind = (typeof CONSTRUCTION_KINDS)[number]
 
+/** The legend's rows: when the work happens and what kind it is. */
+export const CONSTRUCTION_SETS = ['timing', 'kind'] as const
+export type ConstructionSet = (typeof CONSTRUCTION_SETS)[number]
+
 /** The groups picked of each set; none picked shows them all, as on the other layers' filters. */
 export interface ConstructionFilters {
   timings: readonly ConstructionTiming[]
   kinds: readonly ConstructionKind[]
+  /** The legend's open row, which the map is coloured by; none open colours it by when. */
+  by: ConstructionSet | null
 }
 
-export const DEFAULT_CONSTRUCTION_FILTERS: ConstructionFilters = { timings: [], kinds: [] }
+export const DEFAULT_CONSTRUCTION_FILTERS: ConstructionFilters = { timings: [], kinds: [], by: 'timing' }
+
+/** The set the map is coloured by. */
+export const constructionColorBy = (f: ConstructionFilters): ConstructionSet => f.by ?? 'timing'
 
 /** A project as the map and the legend read it. */
 export interface ConstructionProps {
@@ -76,11 +86,14 @@ export function constructionShown(all: readonly ConstructionProps[], f: Construc
 }
 
 /**
- * In the URL as `construction=now,thisYear;cycling,roads` (the timings picked,
- * then the kinds), each part left out when none is picked.
+ * In the URL as `construction=now,thisYear;cycling,roads;by:kind` (the timings
+ * picked, then the kinds, then the row the map is coloured by unless it is
+ * when), each part left out when it is empty.
  */
 export function formatConstructionFilters(f: ConstructionFilters): string | null {
   const parts = [f.timings.join(','), f.kinds.join(',')]
+  const by = formatBy(f.by, 'timing')
+  if (by) parts.push(by)
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
 
@@ -91,6 +104,7 @@ export function parseConstructionFilters(text: string | undefined): Construction
       .split(',')
       .filter((v): v is ConstructionTiming => CONSTRUCTION_TIMINGS.includes(v as never)),
     kinds: (kindText ?? '').split(',').filter((v): v is ConstructionKind => CONSTRUCTION_KINDS.includes(v as never)),
+    by: parseBy(text, CONSTRUCTION_SETS, 'timing'),
   }
 }
 

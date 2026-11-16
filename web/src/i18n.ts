@@ -76,7 +76,7 @@ const en = {
   'construction.what': 'What',
   'construction.shown': '{count} projects',
   'construction.hint':
-    'Tap a line to show only those projects. The thin mark is how it stands before anything else is picked.',
+    'The open row colours the map. Tap a line to show only those projects; the thin mark is how it stands before anything else is picked.',
   'construction.timing.now': 'Under way',
   'construction.timing.thisYear': 'Starting this year',
   'construction.timing.soon': 'In 1 to 2 years',
@@ -652,7 +652,7 @@ const fr: Record<keyof typeof en, string> = {
   'construction.what': 'Quoi',
   'construction.shown': '{count} projets',
   'construction.hint':
-    'Touchez une ligne pour ne montrer que ces projets. Le trait fin : où elle en est avant tout autre choix.',
+    'La rangée ouverte colore la carte. Touchez une ligne pour ne montrer que ces projets; le trait fin\u00a0: où elle en est avant tout autre choix.',
   'construction.timing.now': 'En cours',
   'construction.timing.thisYear': 'Début cette année',
   'construction.timing.soon': 'Dans 1 à 2 ans',

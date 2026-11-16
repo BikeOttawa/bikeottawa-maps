@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   CONSTRUCTION_KINDS,
   CONSTRUCTION_TIMINGS,
@@ -8,8 +8,8 @@ import {
   constructionShown,
 } from '../construction'
 import { useI18n } from '../i18n'
-import { type BasemapId, constructionColors } from '../layers'
-import { GroupRow, HUES, OTHER } from './GroupBars'
+import { type BasemapId, CONSTRUCTION_KIND_COLORS, constructionColors } from '../layers'
+import { GroupRow, OTHER } from './GroupBars'
 
 interface Props {
   filters: ConstructionFilters
@@ -19,23 +19,13 @@ interface Props {
   basemap: BasemapId
 }
 
-/** Kinds of work in the categorical hues: cycling green, roads orange, water blue, bridges amber, transit pink. */
-const KIND_COLORS: Record<string, string> = {
-  cycling: HUES[2],
-  roads: HUES[1],
-  water: HUES[0],
-  bridges: HUES[3],
-  transit: HUES[4],
-  other: OTHER,
-}
-
 /**
  * Which projects the projects layer shows, as the other layers' filters: by
- * when, in the map's own colours, and by kind of work; a line picks its group.
+ * when and by kind of work; a line picks its group. The open row colours the
+ * map, in the colours of its bars.
  */
 export function ConstructionLegend({ filters, onChange, projects, basemap }: Props) {
   const { t, lang } = useI18n()
-  const [open, setOpen] = useState({ timing: true, kind: true })
   const timingColors = constructionColors(basemap)
   const byTiming = useMemo(
     () => (projects ? constructionCounts(projects, filters, 'timing') : null),
@@ -58,8 +48,8 @@ export function ConstructionLegend({ filters, onChange, projects, basemap }: Pro
               color={(group) => timingColors[group as keyof typeof timingColors]}
               label={(group) => t(`construction.timing.${group as (typeof CONSTRUCTION_TIMINGS)[number]}`)}
               onPick={(next) => onChange({ ...filters, timings: next as ConstructionFilters['timings'] })}
-              open={open.timing}
-              onToggle={() => setOpen({ ...open, timing: !open.timing })}
+              open={filters.by === 'timing'}
+              onToggle={() => onChange({ ...filters, by: filters.by === 'timing' ? null : 'timing' })}
             />
             <GroupRow
               name={t('construction.what')}
@@ -67,11 +57,11 @@ export function ConstructionLegend({ filters, onChange, projects, basemap }: Pro
               counts={byKind}
               picked={filters.kinds}
               compared={filters.timings.length > 0}
-              color={(group) => KIND_COLORS[group] ?? OTHER}
+              color={(group) => CONSTRUCTION_KIND_COLORS[group] ?? OTHER}
               label={(group) => t(`construction.kind.${group as (typeof CONSTRUCTION_KINDS)[number]}`)}
               onPick={(next) => onChange({ ...filters, kinds: next as ConstructionFilters['kinds'] })}
-              open={open.kind}
-              onToggle={() => setOpen({ ...open, kind: !open.kind })}
+              open={filters.by === 'kind'}
+              onToggle={() => onChange({ ...filters, by: filters.by === 'kind' ? null : 'kind' })}
             />
             <p className="footnote">{t('construction.hint')}</p>
           </fieldset>

@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react'
 import type { CollisionFilters, CollisionSpot } from '../collisions'
 import { COMFORT_GROUPS, type ComfortFilters, comfortColorBy } from '../comfort'
-import { CONSTRUCTION_TIMINGS } from '../construction'
+import {
+  CONSTRUCTION_KINDS,
+  CONSTRUCTION_TIMINGS,
+  type ConstructionFilters,
+  constructionColorBy,
+} from '../construction'
 import { useI18n } from '../i18n'
 import {
   type BasemapId,
+  CONSTRUCTION_KIND_COLORS,
   comfortSetColors,
   constructionColors,
   type LayerId,
@@ -51,6 +57,7 @@ interface LayerProps {
   theftFilters: TheftFilters
   pathwayFilters: PathwayFilters
   comfortFilters: ComfortFilters
+  constructionFilters: ConstructionFilters
 }
 
 /** The active layer's key, small enough for one line. */
@@ -64,6 +71,7 @@ export function LayerPeek({
   theftFilters,
   pathwayFilters,
   comfortFilters,
+  constructionFilters,
 }: LayerProps): ReactNode {
   const { t, lang } = useI18n()
   if (layer === 'pathways') {
@@ -126,6 +134,14 @@ export function LayerPeek({
     return <span className="peek-text">{`${shown} · ${from === to ? from : `${from}–${to}`}`}</span>
   }
   if (layer === 'construction') {
+    if (constructionColorBy(constructionFilters) === 'kind')
+      return (
+        <>
+          <span>{t('construction.kind.cycling')}</span>
+          <Bar parts={CONSTRUCTION_KINDS.map((kind) => [CONSTRUCTION_KIND_COLORS[kind], 1])} />
+          <span>{t('construction.kind.other')}</span>
+        </>
+      )
     const colors = constructionColors(basemap)
     return (
       <>
