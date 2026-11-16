@@ -44,12 +44,16 @@ export function TheftCard({ items, at, onClose }: Props) {
   // Several bikes taken at once differ only by these: "Trek FSX4 · grey".
   const colourNames = (p.colour ?? []).map((c) => label(`colour.${c}`)).filter((c): c is string => Boolean(c))
   // Dates are local days; read them as such, not as UTC midnight.
-  const date = new Date(`${p.date}T12:00:00`).toLocaleDateString(locale, { dateStyle: 'long' })
+  const date = new Date(`${p.date}T12:00:00`).toLocaleDateString(locale, { dateStyle: 'medium' })
   const hour =
     p.hour === undefined ? null : new Date(2000, 0, 1, p.hour).toLocaleTimeString(locale, { hour: 'numeric' })
-  const facts: { label: string; value: string | null }[] = [
-    { label: t('theftGroup.where'), value: label(`theft.where.${p.where}`) },
-    { label: t('theft.when'), value: [label(`theft.time.${p.time}`), hour].filter(Boolean).join(', ') || null },
+  // The same rows for every theft, each on one line, so stepping through them keeps the card's size.
+  const facts: { label: string; value: string }[] = [
+    { label: t('theftGroup.where'), value: label(`theft.where.${p.where}`) ?? t('condition.other') },
+    {
+      label: t('theft.when'),
+      value: [label(`theft.time.${p.time}`), hour].filter(Boolean).join(', ') || t('unknown'),
+    },
     {
       label: t('theftGroup.type'),
       value:
@@ -59,9 +63,9 @@ export function TheftCard({ items, at, onClose }: Props) {
           colourNames.length ? new Intl.ListFormat(locale, { type: 'conjunction' }).format(colourNames) : null,
         ]
           .filter(Boolean)
-          .join(' · ') || null,
+          .join(' · ') || t('unknown'),
     },
-    { label: t('theftGroup.value'), value: p.value ? money(p.value) : null },
+    { label: t('theftGroup.value'), value: p.value ? money(p.value) : t('theft.noValue') },
   ]
 
   return (
@@ -87,7 +91,7 @@ export function TheftCard({ items, at, onClose }: Props) {
         </button>
       </header>
       <CardPhoto at={at} />
-      <p className="theft-spot" title={t('theft.nearHint')}>
+      <p className="theft-spot" title={`${summary}. ${t('theft.nearHint')}`}>
         {summary}
       </p>
       <div className="theft-head">
@@ -110,14 +114,12 @@ export function TheftCard({ items, at, onClose }: Props) {
         )}
       </div>
       <dl className="theft-facts">
-        {facts
-          .filter((fact) => fact.value)
-          .map((fact) => (
-            <div key={fact.label}>
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
-            </div>
-          ))}
+        {facts.map((fact) => (
+          <div key={fact.label}>
+            <dt>{fact.label}</dt>
+            <dd title={fact.value}>{fact.value}</dd>
+          </div>
+        ))}
       </dl>
       <p className="feature-links">
         <span>

@@ -2211,6 +2211,11 @@ a {
   gap: 8px;
 }
 
+/* One width beside the map, so stepping through thefts never resizes the popup. */
+.feature-popup .theft-card {
+  width: 300px;
+}
+
 .theft-card .place-photo {
   margin: 0;
 }
@@ -2222,7 +2227,10 @@ a {
 
 .theft-spot {
   margin: 0;
+  overflow: hidden;
   font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .theft-head {
@@ -2235,9 +2243,13 @@ a {
 
 .theft-head h3 {
   flex: 1;
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
   font-size: 15px;
   line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .theft-head h3 span {
@@ -2247,6 +2259,13 @@ a {
 }
 
 .feature-card .theft-facts {
+  grid-template-columns: auto minmax(0, 1fr);
   padding-top: 0;
   border-top: 0;
+}
+
+.feature-card .theft-facts dd {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
