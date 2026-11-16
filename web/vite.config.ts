@@ -1,10 +1,24 @@
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
+import { OLD_PAGES, oldPageHtml } from './src/oldSite'
+
+/** A page at each of the old site's paths, so its links still land on the right map. */
+const oldSitePages = (): Plugin => ({
+  name: 'old-site-pages',
+  apply: 'build',
+  generateBundle() {
+    for (const [path, to] of Object.entries(OLD_PAGES)) {
+      this.emitFile({ type: 'asset', fileName: `${path}/index.html`, source: oldPageHtml(to) })
+    }
+  },
+})
 
 export default defineConfig({
   plugins: [
     react(),
+    oldSitePages(),
     // Installable app: a manifest, and a service worker that keeps the app's own
     // files so it opens at once (and offline). Map tiles, routing and search
     // always go to the network.
@@ -33,6 +47,8 @@ export default defineConfig({
         globIgnores: ['tiles/**', 'data/**', 'basemap-assets/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
+        // The old site's paths go to their own pages, not to the app.
+        navigateFallbackDenylist: [new RegExp(`/(${Object.keys(OLD_PAGES).join('|')})(/(index\\.html)?)?(\\?|$)`)],
         runtimeCaching: [
           {
             // Basemap fonts and icons: kept once fetched, refreshed in the background.

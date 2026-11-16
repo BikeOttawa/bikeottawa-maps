@@ -204,9 +204,9 @@ A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so
 
    Deploy the new image with B, the router on Cloud Run, steps 5 and 6, using `PROJECT=bikeottawa-backend`, `OWNER=bikeottawa` and the service name `bikeottawa-backend` in place of `router`. The address does not change, so `ROUTER_URL` stays. Or set up a new project from step 1 and point `ROUTER_URL` at it.
 6. Open https://maps.bikeottawa.ca and check: each layer loads, a route can be planned, How far works, and a place card shows photos.
-7. After a few days, once cached DNS has expired, retire the EC2 machine. Check nothing else runs on it first (bikeottawa.ca and backend.bikeottawa.ca are elsewhere) and take a snapshot.
+7. After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
 
-Links to the old site's pages (`/lts/`, `/winter/`, `/pathways/`, `/collisions/`, `/amenities/`, `/routing/`, `/isochrones/`, `/desire/`) stop working after the switch. Pages cannot redirect on the server, but a small page at each of those paths in `web/public` can send visitors to the matching layer.
+Links to the old site's pages keep working after the switch. The build writes a small page at each old path (`/lts/`, `/winter/`, `/pathways/`, `/collisions/`, `/amenities/`, `/routing/`, `/isochrones/`, `/desire/`, `/thefts/`) that sends visitors to the matching map, at the place the old link showed (`web/src/oldSite.ts`).
 
 ### Rolling back
 
