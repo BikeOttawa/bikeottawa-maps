@@ -28,7 +28,7 @@ function LayerIcon({ layer }: { layer: LayerId }) {
     const colors = pathwayColors('light')
     return (
       <svg aria-hidden="true" {...common} strokeWidth="3" strokeLinecap="round">
-        <path d="M5 22c0-5 9-4 9-9" stroke={colors.surface.paved} />
+        <path d="M5 22c0-5 9-4 9-9" stroke={colors.surface.asphalt} />
         <path d="M14 13c0-5-7-5-5-11" stroke={colors.unknown} />
       </svg>
     )

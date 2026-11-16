@@ -2069,51 +2069,7 @@ a {
   accent-color: var(--accent);
 }
 
-/* Pathways: what they are coloured by, which surfaces and how wide, with km. */
-.pathway-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-  font-size: 14px;
-}
-
-.pathway-legend .check .share {
-  margin-left: auto;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.pathway-group {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-}
-
-.pathway-group:disabled {
-  opacity: 0.5;
-}
-
-.pathway-group legend {
-  padding: 0;
-  margin-bottom: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.pathway-group .mode-switch {
-  flex: none;
-}
-
-.pathway-group .mode-switch button {
-  min-height: 34px;
-}
-
-/* Sliders with a plain track, or the width colours when colouring by width. */
+/* Sliders with a plain track, or one in the colours they pick by. */
 .pathway-range {
   --track: var(--border);
   width: 100%;

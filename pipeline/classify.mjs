@@ -2,6 +2,7 @@
 import stressmodel from 'stressmodel/stressmodel.js'
 // Surfaces by how they ride, smoothest first; other values count as unknown. The
 // web app groups route surfaces with the same file.
+import { pathwaySurface } from './pathway-bands.mjs'
 import SURFACE_GROUPS from './surface-groups.json' with { type: 'json' }
 
 const PATH_HIGHWAYS = new Set(['path', 'footway', 'cycleway'])
@@ -170,13 +171,13 @@ export function surfaceGroup(surface) {
 }
 
 /**
- * What the pathways layer draws a way by: its surface group and its width in
- * metres, each left out when not tagged, so that the gaps show.
+ * What the pathways layer draws a way by: its surface and its width in metres,
+ * each left out when not tagged, so that the gaps show.
  */
 export function pathwayProps(tags) {
   const props = { pathway: true }
-  const group = surfaceGroup(tags.surface)
-  if (group) props.surface_group = group
+  const surface = pathwaySurface(tags.surface)
+  if (surface) props.surface_group = surface
   const width = metres(tags['cycleway:width']) ?? metres(tags.width)
   if (width) props.width_m = width
   return props

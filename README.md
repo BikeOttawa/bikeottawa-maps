@@ -1,6 +1,6 @@
 # Bike Ottawa Maps
 
-Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface and width, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, collisions involving cyclists and pedestrians, bike thefts, and the City's construction projects. Over any of them go bike lanes, signed bike routes, wards and today's road closures. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
+Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface, width, snow clearing and smoothness, street comfort (level of traffic stress), winter-maintained pathways, a night map of lit streets and street lights, collisions involving cyclists and pedestrians, bike thefts, and the City's construction projects. Over any of them go bike lanes, signed bike routes, wards and today's road closures. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
 
 No map vendor or API keys: the basemap and data layers are static [PMTiles](https://docs.protomaps.com/pmtiles/) files rendered with [MapLibre](https://maplibre.org). The light, grey and dark map styles are the same basemap tiles restyled in the browser; only the satellite style loads from elsewhere (Esri World Imagery, no key).
 
@@ -30,16 +30,16 @@ npm run dev
 
 Tiles land in `web/public/tiles` and are not committed. The app only loads the files the current layer draws, so the first visit fetches the basemap alone.
 
-| File                   | What                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `basemap.pmtiles`      | Protomaps basemap                                                                     |
-| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                   |
-| `places.pmtiles`       | Places                                                                                |
-| `night.pmtiles`        | Lit streets and street lamps                                                          |
-| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                             |
-| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach   |
-| `meta.json`            | Date of the OSM data, when the tiles were built, km of pathway and of Comfort's bands |
-| `construction.geojson` | The City's construction forecast, for Projects                                        |
+| File                   | What                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `basemap.pmtiles`      | Protomaps basemap                                                                    |
+| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                  |
+| `places.pmtiles`       | Places                                                                               |
+| `night.pmtiles`        | Lit streets and street lamps                                                         |
+| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                            |
+| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach  |
+| `meta.json`            | Date of the OSM data, when the tiles were built, km of Pathways' and Comfort's bands |
+| `construction.geojson` | The City's construction forecast, for Projects                                       |
 
 ## OSM data
 
@@ -53,7 +53,7 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 
 **Comfort** colours every street and path bikes may use by its level of traffic stress, from 1 (comfortable for everyone) to 4 (high stress), as Bike Ottawa's [stressmodel](https://github.com/BikeOttawa/stressmodel) rates it from the OSM tags. The legend filters it as on the other layers, a bar of km per group: by stress, type (pathway, residential, service, minor road, tertiary, secondary, primary, trunk, track), speed limit (30 or less, 40, 50, 60, 70 or more, or not tagged), lanes each way (1, 2, or 3 or more: a one-way street's lanes all go one way, a two-way street's are split, rounded up, unless tagged each way), bike infrastructure (pathway or cycle track, painted lane, paved shoulder, shared lane, or none) and surface. `pipeline/comfort.mjs` writes each way's bands into the tiles, for the map to filter by, and the km of every combination of them into `meta.json`, for the bars; pathways count as 30 km/h or less, and picking lanes leaves them out.
 
-**Pathways** shows every path bikes are not kept off (cycleways, paths unless `bicycle=no`, footways and sidewalks with `bicycle=yes`), coloured by surface (paved, stone dust, gravel, dirt) or by width, and drawn as wide as `cycleway:width` or `width` says (1.5 m without either). Where the surface or width is not tagged the line is yellow, so the layer doubles as a list of what is left to map. Filters pick surfaces, a least width and a least length. The length is that of the island a way is part of: every pathway joined to it at a shared node or through a crossing (`pipeline/islands.mjs`), so short stubs can be hidden; 300 m by default. Cards show the way's current tags from the OSM API and link to the editor. The bike lanes overlay starts off on this layer each time it is picked, and can be turned back on.
+**Pathways** shows every path bikes are not kept off (cycleways, paths unless `bicycle=no`, footways and sidewalks with `bicycle=yes`), coloured by surface (OSM's types: asphalt, concrete, paving stones, fine gravel, gravel, ground, and other for wood, grass, sand and the like), and drawn as wide as `cycleway:width` or `width` says (1.5 m without either). Where the surface is not tagged the line is yellow, so the layer doubles as a list of what is left to map. The legend filters it as Comfort's does, a bar of km per group: by surface, type (cycle path, path, footpath or sidewalk), width (under 1.5 m, 1.5 to 2.5, 2.5 to 3.5, 3.5 m or more), snow clearing (`winter_service`; unpaved paths count as not plowed) and smoothness (excellent, good, fair, bad or worse), each also "not tagged". `pipeline/pathway-bands.mjs` writes the bands into the tiles and the km of every combination into `meta.json`. A slider sets a least length. The length is that of the island a way is part of: every pathway joined to it at a shared node or through a crossing (`pipeline/islands.mjs`), so short stubs can be hidden; 300 m by default. Cards show the way's current tags from the OSM API and link to the editor. The bike lanes overlay starts off on this layer each time it is picked, and can be turned back on.
 
 **Collisions** shows the City of Ottawa's reported traffic collisions that involve a cyclist or a pedestrian, 2017 to 2024, grouped by spot ([open data](https://open.ottawa.ca/), Open Government Licence – Ottawa). 2023 is missing from the city's data. The legend filters them:
 

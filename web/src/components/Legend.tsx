@@ -3,7 +3,7 @@ import type { ComfortFilters, ComfortTotals } from '../comfort'
 import type { ConstructionFilters, ConstructionProps } from '../construction'
 import { useI18n } from '../i18n'
 import { type BasemapId, type LayerId, lampColor, WINTER_COLORS } from '../layers'
-import type { PathwayFilters, PathwayKm } from '../pathways'
+import type { PathwayFilters, PathwayTotals } from '../pathways'
 import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
 import type { Theft, TheftFilters, TheftSpot } from '../thefts'
 import { CollisionLegend } from './CollisionLegend'
@@ -38,8 +38,8 @@ interface Props {
   projects: readonly ConstructionProps[] | null
   pathwayFilters: PathwayFilters
   onPathwayFiltersChange: (filters: PathwayFilters) => void
-  /** Km of pathway, from the pipeline; null when not known. */
-  pathwayKm: PathwayKm | null
+  /** Km of pathway by every combination of bands, from the pipeline; null when not known. */
+  pathwayTotals: PathwayTotals | null
   /** The night layer's colours depend on the ground they are drawn on. */
   basemap: BasemapId
   placeKinds: readonly PlaceKind[]
@@ -69,7 +69,7 @@ export function Legend({
   projects,
   pathwayFilters,
   onPathwayFiltersChange,
-  pathwayKm,
+  pathwayTotals,
 }: Props) {
   const { t } = useI18n()
   const lamp = lampColor(basemap)
@@ -81,7 +81,12 @@ export function Legend({
         <ComfortLegend filters={comfortFilters} onChange={onComfortFiltersChange} totals={comfortTotals} />
       )}
       {layer === 'pathways' && (
-        <PathwayLegend filters={pathwayFilters} onChange={onPathwayFiltersChange} km={pathwayKm} basemap={basemap} />
+        <PathwayLegend
+          filters={pathwayFilters}
+          onChange={onPathwayFiltersChange}
+          totals={pathwayTotals}
+          basemap={basemap}
+        />
       )}
       {layer === 'winter' && (
         <ul>

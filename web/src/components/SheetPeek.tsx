@@ -11,15 +11,16 @@ import {
   pathwayColors,
   reachRamp,
   WINTER_COLORS,
-  widthGradient,
 } from '../layers'
-import type { PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
 import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
 import type { Route } from '../route/brouter'
 import type { Travel } from '../route/styles'
 import type { TheftFilters, TheftSpot } from '../thefts'
 import { PlaceIcon } from './PlaceIcon'
+
+/** The pathways' surfaces from paved to ground, as their peek bar. */
+const PAVED_TO_GROUND = ['asphalt', 'concrete', 'paving_stones', 'fine_gravel', 'gravel', 'ground'] as const
 
 /** A bar of coloured parts, as wide as the line it is on. */
 function Bar({ parts }: { parts: [color: string, size: number][] }) {
@@ -56,7 +57,6 @@ interface LayerProps {
   collisionFilters: CollisionFilters
   theftSpots: readonly TheftSpot[] | null
   theftFilters: TheftFilters
-  pathwayFilters: PathwayFilters
 }
 
 /** The active layer's key, small enough for one line. */
@@ -68,21 +68,15 @@ export function LayerPeek({
   collisionFilters,
   theftSpots,
   theftFilters,
-  pathwayFilters,
 }: LayerProps): ReactNode {
   const { t, lang } = useI18n()
   if (layer === 'pathways') {
     const colors = pathwayColors(basemap)
-    const bySurface = pathwayFilters.by === 'surface'
     return (
       <>
-        <span>{t(bySurface ? 'surface.paved' : 'pathways.narrow')}</span>
-        {bySurface ? (
-          <Bar parts={Object.values(colors.surface).map((color) => [color, 1])} />
-        ) : (
-          <span className="peek-bar" aria-hidden="true" style={{ background: widthGradient(basemap) }} />
-        )}
-        <span>{t(bySurface ? 'surface.dirt' : 'pathways.wide')}</span>
+        <span>{t('pathways.surface.asphalt')}</span>
+        <Bar parts={PAVED_TO_GROUND.map((surface) => [colors.surface[surface], 1])} />
+        <span>{t('pathways.surface.ground')}</span>
         <span className="peek-item">
           <Swatch color={colors.unknown} />
           {t('unknown')}

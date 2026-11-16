@@ -30,7 +30,7 @@ import {
   WINTER_COLORS,
   wardColors,
 } from '../layers'
-import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
+import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
@@ -96,7 +96,7 @@ export interface StyleState {
   closures?: FeatureCollection | null
   /** Which ways the comfort layer shows. */
   comfort?: ComfortFilters
-  /** What the pathways layer shows, and how it colours it. */
+  /** Which pathways the pathways layer shows. */
   pathways?: PathwayFilters
   /** The bike lanes overlay, drawn over any basemap and data layer but the pathways one. */
   bikeLanes?: boolean
@@ -458,33 +458,20 @@ function pathwayWidth(extra = 0): ExpressionSpecification {
 }
 
 /**
- * Pathways coloured by surface or by width, in yellow where that is not
- * tagged yet; those go on top, so the gaps show.
+ * Pathways coloured by surface, in yellow where it is not tagged yet; those go
+ * on top, so the gaps show.
  */
 function pathwayLayers(state: StyleState, fade: number): LayerSpecification[] {
   const filters = state.pathways ?? DEFAULT_PATHWAY_FILTERS
   const colors = pathwayColors(state.basemap)
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  const bySurface = filters.by === 'surface'
-  const unknown: ExpressionSpecification = ['!', ['has', bySurface ? 'surface_group' : 'width_m']]
-  const color: ExpressionSpecification = bySurface
-    ? ([
-        'match',
-        ['get', 'surface_group'],
-        ...Object.entries(colors.surface).flat(),
-        colors.unknown,
-      ] as unknown as ExpressionSpecification)
-    : [
-        'case',
-        ['has', 'width_m'],
-        [
-          'interpolate',
-          ['linear'],
-          ['get', 'width_m'],
-          ...WIDTH_STOPS.flatMap((metres, i) => [metres, colors.width[i]]),
-        ],
-        colors.unknown,
-      ]
+  const unknown: ExpressionSpecification = ['!', ['has', 'surface_group']]
+  const color = [
+    'match',
+    ['get', 'surface_group'],
+    ...Object.entries(colors.surface).flat(),
+    colors.unknown,
+  ] as unknown as ExpressionSpecification
   const layout = {
     'line-cap': 'round' as const,
     'line-join': 'round' as const,

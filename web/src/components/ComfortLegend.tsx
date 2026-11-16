@@ -55,7 +55,7 @@ const COLORS: Record<ComfortSet, Record<string, string>> = {
     shared: bikewayColors('light').shared,
     none: partLook('bikeway', 'traffic').color,
   },
-  surface: { paved: surfaces.surface.paved, unpaved: surfaces.surface.gravel, unknown: OTHER },
+  surface: { paved: surfaces.surface.asphalt, unpaved: surfaces.surface.gravel, unknown: OTHER },
 }
 
 /** The labels: the stress levels' short names, the bike infrastructure as the route card names it. */

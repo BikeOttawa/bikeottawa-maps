@@ -77,16 +77,16 @@ describe('buildStyle', () => {
     for (const other of ['places', 'night', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
   })
 
-  it('colours pathways by surface or by width, unknown ones on top', () => {
-    const paint = (by: 'surface' | 'width') =>
-      layer(build({ layer: 'pathways', pathways: { ...DEFAULT_PATHWAY_FILTERS, by } }), 'pathways-line') as {
-        paint: { 'line-color': unknown }
-        layout: { 'line-sort-key': unknown }
-      }
-    expect(JSON.stringify(paint('surface').paint['line-color'])).toContain('surface_group')
-    expect(JSON.stringify(paint('surface').layout['line-sort-key'])).toContain('surface_group')
-    expect(JSON.stringify(paint('width').paint['line-color'])).toContain('width_m')
-    expect(JSON.stringify(paint('width').layout['line-sort-key'])).toContain('width_m')
+  it('colours pathways by surface, unknown ones on top, and filters them by the picks', () => {
+    const pathways = { ...DEFAULT_PATHWAY_FILTERS, picks: { width: ['2.5', '3.5'] } }
+    const line = layer(build({ layer: 'pathways', pathways }), 'pathways-line') as {
+      paint: { 'line-color': unknown }
+      layout: { 'line-sort-key': unknown }
+      filter: unknown
+    }
+    expect(JSON.stringify(line.paint['line-color'])).toContain('surface_group')
+    expect(JSON.stringify(line.layout['line-sort-key'])).toContain('surface_group')
+    expect(JSON.stringify(line.filter)).toContain('["literal",["2.5","3.5"]]')
   })
 
   it('loads the wards only when turned on, labelled in the language picked', () => {

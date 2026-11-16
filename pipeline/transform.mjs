@@ -21,6 +21,7 @@ import {
 import { comfortBands, comfortTotals } from './comfort.mjs'
 import { isCrossing, islandIndex } from './islands.mjs'
 import { isLit, lampIndex } from './lamps.mjs'
+import { pathwayBands, pathwayTotals } from './pathway-bands.mjs'
 import { ROUTE_LEVELS, routeIndex } from './routes.mjs'
 import { sidepathIndex } from './sidepaths.mjs'
 import { stationLines } from './stations.mjs'
@@ -45,9 +46,8 @@ const routeWays = createWriteStream(path.join(outDir, 'routes.geojsonseq'))
 const counts = { ways: 0, lit: 0, places: 0, lamps: 0, routeWays: 0, byLts: [0, 0, 0, 0, 0] }
 /** Metres of each way on a route, within the map area. */
 const routeWayLength = new Map()
-/** Metres of pathway in all, by surface group, and without a width, for the pathways legend. */
-const pathwayMetres = { all: 0, surface: { paved: 0, stone_dust: 0, gravel: 0, dirt: 0, unknown: 0 }, unknownWidth: 0 }
 const comfort = comfortTotals()
+const pathwayKm = pathwayTotals()
 
 function metres(coords) {
   let sum = 0
@@ -139,10 +139,8 @@ for await (const line of lines()) {
     }
     if (way.props.pathway) {
       way.props.island_m = Math.round(islands.length(feature.geometry.coordinates))
-      const length = metres(feature.geometry.coordinates)
-      pathwayMetres.all += length
-      pathwayMetres.surface[way.props.surface_group ?? 'unknown'] += length
-      if (!way.props.width_m) pathwayMetres.unknownWidth += length
+      Object.assign(way.props, pathwayBands(way.props))
+      pathwayKm.add(way.props, metres(feature.geometry.coordinates))
     }
     // Lit ways glow on the night layer. They go in a file of their own, bare, so
     // that all of them can show however far out the map is zoomed.
@@ -210,16 +208,9 @@ for (const [id, wayIds] of waysOf) {
   routesOut[id] = { ...route, km: Math.round(sum / 100) / 10, ...(parents.length && { parents }) }
 }
 writeFileSync(path.join(outDir, 'routes.json'), JSON.stringify(routesOut))
-const km = (m) => Math.round(m / 1000)
 writeFileSync(path.join(outDir, 'comfort.json'), JSON.stringify(comfort))
-writeFileSync(
-  path.join(outDir, 'pathways.json'),
-  JSON.stringify({
-    km: km(pathwayMetres.all),
-    surface: Object.fromEntries(Object.entries(pathwayMetres.surface).map(([group, m]) => [group, km(m)])),
-    unknownWidth: km(pathwayMetres.unknownWidth),
-  }),
-)
+// Km of pathway by every combination of the pathways layer's bands, for its legend's bars.
+writeFileSync(path.join(outDir, 'pathways.json'), JSON.stringify(pathwayKm))
 const byLevel = ROUTE_LEVELS.map((level) => Object.values(routesOut).filter((r) => r.level === level).length)
 console.log(
   `ways: ${counts.ways} (LTS 1-4: ${counts.byLts.slice(1).join(', ')}; paths closed to bikes: ${counts.byLts[0]}; lit: ${counts.lit}), places: ${counts.places}, street lamps: ${counts.lamps}, routes: ${Object.keys(routesOut).length} (national, regional, local, mtb: ${byLevel.join(', ')}) over ${counts.routeWays} ways`,

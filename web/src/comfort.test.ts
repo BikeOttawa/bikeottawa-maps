@@ -33,9 +33,9 @@ describe('comfort filters', () => {
 
   it('round-trips its picks through the URL', () => {
     const f = { stress: ['3', '4'], speed: ['60', '70'] }
-    expect(formatComfortFilters(f)).toBe('stress:3,4.speed:60,70')
-    expect(parseComfortFilters('stress:3,4.speed:60,70')).toEqual(f)
+    expect(formatComfortFilters(f)).toBe('stress:3,4;speed:60,70')
+    expect(parseComfortFilters('stress:3,4;speed:60,70')).toEqual(f)
     expect(formatComfortFilters({})).toBeNull()
-    expect(parseComfortFilters('stress:9.moon:1')).toEqual({})
+    expect(parseComfortFilters('stress:9;moon:1')).toEqual({})
   })
 })

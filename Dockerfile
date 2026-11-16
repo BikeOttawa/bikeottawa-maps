@@ -12,8 +12,8 @@ COPY web/package.json web/
 COPY pipeline/package.json pipeline/
 RUN npm ci --workspace web
 COPY region.json ./
-# Surface groups the route card shares with the tile pipeline.
-COPY pipeline/surface-groups.json pipeline/
+# Surface groups and the pathways' length steps, shared with the tile pipeline.
+COPY pipeline/surface-groups.json pipeline/pathway-lengths.json pipeline/
 COPY web web
 RUN npm run build --workspace web
 

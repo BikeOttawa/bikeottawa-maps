@@ -1,12 +1,13 @@
 import { MAPILLARY_TOKEN, REGION } from '../config'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
-import { bikewayColors, isBikewayId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
+import { bikewayColors, isBikewayId, LTS_COLORS, pathwayColors, WIDTH_COLORS, WINTER_COLORS } from '../layers'
 import type { Selected } from '../map/style'
-import { formatLength, type KnownSurfaceId, WIDTH_STOPS } from '../pathways'
+import { formatLength, type KnownSurfaceId, widthBand } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
 import { isPlaceKind } from '../places'
 import { wayType } from '../wayType'
+import { OTHER } from './GroupBars'
 import { DirectionsIcon } from './icons'
 import { OsmTags } from './OsmTags'
 import { PlaceIcon } from './PlaceIcon'
@@ -59,12 +60,6 @@ function formatMonth(date: string, locale: string): string {
 
 /** The card is pale, so the colours drawn on pale ground. */
 const PATHWAY_COLORS = pathwayColors('light')
-
-/** The colour a pathway this wide is drawn in: that of the widest stop it reaches. */
-function widthColor(metres: number): string {
-  const stop = WIDTH_STOPS.findLastIndex((at) => metres >= at)
-  return PATHWAY_COLORS.width[Math.max(0, stop)]
-}
 
 function osmPath(selected: Props['selected']): string {
   return selected.kind === 'way' ? `way/${selected.id}` : selected.osm
@@ -135,7 +130,7 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
     if (lines) facts.push({ label: t(/[,/]/.test(lines) ? 'fact.lines' : 'fact.line'), value: lines })
   }
   // Pathways always say what their surface and width are, in the pathways
-  // layer's colours: yellow where they are not mapped yet.
+  // legend's colours: the surface yellow where it is not mapped yet.
   const pathway = selected.kind === 'way' && props.pathway === true
   if (pathway) {
     const group = props.surface_group as KnownSurfaceId | undefined
@@ -148,7 +143,7 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
     facts.push({
       label: t('fact.width'),
       value: width === null ? t('unknown') : `${width.toLocaleString(locale, { maximumFractionDigits: 2 })}\u00a0m`,
-      color: width === null ? PATHWAY_COLORS.unknown : widthColor(width),
+      color: width === null ? OTHER : WIDTH_COLORS[widthBand(width)],
     })
     // How much pathway it joins up with, which the length filter goes by.
     if (typeof props.island_m === 'number') {

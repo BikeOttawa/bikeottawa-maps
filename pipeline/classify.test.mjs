@@ -24,7 +24,7 @@ test('cycleways are low-stress paths shown from far out', () => {
     bikeway: 'dedicated',
     bikeway_width: 3,
     pathway: true,
-    surface_group: 'paved',
+    surface_group: 'asphalt',
     winter: 'yes',
   })
   assert.equal(minzoom, 10)

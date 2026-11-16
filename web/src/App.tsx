@@ -34,7 +34,7 @@ import { initialLang, type Lang, LangContext, rememberLang, translator } from '.
 import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
 import { MapView } from './map/MapView'
 import type { Selected, StyleState } from './map/style'
-import { formatPathwayFilters, type PathwayFilters, type PathwayKm, parsePathwayFilters } from './pathways'
+import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import { isRouteView, type RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight } from './route/brouter'
@@ -95,7 +95,7 @@ interface UrlState {
   comfortPicks: ComfortFilters
   /** Which bike thefts the thefts layer shows. */
   thefts: TheftFilters
-  /** Which pathways the pathways layer shows, and what it colours them by. */
+  /** Which pathways the pathways layer shows. */
   pathways: PathwayFilters
   mode: Mode
   points: RoutePoints
@@ -313,7 +313,7 @@ function usePhoneLayout(): boolean {
 interface TileMeta {
   /** Date of the OpenStreetMap data in the tiles. */
   osmTimestamp?: string
-  pathways?: PathwayKm
+  pathways?: PathwayTotals
   /** Km of the comfort layer by every combination of its filters' bands. */
   comfort?: ComfortTotals
 }
@@ -905,7 +905,6 @@ export function App() {
       collisionFilters={collisions}
       theftSpots={shownTheftSpots}
       theftFilters={thefts}
-      pathwayFilters={pathways}
     />
   ) : route ? (
     <RoutePeek route={route} travel={travel} view={routeView} />
@@ -1119,7 +1118,7 @@ export function App() {
                   projects={projects}
                   pathwayFilters={pathways}
                   onPathwayFiltersChange={changePathways}
-                  pathwayKm={tileMeta?.pathways ?? null}
+                  pathwayTotals={tileMeta?.pathways?.rows ? tileMeta.pathways : null}
                 />
               )}
               <p className="footnote">

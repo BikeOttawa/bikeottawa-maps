@@ -1,6 +1,6 @@
 /** The switchable data layers and their colours. Shared by the map style and the legend. */
 
-import { type KnownSurfaceId, WIDTH_STOPS } from './pathways'
+import type { KnownSurfaceId, WidthBand } from './pathways'
 
 export const LAYER_IDS = [
   'places',
@@ -169,24 +169,36 @@ export function isBikewayId(value: unknown): value is BikewayId {
 }
 
 /**
- * The pathways layer. Surfaces run from green (paved) to brown (dirt); widths
- * through one green, strongest where widest: darkest on pale ground, brightest
- * on dark. A surface or width not yet tagged is yellow, outside both ranges.
+ * The pathways layer, coloured by surface: paved ones green, teal and blue,
+ * unpaved ones olive to brown, other grey. A surface not yet tagged is yellow,
+ * apart from them all. Neighbours in the list stay apart for colour-blind eyes.
  */
 interface PathwayColors {
   surface: Record<KnownSurfaceId, string>
-  /** At each of WIDTH_STOPS. */
-  width: readonly string[]
   unknown: string
 }
 const PATHWAYS_ON_PALE: PathwayColors = {
-  surface: { paved: '#1E7B34', stone_dust: '#6E9A3E', gravel: '#9C7650', dirt: '#5E3A1E' },
-  width: ['#A3D39A', '#5DAE5E', '#2A8540', '#0D5A26'],
+  surface: {
+    asphalt: '#1E7B34',
+    concrete: '#36AFA0',
+    paving_stones: '#4F6FCF',
+    fine_gravel: '#9AA845',
+    gravel: '#A0703F',
+    ground: '#4E2E14',
+    other: '#9AA1A6',
+  },
   unknown: '#F5C000',
 }
 const PATHWAYS_ON_DARK: PathwayColors = {
-  surface: { paved: '#6FD27F', stone_dust: '#A3C77A', gravel: '#C99B6E', dirt: '#A0683F' },
-  width: ['#346B3D', '#4C9C58', '#7ACB83', '#C2F2BC'],
+  surface: {
+    asphalt: '#4FBF60',
+    concrete: '#7DE6D8',
+    paving_stones: '#9AA8FF',
+    fine_gravel: '#A3B35A',
+    gravel: '#EFC9A0',
+    ground: '#A86A3C',
+    other: '#B5BCC1',
+  },
   unknown: '#FFD60A',
 }
 
@@ -194,12 +206,12 @@ export function pathwayColors(basemap: BasemapId): PathwayColors {
   return basemap === 'light' || basemap === 'grey' ? PATHWAYS_ON_PALE : PATHWAYS_ON_DARK
 }
 
-/** The width colours as a CSS gradient from no width to the widest stop. */
-export function widthGradient(basemap: BasemapId): string {
-  const { width } = pathwayColors(basemap)
-  const last = WIDTH_STOPS[WIDTH_STOPS.length - 1]
-  const stops = WIDTH_STOPS.map((metres, i) => `${width[i]} ${(metres / last) * 100}%`)
-  return `linear-gradient(to right, ${width[0]} 0%, ${stops.join(', ')})`
+/** Pathway widths, for the legend and the card: one green, the widest darkest. */
+export const WIDTH_COLORS: Record<WidthBand, string> = {
+  '0': '#A3D39A',
+  '1.5': '#5DAE5E',
+  '2.5': '#2A8540',
+  '3.5': '#0D5A26',
 }
 
 /**

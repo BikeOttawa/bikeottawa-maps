@@ -1,80 +1,96 @@
-import type { ExpressionSpecification, FilterSpecification } from 'maplibre-gl'
+import type { FilterSpecification } from 'maplibre-gl'
+import LENGTHS from '../../pipeline/pathway-lengths.json'
+import { type BandTotals, bandKm, formatPicks, type Picks, parsePicks, shownKm } from './bands'
 
 /**
- * The pathways layer: every path bikes are not kept off, coloured by surface or
- * by width, those not yet tagged with either in yellow so they can be mapped.
- * The pipeline groups surfaces (`surface_group`), reads widths (`width_m`) and
- * measures the island each way is part of (`island_m`): all the pathways
- * joined to it, crossings included, so that short stubs can be left out.
+ * The pathways layer: every path bikes are not kept off, coloured by surface,
+ * those whose surface is not tagged in yellow so they can be mapped. The
+ * pipeline bands each pathway by surface, type, width and smoothness
+ * (pipeline/pathway-bands.mjs), reads its snow clearing,
+ * and measures the island it is part of (`island_m`): all the pathways joined
+ * to it, crossings included, so that short stubs can be left out.
  */
 
-/** Surface groups, smoothest first; unknown is a path whose surface is not tagged. */
-export const SURFACE_IDS = ['paved', 'stone_dust', 'gravel', 'dirt', 'unknown'] as const
-export type SurfaceId = (typeof SURFACE_IDS)[number]
-export type KnownSurfaceId = Exclude<SurfaceId, 'unknown'>
+/** Each set's groups, the best first; unknown is a pathway without the tag. */
+export const PATHWAY_GROUPS = {
+  surface: ['asphalt', 'concrete', 'paving_stones', 'fine_gravel', 'gravel', 'ground', 'other', 'unknown'],
+  type: ['cycleway', 'path', 'footway'],
+  width: ['3.5', '2.5', '1.5', '0', 'unknown'],
+  snow: ['yes', 'no', 'unknown'],
+  smoothness: ['excellent', 'good', 'intermediate', 'bad', 'unknown'],
+} as const
+export type PathwaySet = keyof typeof PATHWAY_GROUPS
+export const PATHWAY_SETS = Object.keys(PATHWAY_GROUPS) as PathwaySet[]
 
-export const COLOR_BY = ['surface', 'width'] as const
-export type ColorBy = (typeof COLOR_BY)[number]
+export type SurfaceId = (typeof PATHWAY_GROUPS.surface)[number]
+export type KnownSurfaceId = Exclude<SurfaceId, 'unknown'>
+export type WidthBand = Exclude<(typeof PATHWAY_GROUPS.width)[number], 'unknown'>
+
+/** The tile property each set reads. */
+const PROPERTY: Record<PathwaySet, string> = {
+  surface: 'surface_group',
+  type: 'path_type',
+  width: 'width_band',
+  snow: 'winter',
+  smoothness: 'smooth_band',
+}
 
 export interface PathwayFilters {
-  by: ColorBy
-  surfaces: readonly SurfaceId[]
-  /** Only pathways at least this wide, in metres; 0 for any width. */
-  minWidth: number
-  /** Pathways whose width is not tagged stay on the map. */
-  unknownWidth: boolean
+  picks: Picks<PathwaySet>
   /** Only pathways joined up into at least this much pathway, in metres. */
   minLength: number
 }
 
-export const DEFAULT_PATHWAY_FILTERS: PathwayFilters = {
-  by: 'surface',
-  surfaces: SURFACE_IDS,
-  minWidth: 0,
-  unknownWidth: true,
-  minLength: 300,
-}
-
-/** The width slider, in metres. */
-export const WIDTH_RANGE = { max: 4, step: 0.5 }
+export const DEFAULT_PATHWAY_FILTERS: PathwayFilters = { picks: {}, minLength: 300 }
 
 /** Width a pathway is drawn at when its width is not tagged. */
 export const UNKNOWN_WIDTH = 1.5
 
 /** The length slider's steps, in metres: short stubs first, then whole neighbourhoods. */
-export const LENGTH_STEPS = [0, 100, 200, 300, 500, 1000, 2000, 5000, 10000] as const
+export const LENGTH_STEPS: readonly number[] = LENGTHS
 
-/** Widths the colours change at, narrowest first. */
-export const WIDTH_STOPS = [1, 2, 3, 4] as const
-
-/** Km of pathway, written by the pipeline into tiles/meta.json. */
-export interface PathwayKm {
-  km: number
-  surface: Record<SurfaceId, number>
-  unknownWidth: number
+/** The width band of a pathway this wide, as the pipeline bands it. */
+export function widthBand(metres: number): WidthBand {
+  return metres < 1.5 ? '0' : metres < 2.5 ? '1.5' : metres < 3.5 ? '2.5' : '3.5'
 }
-
-const surfaceOf: ExpressionSpecification = ['coalesce', ['get', 'surface_group'], 'unknown']
 
 /** Which pathways the filters let through. */
 export function pathwayFilter(f: PathwayFilters): FilterSpecification {
+  const picked = PATHWAY_SETS.filter((set) => f.picks[set]?.length)
   return [
     'all',
     ['has', 'pathway'],
-    ['in', surfaceOf, ['literal', [...f.surfaces]]],
-    ['case', ['has', 'width_m'], ['>=', ['get', 'width_m'], f.minWidth], f.unknownWidth],
+    ...picked.map((set) => [
+      'in',
+      ['coalesce', ['get', PROPERTY[set]], 'unknown'],
+      ['literal', [...(f.picks[set] ?? [])]],
+    ]),
     // Tiles from before islands were measured keep every pathway.
     ['>=', ['coalesce', ['get', 'island_m'], Number.MAX_SAFE_INTEGER], f.minLength],
-  ]
+  ] as unknown as FilterSpecification
 }
 
-const isColorBy = (value: string): value is ColorBy => COLOR_BY.includes(value as ColorBy)
-const isSurfaceId = (value: string): value is SurfaceId => SURFACE_IDS.includes(value as SurfaceId)
+/** The pipeline's km of pathway for every combination of bands and island length step. */
+export type PathwayTotals = BandTotals
+
+/** Rows of islands at least as long as the slider asks. */
+const longEnough = (totals: PathwayTotals, minLength: number) => {
+  const at = totals.sets.indexOf('length')
+  return (row: readonly (string | number)[]) => at < 0 || Number(row[at]) >= minLength
+}
+
+/** Km in each group of one set, under the other sets' picks and with none; both as long as the slider asks. */
+export const pathwayKm = (totals: PathwayTotals, f: PathwayFilters, set: PathwaySet) =>
+  bandKm(totals, f.picks, set, longEnough(totals, f.minLength))
+
+/** Km of pathway the filters show. */
+export const pathwayShownKm = (totals: PathwayTotals, f: PathwayFilters) =>
+  shownKm(totals, f.picks, longEnough(totals, f.minLength))
 
 /** A length as people say it: metres up to a kilometre, then km. */
 export function formatLength(metres: number, locale: string): string {
-  if (metres < 1000) return `${Math.round(metres).toLocaleString(locale)}\u00a0m`
-  return `${(metres / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })}\u00a0km`
+  if (metres < 1000) return `${Math.round(metres).toLocaleString(locale)} m`
+  return `${(metres / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })} km`
 }
 
 /** The step nearest a length, so the slider can show it. */
@@ -83,34 +99,21 @@ export function nearestLength(metres: number): number {
 }
 
 /**
- * In the URL as `pathways=width;paved,gravel;2.5;1000;known`: colour, surfaces,
- * least width, least island length and `known` to leave out unknown widths,
- * each part left out when it is the default.
+ * In the URL as `pathways=surface:dirt,gravel;width:2.5;length:1000`: the
+ * groups picked of each set, then the least island length unless it is the
+ * default.
  */
 export function formatPathwayFilters(f: PathwayFilters): string | null {
-  const d = DEFAULT_PATHWAY_FILTERS
-  const allSurfaces = f.surfaces.length === d.surfaces.length && d.surfaces.every((s) => f.surfaces.includes(s))
-  const parts = [
-    f.by === d.by ? '' : f.by,
-    allSurfaces ? '' : SURFACE_IDS.filter((s) => f.surfaces.includes(s)).join(',') || 'none',
-    f.minWidth === d.minWidth ? '' : String(f.minWidth),
-    f.minLength === d.minLength ? '' : String(f.minLength),
-    f.unknownWidth ? '' : 'known',
-  ]
-  return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
+  const parts = formatPicks(PATHWAY_GROUPS, f.picks)
+  if (f.minLength !== DEFAULT_PATHWAY_FILTERS.minLength) parts.push(`length:${f.minLength}`)
+  return parts.join(';') || null
 }
 
 export function parsePathwayFilters(text: string | undefined): PathwayFilters {
-  const d = DEFAULT_PATHWAY_FILTERS
-  const [byText = '', surfaceText = '', widthText = '', lengthText = '', unknownText = ''] = (text ?? '').split(';')
-  const width = Number(widthText)
-  const length = Number(lengthText)
-  const inRange = widthText !== '' && width >= 0 && width <= WIDTH_RANGE.max
+  const length = (text ?? '').split(';').find((part) => part.startsWith('length:'))
+  const metres = Number(length?.slice('length:'.length) || Number.NaN)
   return {
-    by: isColorBy(byText) ? byText : d.by,
-    surfaces: surfaceText === 'none' ? [] : surfaceText ? surfaceText.split(',').filter(isSurfaceId) : d.surfaces,
-    minWidth: inRange ? Math.round(width / WIDTH_RANGE.step) * WIDTH_RANGE.step : d.minWidth,
-    unknownWidth: unknownText !== 'known',
-    minLength: lengthText !== '' && length >= 0 ? nearestLength(length) : d.minLength,
+    picks: parsePicks(PATHWAY_GROUPS, text),
+    minLength: metres >= 0 ? nearestLength(metres) : DEFAULT_PATHWAY_FILTERS.minLength,
   }
 }

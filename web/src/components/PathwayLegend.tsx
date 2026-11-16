@@ -1,134 +1,125 @@
-import type { CSSProperties } from 'react'
-import { useI18n } from '../i18n'
-import { type BasemapId, pathwayColors, widthGradient } from '../layers'
+import { useMemo, useState } from 'react'
+import { type MessageKey, useI18n } from '../i18n'
+import { type BasemapId, pathwayColors, WIDTH_COLORS, WINTER_COLORS } from '../layers'
 import {
-  COLOR_BY,
   formatLength,
   LENGTH_STEPS,
+  PATHWAY_GROUPS,
+  PATHWAY_SETS,
   type PathwayFilters,
-  type PathwayKm,
-  SURFACE_IDS,
-  type SurfaceId,
-  WIDTH_RANGE,
+  type PathwaySet,
+  type PathwayTotals,
+  pathwayKm,
+  pathwayShownKm,
 } from '../pathways'
+import { GroupRow, HUES, OTHER } from './GroupBars'
 
 interface Props {
   filters: PathwayFilters
   onChange: (filters: PathwayFilters) => void
-  /** Km of pathway of each kind, from the pipeline; null when not known. */
-  km: PathwayKm | null
+  /** Km by every combination of bands, from the pipeline; null while it loads or where it is missing. */
+  totals: PathwayTotals | null
   basemap: BasemapId
 }
 
+/** Smoothness is ordered: one violet, the smoothest lightest. */
+const SMOOTH_STEPS = ['#D9CCEB', '#B09AD3', '#8065B4', '#4F3487']
+
+/** Each set's colours: surface as the map draws it, the rest as their bars. */
+function setColors(basemap: BasemapId): Record<PathwaySet, Record<string, string>> {
+  const map = pathwayColors(basemap)
+  return {
+    surface: { ...map.surface, unknown: map.unknown },
+    type: { cycleway: HUES[0], path: HUES[1], footway: HUES[2] },
+    width: { ...WIDTH_COLORS, unknown: OTHER },
+    snow: { ...WINTER_COLORS, unknown: OTHER },
+    smoothness: Object.fromEntries(PATHWAY_GROUPS.smoothness.map((g, i) => [g, SMOOTH_STEPS[i] ?? OTHER])),
+  }
+}
+
+/** The labels: plowing as the cards name it, types as OSM's. */
+function labelKey(set: PathwaySet, group: string): MessageKey {
+  if (group === 'unknown') return `pathways.${set}.unknown` as MessageKey
+  if (set === 'type') return `highway.${group}` as MessageKey
+  if (set === 'snow') return `winter.${group}` as MessageKey
+  return `pathways.${set}.${group}` as MessageKey
+}
+
 /**
- * The pathways layer's key and filters: what to colour them by, which surfaces
- * and how wide. Swatches show only for what the colours stand for, so yellow
- * always means one thing.
+ * Which pathways the layer shows, as the other layers' filters: by surface
+ * (the map's colours, its key), type, width, snow clearing and smoothness, each
+ * a bar of km; and how much pathway they must join up with.
  */
-export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
+export function PathwayLegend({ filters, onChange, totals, basemap }: Props) {
   const { t, lang } = useI18n()
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
-  const colors = pathwayColors(basemap)
-  const bySurface = filters.by === 'surface'
-  const distance = (n: number | undefined) =>
-    km && n !== undefined && <span className="share">{`${n.toLocaleString(locale)} km`}</span>
-  const metres = (n: number) => `${n.toLocaleString(locale, { maximumFractionDigits: 1 })} m`
-  const toggle = (surface: SurfaceId) =>
-    onChange({
-      ...filters,
-      surfaces: filters.surfaces.includes(surface)
-        ? filters.surfaces.filter((s) => s !== surface)
-        : [...filters.surfaces, surface],
-    })
-  const surfaceColor = (surface: SurfaceId) => (surface === 'unknown' ? colors.unknown : colors.surface[surface])
-  const atLeast = (value: number, text: string) =>
-    value ? t('pathways.atLeast').replace('{value}', text) : t('pathways.any')
-  const width = atLeast(filters.minWidth, metres(filters.minWidth))
-  const length = atLeast(filters.minLength, formatLength(filters.minLength, locale))
+  const [open, setOpen] = useState<PathwaySet | null>('surface')
+  const colors = setColors(basemap)
+  const km = (n: number) => `${Math.round(n).toLocaleString(locale)} km`
+  const counts = useMemo(
+    () => (totals ? Object.fromEntries(PATHWAY_SETS.map((set) => [set, pathwayKm(totals, filters, set)])) : null),
+    [totals, filters],
+  )
+  const picks = filters.picks
+  const length = filters.minLength
+    ? t('pathways.atLeast').replace('{value}', formatLength(filters.minLength, locale))
+    : t('pathways.any')
 
   return (
-    <div className="pathway-legend">
-      <fieldset className="pathway-group">
-        <legend>{t('pathways.colorBy')}</legend>
-        <div className="mode-switch">
-          {COLOR_BY.map((by) => (
-            <button
-              key={by}
-              type="button"
-              aria-pressed={by === filters.by}
-              onClick={() => onChange({ ...filters, by })}
-            >
-              {t(`pathways.by.${by}`)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="pathway-group">
-        <legend>{t('pathways.by.surface')}</legend>
-        {SURFACE_IDS.map((surface) => (
-          <label key={surface} className="check">
-            <input type="checkbox" checked={filters.surfaces.includes(surface)} onChange={() => toggle(surface)} />
-            <span
-              className="swatch line"
-              style={{ background: surfaceColor(surface), visibility: bySurface ? undefined : 'hidden' }}
+    <div className="collision-legend">
+      {counts ? (
+        <fieldset className="conditions">
+          <legend>{t('pathways.filters')}</legend>
+          {PATHWAY_SETS.map((set) => (
+            <GroupRow
+              key={set}
+              name={t(`pathways.${set}`)}
+              groups={PATHWAY_GROUPS[set]}
+              counts={counts[set]}
+              picked={picks[set] ?? []}
+              compared={PATHWAY_SETS.some((other) => other !== set && picks[other]?.length)}
+              color={(group) => colors[set][group] ?? OTHER}
+              label={(group) => t(labelKey(set, group))}
+              amount={km}
+              onPick={(next) => onChange({ ...filters, picks: { ...picks, [set]: next } })}
+              open={open === set}
+              onToggle={() => setOpen(open === set ? null : set)}
             />
-            <span>{t(`surface.${surface}`)}</span>
-            {distance(km?.surface[surface])}
-          </label>
-        ))}
-      </fieldset>
-      <fieldset className="pathway-group">
-        <legend>
-          {t('pathways.by.width')}
-          {t('colon')}
-          {width}
-        </legend>
-        <input
-          className="pathway-range"
-          type="range"
-          min={0}
-          max={WIDTH_RANGE.max}
-          step={WIDTH_RANGE.step}
-          value={filters.minWidth}
-          aria-label={t('pathways.by.width')}
-          aria-valuetext={width}
-          style={bySurface ? undefined : ({ '--track': widthGradient(basemap) } as CSSProperties)}
-          onChange={(e) => onChange({ ...filters, minWidth: Number(e.target.value) })}
-        />
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={filters.unknownWidth}
-            onChange={() => onChange({ ...filters, unknownWidth: !filters.unknownWidth })}
-          />
-          <span
-            className="swatch line"
-            style={{ background: colors.unknown, visibility: bySurface ? 'hidden' : undefined }}
-          />
-          <span>{t('pathways.unknownWidth')}</span>
-          {distance(km?.unknownWidth)}
-        </label>
-      </fieldset>
-      <fieldset className="pathway-group">
-        <legend>
+          ))}
+          <p className="footnote">{t('pathways.hint')}</p>
+        </fieldset>
+      ) : (
+        // Without the pipeline's totals, the surfaces as a plain key.
+        <ul>
+          {PATHWAY_GROUPS.surface.map((surface) => (
+            <li key={surface}>
+              <span className="swatch line" style={{ background: colors.surface[surface] }} />
+              {t(labelKey('surface', surface))}
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className="collision-min">
+        <span>
           {t('pathways.length')}
           {t('colon')}
           {length}
-        </legend>
+        </span>
         <input
           className="pathway-range"
           type="range"
           min={0}
           max={LENGTH_STEPS.length - 1}
           step={1}
-          value={Math.max(0, LENGTH_STEPS.indexOf(filters.minLength as (typeof LENGTH_STEPS)[number]))}
-          aria-label={t('pathways.length')}
+          value={Math.max(0, LENGTH_STEPS.indexOf(filters.minLength))}
           aria-valuetext={length}
           onChange={(e) => onChange({ ...filters, minLength: LENGTH_STEPS[Number(e.target.value)] })}
         />
         <span className="pathway-note">{t('pathways.lengthNote')}</span>
-      </fieldset>
-      <p className="footnote">{t('pathways.hint')}</p>
+      </label>
+      {totals && (
+        <p className="collision-total">{t('comfort.shown').replace('{km}', km(pathwayShownKm(totals, filters)))}</p>
+      )}
     </div>
   )
 }

@@ -155,10 +155,11 @@ const LOOKS: Record<RouteView, Record<string, PartLook>> = {
     walk: { color: NO_BIKES_COLOR, label: 'walk' },
   },
   surface: {
-    paved: { color: pathways.surface.paved, label: 'surface.paved' },
-    stone_dust: { color: pathways.surface.stone_dust, label: 'surface.stone_dust' },
+    // In the colours of the pathways layer's surfaces they stand for.
+    paved: { color: pathways.surface.asphalt, label: 'surface.paved' },
+    stone_dust: { color: pathways.surface.fine_gravel, label: 'surface.stone_dust' },
     gravel: { color: pathways.surface.gravel, label: 'surface.gravel' },
-    dirt: { color: pathways.surface.dirt, label: 'surface.dirt' },
+    dirt: { color: pathways.surface.ground, label: 'surface.dirt' },
     unknown: { color: pathways.unknown, label: 'surface.unknown' },
   },
   lit: {
