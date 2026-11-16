@@ -2206,7 +2206,20 @@ a {
   margin-top: 6px;
 }
 
-/* Theft card: the intersection on top, a line, then the thefts one at a time. */
+/* Theft card: the intersection on top, a line, then the thefts one at a time; short enough not to scroll. */
+.theft-card {
+  gap: 8px;
+}
+
+.theft-card .place-photo {
+  margin: 0;
+}
+
+.theft-card .place-photo img,
+.theft-card .place-photo-loading {
+  height: 130px;
+}
+
 .theft-spot {
   margin: 0;
   font-size: 13px;
@@ -2216,14 +2229,21 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
 }
 
 .theft-head h3 {
+  flex: 1;
   margin: 0;
   font-size: 15px;
   line-height: 1.25;
+}
+
+.theft-head h3 span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .feature-card .theft-facts {

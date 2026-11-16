@@ -47,6 +47,8 @@ test('writes models plainly, codes in capitals', () => {
   assert.equal(modelName('DUAL SPORT 3'), 'Dual Sport 3')
   assert.equal(modelName('FSX4'), 'FSX4')
   assert.equal(modelName(' unknown '), undefined)
+  assert.equal(modelName('DLG48100786R070'), undefined)
+  assert.equal(modelName('MARLIN 5 2019'), 'Marlin 5 2019')
 })
 
 test('drops exact copies of a record, keeps different bikes', () => {

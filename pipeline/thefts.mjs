@@ -124,7 +124,8 @@ export function modelName(model) {
   const text = String(model ?? '')
     .replace(/\s+/g, ' ')
     .trim()
-  if (NO_MODEL.has(text.toUpperCase())) return undefined
+  // A long run of digits is a serial number written in the model's place.
+  if (NO_MODEL.has(text.toUpperCase()) || (text.match(/\d/g) ?? []).length >= 6) return undefined
   return text
     .split(' ')
     .map((word) => (/\d/.test(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))

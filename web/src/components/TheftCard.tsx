@@ -39,7 +39,7 @@ export function TheftCard({ items, at, onClose }: Props) {
     count > 1 && total ? t('theft.worth').replace('{value}', money(total)) : null,
   ]
     .filter(Boolean)
-    .join(', ')
+    .join(' · ')
 
   // Several bikes taken at once differ only by these: "Trek FSX4 · grey".
   const colourNames = (p.colour ?? []).map((c) => label(`colour.${c}`)).filter((c): c is string => Boolean(c))
@@ -65,7 +65,7 @@ export function TheftCard({ items, at, onClose }: Props) {
   ]
 
   return (
-    <section className="feature-card" aria-live="polite">
+    <section className="feature-card theft-card" aria-live="polite">
       <header>
         <div className="feature-title">
           <h2>{place}</h2>
@@ -91,10 +91,10 @@ export function TheftCard({ items, at, onClose }: Props) {
         {summary}
       </p>
       <div className="theft-head">
-        <div className="feature-title">
-          <h3>{t(p.recovered ? 'theft.title.recovered' : 'theft.title')}</h3>
-          <p>{date}</p>
-        </div>
+        <h3>
+          {t(p.recovered ? 'theft.title.recovered' : 'theft.title')}
+          <span> · {date}</span>
+        </h3>
         {count > 1 && (
           <div className="card-step">
             <button type="button" aria-label={t('theft.previous')} onClick={() => step(-1)}>
