@@ -7,6 +7,7 @@ import {
   parseCollisionFilters,
   spotsGeoJSON,
 } from './collisions'
+import { type ComfortFilters, type ComfortTotals, formatComfortFilters, parseComfortFilters } from './comfort'
 import { BikeRouteCard } from './components/BikeRouteCard'
 import { CollisionCard } from './components/CollisionCard'
 import { ConstructionCard } from './components/ConstructionCard'
@@ -90,6 +91,8 @@ interface UrlState {
   collisions: CollisionFilters
   /** What the construction layer shows. */
   construction: ConstructionFilters
+  /** Which ways the comfort layer shows. */
+  comfortPicks: ComfortFilters
   /** Which bike thefts the thefts layer shows. */
   thefts: TheftFilters
   /** Which pathways the pathways layer shows, and what it colours them by. */
@@ -115,6 +118,7 @@ function readUrl(): UrlState {
     collisions: parseCollisionFilters(hash.collisions),
     thefts: parseTheftFilters(hash.thefts),
     construction: parseConstructionFilters(hash.construction),
+    comfortPicks: parseComfortFilters(hash.comfort),
     pathways: parsePathwayFilters(hash.pathways),
     mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
     points: parsePoints(hash.route),
@@ -137,6 +141,7 @@ function writeUrl(state: UrlState): void {
     ['collisions', state.layer === 'collisions' ? formatCollisionFilters(state.collisions) : null],
     ['thefts', state.layer === 'thefts' ? formatTheftFilters(state.thefts) : null],
     ['construction', state.layer === 'construction' ? formatConstructionFilters(state.construction) : null],
+    ['comfort', state.layer === 'comfort' ? formatComfortFilters(state.comfortPicks) : null],
     ['pathways', state.layer === 'pathways' ? formatPathwayFilters(state.pathways) : null],
     ['mode', riding ? state.mode : null],
     // How far starts from the route's start, so the two modes share it.
@@ -309,6 +314,8 @@ interface TileMeta {
   /** Date of the OpenStreetMap data in the tiles. */
   osmTimestamp?: string
   pathways?: PathwayKm
+  /** Km of the comfort layer by every combination of its filters' bands. */
+  comfort?: ComfortTotals
 }
 
 /** What the pipeline says about the tiles it built. */
@@ -423,6 +430,7 @@ export function App() {
     collisions,
     thefts,
     construction,
+    comfortPicks,
     pathways,
     mode,
     points,
@@ -575,6 +583,9 @@ export function App() {
     },
     [update],
   )
+
+  // The card stays open: the street is still there, picked or not.
+  const changeComfort = useCallback((next: ComfortFilters) => update({ comfortPicks: next }), [update])
 
   const changeConstruction = useCallback(
     (next: ConstructionFilters) => {
@@ -779,6 +790,7 @@ export function App() {
       collisions: layer === 'collisions' ? collisionGeo : null,
       thefts: layer === 'thefts' ? theftGeo : null,
       construction,
+      comfort: comfortPicks,
       roadwork,
       closures: roadwork ? closureGeo : null,
       pathways,
@@ -801,6 +813,7 @@ export function App() {
       collisionGeo,
       theftGeo,
       construction,
+      comfortPicks,
       roadwork,
       closureGeo,
       pathways,
@@ -1085,6 +1098,9 @@ export function App() {
               {!routing && (
                 <Legend
                   layer={layer}
+                  comfortFilters={comfortPicks}
+                  onComfortFiltersChange={changeComfort}
+                  comfortTotals={tileMeta?.comfort ?? null}
                   basemap={basemap}
                   placeKinds={placeKinds}
                   onTogglePlaceKind={togglePlaceKind}

@@ -18,6 +18,7 @@ import {
   middleOf,
   parseOsmId,
 } from './classify.mjs'
+import { comfortBands, comfortTotals } from './comfort.mjs'
 import { isCrossing, islandIndex } from './islands.mjs'
 import { isLit, lampIndex } from './lamps.mjs'
 import { ROUTE_LEVELS, routeIndex } from './routes.mjs'
@@ -46,6 +47,7 @@ const counts = { ways: 0, lit: 0, places: 0, lamps: 0, routeWays: 0, byLts: [0, 
 const routeWayLength = new Map()
 /** Metres of pathway in all, by surface group, and without a width, for the pathways legend. */
 const pathwayMetres = { all: 0, surface: { paved: 0, stone_dust: 0, gravel: 0, dirt: 0, unknown: 0 }, unknownWidth: 0 }
+const comfort = comfortTotals()
 
 function metres(coords) {
   let sum = 0
@@ -130,6 +132,11 @@ for await (const line of lines()) {
     }
     counts.ways++
     counts.byLts[way.props.lts]++
+    // The comfort layer's filters: its bands, and their km for the legend.
+    if (way.props.lts > 0) {
+      Object.assign(way.props, comfortBands(way.props))
+      comfort.add(way.props, metres(feature.geometry.coordinates))
+    }
     if (way.props.pathway) {
       way.props.island_m = Math.round(islands.length(feature.geometry.coordinates))
       const length = metres(feature.geometry.coordinates)
@@ -204,6 +211,7 @@ for (const [id, wayIds] of waysOf) {
 }
 writeFileSync(path.join(outDir, 'routes.json'), JSON.stringify(routesOut))
 const km = (m) => Math.round(m / 1000)
+writeFileSync(path.join(outDir, 'comfort.json'), JSON.stringify(comfort))
 writeFileSync(
   path.join(outDir, 'pathways.json'),
   JSON.stringify({

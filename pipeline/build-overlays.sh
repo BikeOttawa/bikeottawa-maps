@@ -65,10 +65,11 @@ tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
   --name "Bike Ottawa night" --attribution "© OpenStreetMap contributors" \
   -L "streets:$WORK/lit.geojsonseq" -L "lamps:$WORK/lamps.geojsonseq"
 
-# Date of the OSM data (how far the change files have been applied), and km of pathway.
+# Date of the OSM data (how far the change files have been applied), km of pathway, and
+# km of the comfort layer by every combination of its filters' bands.
 OSM_TIMESTAMP="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$REGION")"
-printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s}\n' "$OSM_TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  "$(cat "$WORK/pathways.json")" > "$OUT/meta.json"
+printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s,"comfort":%s}\n' "$OSM_TIMESTAMP" \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(cat "$WORK/pathways.json")" "$(cat "$WORK/comfort.json")" > "$OUT/meta.json"
 # The City's construction forecast, for the construction layer. Its server being
 # down leaves that layer empty for a day rather than failing the build.
 node pipeline/fetch-construction.mjs "$OUT" || echo "construction: not fetched; the layer stays empty"

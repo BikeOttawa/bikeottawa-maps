@@ -109,6 +109,7 @@ export function GroupRow({
   compared,
   color,
   label,
+  amount,
   onPick,
   open,
   onToggle,
@@ -121,6 +122,8 @@ export function GroupRow({
   compared: boolean
   color: (group: string) => string
   label: (group: string) => string
+  /** How the hover text writes an amount: a count by default. */
+  amount?: (n: number) => string
   onPick: (next: string[]) => void
   open: boolean
   onToggle: () => void
@@ -140,7 +143,7 @@ export function GroupRow({
     tick: compared ? shareAll(group) : null,
     figure: percent(share(group)),
     title: t('crash.groupShare')
-      .replace('{count}', number(counts.shown.get(group) ?? 0))
+      .replace('{count}', (amount ?? number)(counts.shown.get(group) ?? 0))
       .replace('{share}', percent(share(group)))
       .replace('{all}', percent(shareAll(group))),
   }))

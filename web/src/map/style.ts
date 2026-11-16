@@ -2,6 +2,7 @@ import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/ba
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
 import { SEVERITIES } from '../collisions'
+import { type ComfortFilters, comfortFilter } from '../comfort'
 import {
   CONSTRUCTION_TIMINGS,
   type ConstructionFilters,
@@ -93,6 +94,8 @@ export interface StyleState {
   roadwork?: boolean
   /** Those closures; null until loaded. */
   closures?: FeatureCollection | null
+  /** Which ways the comfort layer shows. */
+  comfort?: ComfortFilters
   /** What the pathways layer shows, and how it colours it. */
   pathways?: PathwayFilters
   /** The bike lanes overlay, drawn over any basemap and data layer but the pathways one. */
@@ -518,6 +521,8 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   })
   const round = { 'line-cap': 'round' as const, 'line-join': 'round' as const }
   const bikeable: FilterSpecification = ['>', ['get', 'lts'], 0]
+  // The comfort layer's picks, on top.
+  const comfortable: FilterSpecification = ['all', bikeable, comfortFilter(state.comfort ?? {})]
   // Paths with a winter status; indoor walkways have none and are left out.
   const pathway: FilterSpecification = ['all', ['==', ['get', 'kind'], 'path'], ['has', 'winter']]
   const plowKnown: FilterSpecification = ['all', pathway, ['!=', ['get', 'winter'], 'unknown']]
@@ -537,7 +542,7 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
     {
       ...way,
       id: 'comfort-casing',
-      filter: bikeable,
+      filter: comfortable,
       layout: { ...round, ...show('comfort') },
       paint: { 'line-color': theme.casing, 'line-width': lineWidth(1.5), 'line-opacity': 0.7 * fade },
     },
@@ -558,7 +563,7 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
     {
       ...way,
       id: 'comfort-line',
-      filter: bikeable,
+      filter: comfortable,
       layout: { ...round, ...show('comfort') },
       paint: {
         'line-color': ['match', ['get', 'lts'], 1, LTS_COLORS[0], 2, LTS_COLORS[1], 3, LTS_COLORS[2], LTS_COLORS[3]],

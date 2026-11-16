@@ -30,16 +30,16 @@ npm run dev
 
 Tiles land in `web/public/tiles` and are not committed. The app only loads the files the current layer draws, so the first visit fetches the basemap alone.
 
-| File                   | What                                                                                |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `basemap.pmtiles`      | Protomaps basemap                                                                   |
-| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                 |
-| `places.pmtiles`       | Places                                                                              |
-| `night.pmtiles`        | Lit streets and street lamps                                                        |
-| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                           |
-| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach |
-| `meta.json`            | Date of the OSM data, when the tiles were built, km of pathway                      |
-| `construction.geojson` | The City's construction forecast, for Projects                                      |
+| File                   | What                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `basemap.pmtiles`      | Protomaps basemap                                                                     |
+| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways, Winter and the bike lanes                   |
+| `places.pmtiles`       | Places                                                                                |
+| `night.pmtiles`        | Lit streets and street lamps                                                          |
+| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                             |
+| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach   |
+| `meta.json`            | Date of the OSM data, when the tiles were built, km of pathway and of Comfort's bands |
+| `construction.geojson` | The City's construction forecast, for Projects                                        |
 
 ## OSM data
 
@@ -50,6 +50,8 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 `region.json` has two boxes: `bbox` is what the map shows, `routingBbox` is the wider area routes can cross.
 
 ## Layers
+
+**Comfort** colours every street and path bikes may use by its level of traffic stress, from 1 (comfortable for everyone) to 4 (high stress), as Bike Ottawa's [stressmodel](https://github.com/BikeOttawa/stressmodel) rates it from the OSM tags. The legend filters it as on the other layers, a bar of km per group: by stress, speed limit (30 or less, 40, 50, 60, 70 or more, or not tagged), lanes in all (1 or 2, or 3 or more), bike infrastructure (pathway or cycle track, painted lane, paved shoulder, shared lane, or none) and surface. `pipeline/comfort.mjs` writes each way's bands into the tiles, for the map to filter by, and the km of every combination of them into `meta.json`, for the bars; picking a speed or lanes leaves paths out.
 
 **Pathways** shows every path bikes are not kept off (cycleways, paths unless `bicycle=no`, footways and sidewalks with `bicycle=yes`), coloured by surface (paved, stone dust, gravel, dirt) or by width, and drawn as wide as `cycleway:width` or `width` says (1.5 m without either). Where the surface or width is not tagged the line is yellow, so the layer doubles as a list of what is left to map. Filters pick surfaces, a least width and a least length. The length is that of the island a way is part of: every pathway joined to it at a shared node or through a crossing (`pipeline/islands.mjs`), so short stubs can be hidden; 300 m by default. Cards show the way's current tags from the OSM API and link to the editor. The bike lanes overlay starts off on this layer each time it is picked, and can be turned back on.
 
