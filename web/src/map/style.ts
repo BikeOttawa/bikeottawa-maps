@@ -19,7 +19,7 @@ import {
   reachRamp,
   routeBandColors,
   WINTER_COLORS,
-  wardColor,
+  wardColors,
 } from '../layers'
 import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
@@ -843,7 +843,8 @@ const WARDS_ATTRIBUTION =
  */
 function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecification[]; labels: LayerSpecification[] } {
   if (!state.wards) return { lines: [], labels: [] }
-  const color = wardColor(state.basemap)
+  const colors = wardColors(state.basemap)
+  const color: ExpressionSpecification = ['match', ['get', 'city'], 'gatineau', colors.gatineau, colors.ottawa]
   const name = ['get', state.lang === 'fr' ? 'name_fr' : 'name_en'] as ExpressionSpecification
   return {
     // A soft band under a dashed line, so the boundary shows among busy streets.

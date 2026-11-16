@@ -152,9 +152,14 @@ export function widthGradient(basemap: BasemapId): string {
   return `linear-gradient(to right, ${width[0]} 0%, ${stops.join(', ')})`
 }
 
-/** Ward boundaries and names: a plum that reads on any ground and is used for nothing else. */
-export function wardColor(basemap: BasemapId): string {
-  return basemap === 'light' || basemap === 'grey' ? '#7A3B8F' : '#D6A6EC'
+/**
+ * Ward boundaries and names: plum for Ottawa, teal for Gatineau, colours used
+ * for nothing else on the map, darker on pale ground and lighter on dark.
+ */
+export function wardColors(basemap: BasemapId): { ottawa: string; gatineau: string } {
+  return basemap === 'light' || basemap === 'grey'
+    ? { ottawa: '#7A3B8F', gatineau: '#00838F' }
+    : { ottawa: '#D6A6EC', gatineau: '#6ED3D8' }
 }
 
 export const WINTER_COLORS = { yes: '#1B5FAE', no: '#E07B1A', unknown: '#6F7B80' } as const
