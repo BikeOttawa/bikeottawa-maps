@@ -95,12 +95,6 @@ export function PathwayLegend({ filters, onChange, km, basemap }: Props) {
           style={bySurface ? undefined : ({ '--track': widthGradient(basemap) } as CSSProperties)}
           onChange={(e) => onChange({ ...filters, minWidth: Number(e.target.value) })}
         />
-        {!bySurface && (
-          <span className="pathway-ramp" aria-hidden="true">
-            <span>{t('pathways.narrow')}</span>
-            <span>{t('pathways.wide')}</span>
-          </span>
-        )}
         <label className="check">
           <input
             type="checkbox"

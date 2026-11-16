@@ -1916,21 +1916,9 @@ a {
   box-shadow: 0 1px 3px rgb(22 36 43 / 35%);
 }
 
-/* Which end of the width colours is which. */
-.pathway-ramp {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  font-size: 12px;
-  color: var(--muted);
-}
-
 .pathway-note {
   font-size: 12px;
   color: var(--muted);
-}
-
-.pathway-ramp > span:last-child {
-  text-align: right;
 }
 
 /* A feature's tags as they are in OSM, under its card. */
