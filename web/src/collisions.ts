@@ -17,6 +17,41 @@ export type CollisionParty = (typeof COLLISION_PARTIES)[number]
 /** The years in the data. 2023 was never published by the city. */
 export const COLLISION_YEARS = { first: 2017, last: 2024, missing: [2023] } as const
 
+/**
+ * The circumstances recorded for each collision, each sorted into a few
+ * groups; the city's rarer values go to `other`.
+ */
+export const CONDITIONS = {
+  light: ['day', 'dark', 'dusk', 'dawn', 'other'],
+  weather: ['clear', 'rain', 'snow', 'other'],
+  surface: ['dry', 'wet', 'snow', 'other'],
+  impact: ['angle', 'turning', 'sideswipe', 'rear', 'single', 'other'],
+  control: ['signal', 'stop', 'none', 'other'],
+} as const
+export type ConditionId = keyof typeof CONDITIONS
+export const CONDITION_IDS = Object.keys(CONDITIONS) as ConditionId[]
+
+/** The city's values, by group. */
+const CONDITION_OF: Record<ConditionId, Record<string, string>> = {
+  light: { Daylight: 'day', Dark: 'dark', Dusk: 'dusk', Dawn: 'dawn' },
+  weather: { Clear: 'clear', Rain: 'rain', Snow: 'snow', 'Freezing Rain': 'snow', 'Drifting Snow': 'snow' },
+  surface: { Dry: 'dry', Wet: 'wet', 'Loose snow': 'snow', Slush: 'snow', Ice: 'snow', 'Packed snow': 'snow' },
+  impact: {
+    Angle: 'angle',
+    'Turning movement': 'turning',
+    Sideswipe: 'sideswipe',
+    'Rear end': 'rear',
+    'SMV other': 'single',
+    'SMV unattended vehicle': 'single',
+  },
+  control: { 'Traffic signal': 'signal', 'Stop sign': 'stop', 'No control': 'none' },
+}
+
+/** Which group of a circumstance a collision falls in. */
+export function conditionOf(p: CollisionProps, id: ConditionId): string {
+  return CONDITION_OF[id][p[id] ?? ''] ?? 'other'
+}
+
 export interface CollisionFilters {
   parties: readonly CollisionParty[]
   from: number
@@ -24,15 +59,18 @@ export interface CollisionFilters {
   severities: readonly Severity[]
   /** Only spots with at least this many collisions: the most dangerous places. */
   minCount: number
+  /** Only these groups of each circumstance; a circumstance left out keeps them all. */
+  conditions: Partial<Record<ConditionId, readonly string[]>>
 }
 
-/** Cyclists only, every year, every injury level. */
+/** Cyclists only, every year, every injury level, in any circumstances. */
 export const DEFAULT_COLLISION_FILTERS: CollisionFilters = {
   parties: ['bike'],
   from: COLLISION_YEARS.first,
   to: COLLISION_YEARS.last,
   severities: SEVERITIES,
   minCount: 1,
+  conditions: {},
 }
 
 export interface CollisionProps {
@@ -54,7 +92,34 @@ export interface CollisionProps {
 /** Whether a collision passes the filters. */
 export function matchesCollision(p: CollisionProps, f: CollisionFilters): boolean {
   const party = (f.parties.includes('bike') && p.bicycles > 0) || (f.parties.includes('foot') && p.pedestrians > 0)
-  return party && p.year >= f.from && p.year <= f.to && f.severities.includes(p.severity)
+  if (!party || p.year < f.from || p.year > f.to || !f.severities.includes(p.severity)) return false
+  return CONDITION_IDS.every((id) => {
+    const picked = f.conditions[id]
+    return !picked?.length || picked.includes(conditionOf(p, id))
+  })
+}
+
+/**
+ * How the collisions split over one circumstance's groups: `shown` under every
+ * filter but that circumstance's own, so its other groups stay to be picked;
+ * `all` for the people and years picked alone, to compare with.
+ */
+export function conditionCounts(
+  all: readonly CollisionProps[],
+  f: CollisionFilters,
+  id: ConditionId,
+): { shown: Map<string, number>; all: Map<string, number> } {
+  const others = { ...f, conditions: { ...f.conditions, [id]: [] } }
+  const base = { ...f, severities: SEVERITIES, conditions: {} }
+  const shown = new Map<string, number>()
+  const every = new Map<string, number>()
+  for (const p of all) {
+    if (!matchesCollision(p, base)) continue
+    const group = conditionOf(p, id)
+    every.set(group, (every.get(group) ?? 0) + 1)
+    if (matchesCollision(p, others)) shown.set(group, (shown.get(group) ?? 0) + 1)
+  }
+  return { shown, all: every }
 }
 
 /** The same test as a map filter. */
@@ -80,9 +145,9 @@ export function countBySeverity(all: readonly CollisionProps[], f: CollisionFilt
 }
 
 /**
- * In the URL as `collisions=bike,foot;2019-2024;major,fatal;5` (the last part
- * is the fewest collisions a spot needs), each part left out when it is the
- * default.
+ * In the URL as `collisions=bike,foot;2019-2024;major,fatal;5;light:dark,dusk.impact:angle`
+ * (the fewest collisions a spot needs, then the circumstances picked), each
+ * part left out when it is the default.
  */
 export function formatCollisionFilters(f: CollisionFilters): string | null {
   const d = DEFAULT_COLLISION_FILTERS
@@ -92,13 +157,16 @@ export function formatCollisionFilters(f: CollisionFilters): string | null {
     f.from === d.from && f.to === d.to ? '' : `${f.from}-${f.to}`,
     same(f.severities, d.severities) ? '' : f.severities.join(','),
     f.minCount === d.minCount ? '' : String(f.minCount),
+    CONDITION_IDS.filter((id) => f.conditions[id]?.length)
+      .map((id) => `${id}:${f.conditions[id]?.join(',')}`)
+      .join('.'),
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
 
 export function parseCollisionFilters(text: string | undefined): CollisionFilters {
   const d = DEFAULT_COLLISION_FILTERS
-  const [partyText, yearText, severityText, minText] = (text ?? '').split(';')
+  const [partyText, yearText, severityText, minText, conditionText] = (text ?? '').split(';')
   const parties = (partyText ?? '')
     .split(',')
     .filter((v): v is CollisionParty => COLLISION_PARTIES.includes(v as never))
@@ -111,7 +179,20 @@ export function parseCollisionFilters(text: string | undefined): CollisionFilter
     ...years,
     severities: severities.length ? severities : d.severities,
     minCount: Number.isInteger(Number(minText)) && Number(minText) >= 1 ? Number(minText) : d.minCount,
+    conditions: parseConditions(conditionText),
   }
+}
+
+function parseConditions(text: string | undefined): CollisionFilters['conditions'] {
+  const conditions: CollisionFilters['conditions'] = {}
+  for (const part of (text ?? '').split('.')) {
+    const [id, values = ''] = part.split(':')
+    if (!CONDITION_IDS.includes(id as ConditionId)) continue
+    const known: readonly string[] = CONDITIONS[id as ConditionId]
+    const picked = values.split(',').filter((v) => known.includes(v))
+    if (picked.length) conditions[id as ConditionId] = picked
+  }
+  return conditions
 }
 
 /**

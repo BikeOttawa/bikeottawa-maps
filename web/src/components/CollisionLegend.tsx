@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import {
   COLLISION_PARTIES,
   COLLISION_YEARS,
+  type Collision,
   type CollisionFilters,
   type CollisionSpot,
   SEVERITIES,
@@ -9,10 +10,13 @@ import {
 } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
+import { CollisionConditions } from './CollisionConditions'
 
 interface Props {
   /** The spots shown, for the counts; null while they load. */
   spots: readonly CollisionSpot[] | null
+  /** Every collision, for the circumstances; null while they load. */
+  collisions: readonly Collision[] | null
   /** The most collisions at any one spot, for the slider's top. */
   busiestSpot: number
   filters: CollisionFilters
@@ -74,7 +78,7 @@ function YearRange({ from, to, onChange }: { from: number; to: number; onChange:
 }
 
 /** Who, which years and which injuries the collisions layer shows, with how many of each. */
-export function CollisionLegend({ spots, busiestSpot, filters, onChange, basemap }: Props) {
+export function CollisionLegend({ spots, collisions, busiestSpot, filters, onChange, basemap }: Props) {
   const { t, lang } = useI18n()
   // Collisions shown, by worst injury: those in the spots left on the map.
   const counts = useMemo(() => {
@@ -123,6 +127,7 @@ export function CollisionLegend({ spots, busiestSpot, filters, onChange, basemap
           </li>
         ))}
       </ul>
+      <CollisionConditions collisions={collisions} filters={filters} onChange={onChange} />
       <label className="collision-min">
         <span>
           {filters.minCount <= 1

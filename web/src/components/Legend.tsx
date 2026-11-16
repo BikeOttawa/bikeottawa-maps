@@ -1,4 +1,4 @@
-import type { CollisionFilters, CollisionSpot } from '../collisions'
+import type { Collision, CollisionFilters, CollisionSpot } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, type LayerId, LTS_COLORS, lampColor, WINTER_COLORS } from '../layers'
 import type { PathwayFilters, PathwayKm } from '../pathways'
@@ -11,6 +11,8 @@ interface Props {
   layer: LayerId
   /** The collision spots shown, null while they load; and the most collisions at any one. */
   collisionSpots: readonly CollisionSpot[] | null
+  /** Every collision, for the circumstances; null while they load. */
+  collisions: readonly Collision[] | null
   busiestSpot: number
   collisionFilters: CollisionFilters
   onCollisionFiltersChange: (filters: CollisionFilters) => void
@@ -30,6 +32,7 @@ export function Legend({
   placeKinds,
   onTogglePlaceKind,
   collisionSpots,
+  collisions,
   busiestSpot,
   collisionFilters,
   onCollisionFiltersChange,
@@ -87,6 +90,7 @@ export function Legend({
       {layer === 'collisions' && (
         <CollisionLegend
           spots={collisionSpots}
+          collisions={collisions}
           busiestSpot={busiestSpot}
           filters={collisionFilters}
           onChange={onCollisionFiltersChange}

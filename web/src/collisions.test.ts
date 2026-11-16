@@ -3,6 +3,8 @@ import {
   type CollisionProps,
   collisionLocation,
   collisionSpots,
+  conditionCounts,
+  conditionOf,
   countBySeverity,
   DEFAULT_COLLISION_FILTERS,
   formatCollisionFilters,
@@ -53,14 +55,46 @@ describe('collision filters in the URL', () => {
       to: 2024,
       severities: ['major', 'fatal'] as const,
       minCount: 5,
+      conditions: { light: ['dark', 'dusk'], impact: ['angle'] },
     }
     const text = formatCollisionFilters(f)
-    expect(text).toBe('bike,foot;2019-2024;major,fatal;5')
+    expect(text).toBe('bike,foot;2019-2024;major,fatal;5;light:dark,dusk.impact:angle')
     expect(parseCollisionFilters(text ?? undefined)).toEqual(f)
   })
   it('ignores junk', () => {
-    expect(parseCollisionFilters('cars;1990-3000;bad;-2')).toEqual(DEFAULT_COLLISION_FILTERS)
+    expect(parseCollisionFilters('cars;1990-3000;bad;-2;mood:grim.light:noon')).toEqual(DEFAULT_COLLISION_FILTERS)
     expect(parseCollisionFilters(';;;3').minCount).toBe(3)
+  })
+})
+
+describe('circumstances', () => {
+  const crash = (extra: Partial<CollisionProps>): CollisionProps => ({
+    id: '1',
+    year: 2020,
+    date: '2020-01-01',
+    severity: 'minor',
+    bicycles: 1,
+    pedestrians: 0,
+    vehicles: 1,
+    ...extra,
+  })
+  it("sorts the city's values into groups, the rare ones into other", () => {
+    expect(conditionOf(crash({ weather: 'Freezing Rain' }), 'weather')).toBe('snow')
+    expect(conditionOf(crash({ impact: 'SMV other' }), 'impact')).toBe('single')
+    expect(conditionOf(crash({ control: 'Roundabout' }), 'control')).toBe('other')
+    expect(conditionOf(crash({}), 'light')).toBe('other')
+  })
+  it('filters by the groups picked, and counts each circumstance without its own pick', () => {
+    const dark = crash({ light: 'Dark', weather: 'Rain' })
+    const day = crash({ light: 'Daylight', weather: 'Clear', severity: 'fatal' })
+    const f = { ...DEFAULT_COLLISION_FILTERS, conditions: { light: ['dark'] }, severities: ['minor'] as const }
+    expect(matchesCollision(dark, f)).toBe(true)
+    expect(matchesCollision(day, f)).toBe(false)
+    const light = conditionCounts([dark, day], f, 'light')
+    // Every light the minor ones were in, and every collision for comparison.
+    expect(Object.fromEntries(light.shown)).toEqual({ dark: 1 })
+    expect(Object.fromEntries(light.all)).toEqual({ dark: 1, day: 1 })
+    expect(Object.fromEntries(conditionCounts([dark, day], f, 'weather').shown)).toEqual({ rain: 1 })
   })
 })
 

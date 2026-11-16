@@ -1767,6 +1767,176 @@ a {
   font-weight: 600;
 }
 
+/* Circumstances: a split bar per circumstance, opened into a line per group. */
+.conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.conditions legend {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.condition-head {
+  display: grid;
+  grid-template-columns: 7.5em 1fr 12px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.condition-head:hover {
+  background: #f2f4f4;
+}
+
+.condition-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.condition-picked {
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The whole split in a line: 8px, 2px gaps between parts, rounded ends. */
+.condition-split {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.condition-split span {
+  min-width: 2px;
+}
+
+.condition-chevron {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.condition.open .condition-chevron {
+  transform: rotate(180deg);
+}
+
+.condition-groups {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.condition-group {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1.3fr) minmax(64px, 1fr) 34px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px 2px 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.condition-group:hover {
+  background: #f2f4f4;
+}
+
+.condition-group[aria-pressed="true"] {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.condition-group .swatch.line {
+  width: 14px;
+}
+
+.condition-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Share of the collisions shown, out of all of them; the tick is the share before any pick. */
+.condition-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #e8ecec;
+}
+
+.condition-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 3px;
+  border-radius: 4px;
+}
+
+.condition-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+
+/* Groups not picked step back once others are. */
+.condition-split .faded,
+.condition-group.faded .condition-fill,
+.condition-group.faded .swatch {
+  opacity: 0.3;
+}
+
+.condition-group .share {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.condition-all {
+  margin: 2px 0 0 6px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Stepping through the collisions recorded at one spot. */
 .card-step {
   display: flex;

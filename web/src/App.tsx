@@ -971,6 +971,7 @@ export function App() {
                   placeKinds={placeKinds}
                   onTogglePlaceKind={togglePlaceKind}
                   collisionSpots={spots}
+                  collisions={collisionData}
                   busiestSpot={busiestSpot}
                   collisionFilters={collisions}
                   onCollisionFiltersChange={changeCollisions}
