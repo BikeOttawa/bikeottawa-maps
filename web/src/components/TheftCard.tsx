@@ -11,7 +11,11 @@ interface Props {
   onClose: () => void
 }
 
-/** Details of the bikes taken near an intersection, from the police's records, one at a time. */
+/**
+ * An intersection and the bikes taken near it, from the police's records. The
+ * top is about the place: its name, a photo, what was taken there in all. A
+ * line below, the thefts themselves, one at a time.
+ */
 export function TheftCard({ items, at, onClose }: Props) {
   const { t, lang } = useI18n()
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
@@ -28,13 +32,22 @@ export function TheftCard({ items, at, onClose }: Props) {
   const money = (n: number) =>
     n.toLocaleString(locale, { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
   const total = items.reduce((sum, item) => sum + (item.value ?? 0), 0)
+  // The police put every theft here at the same intersection.
+  const place = p.place ? theftPlace(p.place) : (p.area ?? t('theft.title'))
+  const summary = [
+    count === 1 ? t('theft.oneHere') : t('theft.manyHere').replace('{count}', count.toLocaleString(locale)),
+    count > 1 && total ? t('theft.worth').replace('{value}', money(total)) : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
   // Several bikes taken at once differ only by these: "Trek FSX4 · grey".
   const colourNames = (p.colour ?? []).map((c) => label(`colour.${c}`)).filter((c): c is string => Boolean(c))
   // Dates are local days; read them as such, not as UTC midnight.
   const date = new Date(`${p.date}T12:00:00`).toLocaleDateString(locale, { dateStyle: 'long' })
   const hour =
     p.hour === undefined ? null : new Date(2000, 0, 1, p.hour).toLocaleTimeString(locale, { hour: 'numeric' })
-  const facts: { label: string; value: string | null; title?: string }[] = [
+  const facts: { label: string; value: string | null }[] = [
     { label: t('theftGroup.where'), value: label(`theft.where.${p.where}`) },
     { label: t('theft.when'), value: [label(`theft.time.${p.time}`), hour].filter(Boolean).join(', ') || null },
     {
@@ -48,50 +61,16 @@ export function TheftCard({ items, at, onClose }: Props) {
           .filter(Boolean)
           .join(' · ') || null,
     },
-    {
-      label: t('theftGroup.value'),
-      value: p.value ? money(p.value) : null,
-    },
-    {
-      // With several bikes taken here, what they come to.
-      label: t('theft.here'),
-      value:
-        count > 1
-          ? [
-              t('theft.bikesHere').replace('{count}', String(count)),
-              total ? t('theft.worth').replace('{value}', money(total)) : null,
-            ]
-              .filter(Boolean)
-              .join(', ')
-          : null,
-    },
-    {
-      label: t('theft.near'),
-      value: [p.place && theftPlace(p.place), p.area].filter(Boolean).join(', ') || null,
-      title: t('theft.nearHint'),
-    },
+    { label: t('theftGroup.value'), value: p.value ? money(p.value) : null },
   ]
 
   return (
     <section className="feature-card" aria-live="polite">
       <header>
         <div className="feature-title">
-          <h2>{t(p.recovered ? 'theft.title.recovered' : 'theft.title')}</h2>
-          <p>{date}</p>
+          <h2>{place}</h2>
+          {p.place && p.area && <p>{p.area}</p>}
         </div>
-        {count > 1 && (
-          <div className="card-step">
-            <button type="button" aria-label={t('theft.previous')} onClick={() => step(-1)}>
-              ‹
-            </button>
-            <span>
-              {index + 1} / {count}
-            </span>
-            <button type="button" aria-label={t('theft.next')} onClick={() => step(1)}>
-              ›
-            </button>
-          </div>
-        )}
         <button type="button" className="feature-close" aria-label={t('close')} onClick={onClose}>
           <svg
             aria-hidden="true"
@@ -108,11 +87,33 @@ export function TheftCard({ items, at, onClose }: Props) {
         </button>
       </header>
       <CardPhoto at={at} />
-      <dl>
+      <p className="theft-spot" title={t('theft.nearHint')}>
+        {summary}
+      </p>
+      <div className="theft-head">
+        <div className="feature-title">
+          <h3>{t(p.recovered ? 'theft.title.recovered' : 'theft.title')}</h3>
+          <p>{date}</p>
+        </div>
+        {count > 1 && (
+          <div className="card-step">
+            <button type="button" aria-label={t('theft.previous')} onClick={() => step(-1)}>
+              ‹
+            </button>
+            <span>
+              {index + 1} / {count}
+            </span>
+            <button type="button" aria-label={t('theft.next')} onClick={() => step(1)}>
+              ›
+            </button>
+          </div>
+        )}
+      </div>
+      <dl className="theft-facts">
         {facts
           .filter((fact) => fact.value)
           .map((fact) => (
-            <div key={fact.label} title={fact.title}>
+            <div key={fact.label}>
               <dt>{fact.label}</dt>
               <dd>{fact.value}</dd>
             </div>

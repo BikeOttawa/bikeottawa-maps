@@ -2205,3 +2205,28 @@ a {
 .osm-tags .footnote {
   margin-top: 6px;
 }
+
+/* Theft card: the intersection on top, a line, then the thefts one at a time. */
+.theft-spot {
+  margin: 0;
+  font-size: 13px;
+}
+
+.theft-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.theft-head h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.feature-card .theft-facts {
+  padding-top: 0;
+  border-top: 0;
+}
