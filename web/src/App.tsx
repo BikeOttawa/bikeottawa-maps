@@ -163,7 +163,6 @@ function writeUrl(state: UrlState): void {
 }
 
 const BASEMAP_KEY = 'basemap'
-const NIGHT_BASEMAP_KEY = 'basemap-night'
 
 /** The map style is a personal preference, so it is remembered per browser rather than put in links. */
 function storedBasemap(key: string, fallback: BasemapId): BasemapId {
@@ -188,6 +187,7 @@ const BIKE_LANES_KEY = 'bike-lanes'
 const BIKE_ROUTES_KEY = 'bike-routes'
 const WARDS_KEY = 'wards'
 const ROADWORK_KEY = 'roadwork'
+const LIGHTS_KEY = 'lights'
 const REACH_VIEW_KEY = 'reach-view'
 const ROUTE_VIEW_KEY = 'route-view'
 
@@ -241,6 +241,28 @@ function rememberRoadwork(on: boolean) {
   try {
     if (on) localStorage.setItem(ROADWORK_KEY, 'on')
     else localStorage.removeItem(ROADWORK_KEY)
+  } catch {
+    // Not remembered when storage is blocked.
+  }
+}
+
+/**
+ * The street lights overlay: off unless turned on, remembered per browser.
+ * Links to the night layer it replaced turn it on.
+ */
+function storedLights(): boolean {
+  if (parseHash(window.location.hash).layer === 'night') return true
+  try {
+    return localStorage.getItem(LIGHTS_KEY) === 'on'
+  } catch {
+    return false
+  }
+}
+
+function rememberLights(on: boolean) {
+  try {
+    if (on) localStorage.setItem(LIGHTS_KEY, 'on')
+    else localStorage.removeItem(LIGHTS_KEY)
   } catch {
     // Not remembered when storage is blocked.
   }
@@ -397,15 +419,14 @@ function useViaLabels(
 export function App() {
   const [lang, setLang] = useState<Lang>(initialLang)
   const [url, setUrl] = useState<UrlState>(readUrl)
-  const [dayBasemap, setDayBasemap] = useState<BasemapId>(() => storedBasemap(BASEMAP_KEY, 'light'))
-  // The night layer keeps a map style of its own: dark unless another is picked while it is on.
-  const [nightBasemap, setNightBasemap] = useState<BasemapId>(() => storedBasemap(NIGHT_BASEMAP_KEY, 'dark'))
+  const [basemap, setBasemap] = useState<BasemapId>(() => storedBasemap(BASEMAP_KEY, 'light'))
   const [bikeLanes, setBikeLanes] = useState(storedBikeLanes)
   // The pathways layer draws the paths itself: there the bike lanes start off, each time it is picked.
   const [pathwayBikeLanes, setPathwayBikeLanes] = useState(false)
   const [bikeRoutes, setBikeRoutes] = useState(storedBikeRoutes)
   const [wards, setWards] = useState(storedWards)
   const [roadwork, setRoadwork] = useState(storedRoadwork)
+  const [lights, setLights] = useState(storedLights)
   const [reachView, setReachView] = useState(storedReachView)
   const [routeView, setRouteView] = useState(storedRouteView)
   const [selected, setSelected] = useState<Selected | null>(null)
@@ -444,7 +465,6 @@ export function App() {
     minutes,
   } = url
   const profile = useMemo(() => profileFor(travel, style, custom, walkStyle), [travel, style, custom, walkStyle])
-  const basemap = layer === 'night' ? nightBasemap : dayBasemap
   // Not exploring: planning a route, or seeing how far you get.
   const routing = mode !== 'explore'
   // Both need a router; without one their page only says so.
@@ -489,8 +509,7 @@ export function App() {
 
   useEffect(() => writeUrl(url), [url])
 
-  useEffect(() => rememberBasemap(BASEMAP_KEY, dayBasemap), [dayBasemap])
-  useEffect(() => rememberBasemap(NIGHT_BASEMAP_KEY, nightBasemap), [nightBasemap])
+  useEffect(() => rememberBasemap(BASEMAP_KEY, basemap), [basemap])
   useEffect(() => rememberBikeLanes(bikeLanes), [bikeLanes])
   useEffect(() => {
     if (layer !== 'pathways') setPathwayBikeLanes(false)
@@ -498,6 +517,7 @@ export function App() {
   useEffect(() => rememberBikeRoutes(bikeRoutes), [bikeRoutes])
   useEffect(() => rememberWards(wards), [wards])
   useEffect(() => rememberRoadwork(roadwork), [roadwork])
+  useEffect(() => rememberLights(lights), [lights])
   useEffect(() => rememberReachView(reachView), [reachView])
   useEffect(() => rememberRouteView(routeView), [routeView])
 
@@ -799,6 +819,7 @@ export function App() {
       bikeLanes: lanes,
       bikeRoutes,
       wards,
+      lights,
       placeHighlight,
     }),
     [
@@ -822,6 +843,7 @@ export function App() {
       lanes,
       bikeRoutes,
       wards,
+      lights,
       placeHighlight,
     ],
   )
@@ -967,11 +989,12 @@ export function App() {
         state={styleState}
         onSelect={setSelected}
         popup={details && !phone ? details : null}
-        onBasemapChange={layer === 'night' ? setNightBasemap : setDayBasemap}
+        onBasemapChange={setBasemap}
         onBikeLanesChange={ownBikeLanes ? setPathwayBikeLanes : setBikeLanes}
         onBikeRoutesChange={changeBikeRoutes}
         onWardsChange={setWards}
         onRoadworkChange={setRoadwork}
+        onLightsChange={setLights}
         routing={mapRouting}
         reach={reachShape}
         found={routing ? null : (found?.lngLat ?? null)}

@@ -4,8 +4,16 @@ import grey from '../assets/basemaps/grey.webp'
 import light from '../assets/basemaps/light.webp'
 import satellite from '../assets/basemaps/satellite.webp'
 import { useI18n } from '../i18n'
-import { BASEMAP_IDS, type BasemapId, BIKEWAY_IDS, bikewayColors, ROUTE_LEVEL_IDS, routeBandColors } from '../layers'
-import { ConeIcon, LanesIcon, RoutesIcon, WardsIcon } from './OverlayIcons'
+import {
+  BASEMAP_IDS,
+  type BasemapId,
+  BIKEWAY_IDS,
+  bikewayColors,
+  lampColor,
+  ROUTE_LEVEL_IDS,
+  routeBandColors,
+} from '../layers'
+import { ConeIcon, LampIcon, LanesIcon, RoutesIcon, WardsIcon } from './OverlayIcons'
 
 /** A small picture of each map style, taken from the map itself. */
 const PREVIEWS: Record<BasemapId, string> = { light, grey, dark, satellite }
@@ -25,6 +33,9 @@ interface Props {
   /** Roadwork: the closures on the City's traffic map right now. */
   roadwork: boolean
   onRoadworkChange: (on: boolean) => void
+  /** Street lights: lit streets and paths, and the lamps. */
+  lights: boolean
+  onLightsChange: (on: boolean) => void
 }
 
 /** Map control: a button that opens the list of map styles. */
@@ -39,6 +50,8 @@ export function BasemapSwitch({
   onWardsChange,
   roadwork,
   onRoadworkChange,
+  lights,
+  onLightsChange,
 }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -124,6 +137,23 @@ export function BasemapSwitch({
             <ConeIcon />
             {t('roadwork')}
           </label>
+          <label className="check bike-lanes-toggle" title={t('lightsHint')}>
+            <input type="checkbox" checked={lights} onChange={(e) => onLightsChange(e.target.checked)} />
+            <LampIcon />
+            {t('lights')}
+          </label>
+          {lights && (
+            <ul className="bike-lanes-key">
+              <li>
+                <span className="swatch line glow" style={{ color: lampColor(basemap) }} />
+                {t('lights.street')}
+              </li>
+              <li>
+                <span className="swatch lamp" style={{ background: lampColor(basemap), color: lampColor(basemap) }} />
+                {t('lights.lamp')}
+              </li>
+            </ul>
+          )}
         </fieldset>
       )}
     </>

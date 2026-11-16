@@ -50,7 +50,7 @@ function litPart(tags: Record<string, string>): string {
 
 /**
  * As tagged; otherwise paved streets and their sidewalks are plowed, unpaved
- * ones unknown, and paths as the Winter layer has them: unpaved not plowed.
+ * ones unknown, and paths as the Pathways layer has them: unpaved not plowed.
  */
 function winterPart(tags: Record<string, string>): string {
   const service = tags.winter_service

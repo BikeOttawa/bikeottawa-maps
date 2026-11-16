@@ -210,8 +210,7 @@ export function classifyWay(tags) {
   pick(tags, ['name', 'service', 'footway', 'surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'], props)
   Object.assign(props, bikeway)
   if (pathway) Object.assign(props, pathwayProps(tags))
-  // Indoor walkways have no snow to plow, so they carry no winter status and
-  // stay off the winter layer.
+  // Indoor walkways have no snow to plow, so they carry no winter status.
   const isIndoor = tags.indoor !== undefined && tags.indoor !== 'no'
   if (isPath && !isIndoor) {
     // Without a tag saying otherwise, unpaved paths are taken to be left unplowed.
@@ -353,7 +352,7 @@ export function middleOf(coordinates) {
   return coordinates[Math.floor((coordinates.length - 1) / 2)]
 }
 
-/** Street lamps light the night layer; they carry no details of their own. */
+/** Street lamps, for the street lights overlay; they carry no details of their own. */
 export function isStreetLamp(tags) {
   return tags.highway === 'street_lamp'
 }

@@ -1,7 +1,7 @@
 // Reads `osmium export` output (one GeoJSON feature per line) and writes
-// ways, places, lamps, lit (lit ways, for the night layer) and routes (ways on
-// signed bike routes) .geojsonseq files ready for tippecanoe, routes.json, the
-// routes themselves, and pathways.json, km of pathway by surface and width.
+// ways, places, lamps, lit (lit ways, for the street lights overlay) and routes
+// (ways on signed bike routes) .geojsonseq files ready for tippecanoe, routes.json,
+// and comfort.json and pathways.json, the km of every combination of their bands.
 // Usage: node pipeline/transform.mjs <input.geojsonseq> <output-dir> [transit.opl] [routes.opl]
 
 import { once } from 'node:events'
@@ -63,7 +63,7 @@ async function write(stream, feature) {
   if (!stream.write(`${JSON.stringify(feature)}\n`)) await once(stream, 'drain')
 }
 
-/** Further out than this the night layer shows lit streets, not single lamps. */
+/** Further out than this the street lights show as lit streets, not single lamps. */
 const LAMPS_MINZOOM = 12
 
 const lines = () => createInterface({ input: createReadStream(input), crlfDelay: Infinity })

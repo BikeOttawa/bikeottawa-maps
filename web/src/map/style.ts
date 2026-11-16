@@ -18,7 +18,6 @@ import {
   constructionColors,
   INK,
   LAMP_COLOR,
-  LAMP_COLOR_ON_PALE,
   type LayerId,
   LTS_COLORS,
   pathwayColors,
@@ -27,6 +26,7 @@ import {
   type RouteLevelId,
   reachRamp,
   routeBandColors,
+  STREET_LIGHT_ON_PALE,
   theftColors,
   wardColors,
 } from '../layers'
@@ -111,6 +111,8 @@ export interface StyleState {
   bikeRoutes?: boolean
   /** Ottawa's wards and Gatineau's districts, with their councillors. */
   wards?: boolean
+  /** The street lights overlay: lit streets and paths, and the lamps. */
+  lights?: boolean
   /** Places of one kind picked out on the map: those within reach on How far. */
   placeHighlight?: { kind: PlaceKind; points: readonly [number, number][] } | null
 }
@@ -126,7 +128,6 @@ export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
   places: ['places-icon'],
-  night: [],
   collisions: ['collisions-point'],
   thefts: ['thefts-point'],
   construction: ['construction-point', 'construction-line'],
@@ -150,7 +151,7 @@ interface Theme {
   halo: string
   /** Aerial imagery under the labels instead of the drawn map. */
   imagery?: boolean
-  /** Colours of the night layer on this ground. */
+  /** Colours of the street lights on this ground. */
   lights: Lights
 }
 
@@ -176,16 +177,16 @@ const LIGHTS_ON_DARK: Lights = {
   ],
 }
 
-/** Pale ground would swallow that, so there the light is a deeper amber. */
+/** On pale ground a soft yellow, light enough to sit under the data lines. */
 const LIGHTS_ON_PALE: Lights = {
-  lamp: LAMP_COLOR_ON_PALE,
-  glow: '#F2A33A',
+  lamp: STREET_LIGHT_ON_PALE,
+  glow: '#FFD047',
   heat: [
-    'rgba(242, 163, 58, 0)',
-    'rgba(242, 163, 58, 0.3)',
-    'rgba(232, 135, 20, 0.65)',
-    'rgba(217, 115, 13, 0.85)',
-    'rgba(190, 90, 5, 0.95)',
+    'rgba(255, 208, 71, 0)',
+    'rgba(255, 208, 71, 0.18)',
+    'rgba(255, 200, 50, 0.32)',
+    'rgba(250, 188, 30, 0.45)',
+    'rgba(240, 175, 10, 0.55)',
   ],
 }
 
@@ -253,7 +254,7 @@ const THEMES: Record<BasemapId, Theme> = {
   },
 }
 
-/** The dark map as the night layer shows it: near black, so the street lights carry the picture. */
+/** The dark map with the street lights on: near black, so the lights carry the picture. */
 const NIGHT_THEME: Theme = {
   flavor: plain({
     ...namedFlavor('black'),
@@ -752,9 +753,16 @@ const LAMPS_FROM = 12.5
 /**
  * The city by its street lights. Zoomed out, streets with lamps along them glow
  * as lines; zooming in, the lines fade and the lamps themselves take over, first
- * as a blur and from zoom 14 as dots too.
+ * as a blur and from zoom 14 as dots too. The glow goes under the data lines, so
+ * a lit way shows as a halo around its colour; the lamp dots go over them.
  */
-const nightLayers = ({ lights }: Theme): LayerSpecification[] => [
+function lightLayers(state: StyleState, theme: Theme): { under: LayerSpecification[]; over: LayerSpecification[] } {
+  if (!state.lights || state.reach) return { under: [], over: [] }
+  const layers = streetLightLayers(theme)
+  return { under: layers.filter((l) => l.id !== 'night-lamps'), over: layers.filter((l) => l.id === 'night-lamps') }
+}
+
+const streetLightLayers = ({ lights }: Theme): LayerSpecification[] => [
   {
     id: 'night-streets-glow',
     type: 'line',
@@ -1296,12 +1304,12 @@ function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
  * styles, so switching layer, language or selection only touches what changed.
  */
 export function buildStyle(state: StyleState, assetsBase: string): StyleSpecification {
-  const night = state.layer === 'night'
   const collisions = collisionLayers(state)
   const thefts = theftLayers(state)
   const construction = constructionLayers(state)
-  const theme = night && state.basemap === 'dark' ? NIGHT_THEME : THEMES[state.basemap]
+  const theme = state.lights && state.basemap === 'dark' ? NIGHT_THEME : THEMES[state.basemap]
   const wards = wardLayers(state, theme)
+  const lights = lightLayers(state, theme)
   const drawn = basemapLayers('basemap', theme.flavor, { lang: state.lang, labelsOnly: theme.imagery })
   const base: LayerSpecification[] = theme.imagery
     ? [{ id: 'imagery', type: 'raster', source: 'imagery' }, ...drawn]
@@ -1337,8 +1345,10 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(loadsPlaces(state) && {
         [PLACES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/places.pmtiles` },
       }),
-      // Loaded only while the night layer is on.
-      ...(night && { night: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/night.pmtiles` } }),
+      // Loaded only while the street lights overlay is on.
+      ...(lights.under.length && {
+        night: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/night.pmtiles` },
+      }),
       route: {
         type: 'geojson',
         data: routeData(state.route, state.routeView ?? 'comfort'),
@@ -1394,11 +1404,12 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
     },
     layers: [
       ...base.slice(0, at),
+      ...lights.under,
       ...routeBandLayers(state),
       ...bikeLaneLayers(state),
       ...overlayLayers(state, theme),
       ...wards.lines,
-      ...(night && !state.reach ? nightLayers(theme) : []),
+      ...lights.over,
       ...reachLayers(state.reach, state.basemap),
       ...collisions.under,
       ...thefts.under,

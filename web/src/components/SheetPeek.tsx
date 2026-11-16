@@ -2,15 +2,7 @@ import type { ReactNode } from 'react'
 import type { CollisionFilters, CollisionSpot } from '../collisions'
 import { CONSTRUCTION_TIMINGS } from '../construction'
 import { useI18n } from '../i18n'
-import {
-  type BasemapId,
-  constructionColors,
-  type LayerId,
-  LTS_COLORS,
-  lampColor,
-  pathwaySetColors,
-  reachRamp,
-} from '../layers'
+import { type BasemapId, constructionColors, type LayerId, LTS_COLORS, pathwaySetColors, reachRamp } from '../layers'
 import { colorBy, PATHWAY_GROUPS, type PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
 import { distanceByPart, partLook, ROUTE_PARTS, type RouteView } from '../route/breakdown'
@@ -35,19 +27,8 @@ function Bar({ parts }: { parts: [color: string, size: number][] }) {
   )
 }
 
-function Swatch({
-  color,
-  dashed = false,
-  dot = false,
-  glow = false,
-}: {
-  color: string
-  dashed?: boolean
-  dot?: boolean
-  glow?: boolean
-}) {
-  const className = `swatch ${dot ? 'lamp' : 'line'} ${dashed ? 'dashed' : ''} ${glow ? 'glow' : ''}`
-  return <span className={className} style={{ color, background: dashed ? undefined : color }} />
+function Swatch({ color }: { color: string }) {
+  return <span className="swatch line" style={{ background: color }} />
 }
 
 interface LayerProps {
@@ -101,21 +82,6 @@ export function LayerPeek({
         <span>{t('peek.highStress')}</span>
       </>
     )
-  if (layer === 'night') {
-    const lamp = lampColor(basemap)
-    return (
-      <>
-        <span className="peek-item">
-          <Swatch color={lamp} glow />
-          {t('night.street')}
-        </span>
-        <span className="peek-item">
-          <Swatch color={lamp} dot />
-          {t('night.lamp')}
-        </span>
-      </>
-    )
-  }
   if (layer === 'collisions') {
     if (!collisionSpots) return null
     const { from, to, severities } = collisionFilters

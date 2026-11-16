@@ -58,7 +58,7 @@ tippecanoe --force --quiet -o "$OUT/routes.pmtiles" \
   --name "Bike Ottawa routes" --attribution "© OpenStreetMap contributors" \
   -L "routes:$WORK/routes.geojsonseq"
 
-# The night layer, in a file of its own so it only loads when that layer is on:
+# The street lights overlay, in a file of its own so it only loads when it is on:
 # every lit way from zoom 9, and the street lamps themselves from zoom 12.
 tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
   -Z9 -z14 -r1 --read-parallel --coalesce --reorder --no-tile-size-limit \

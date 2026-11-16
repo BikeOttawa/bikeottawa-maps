@@ -73,7 +73,7 @@ describe('buildStyle', () => {
     expect(sources('places')).toContain('places')
     // With no kind ticked there is nothing to draw, so nothing to load.
     expect(Object.keys(build({ layer: 'places', placeKinds: [] }).sources)).not.toContain('places')
-    for (const other of ['places', 'night', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
+    for (const other of ['places', 'collisions'] as const) expect(sources(other)).not.toContain('overlays')
   })
 
   it('colours pathways by the open row, surface at first, unknown ones on top, and filters them by the picks', () => {
@@ -210,8 +210,8 @@ describe('buildStyle', () => {
     expect(layer(picked, 'route-highlight').filter).toEqual(['==', ['get', 'part'], 'light'])
   })
 
-  it('lights the street lamps for the night layer', () => {
-    const night = build({ layer: 'night', basemap: 'dark' })
+  it('lights the street lamps with the street lights overlay, the glow under the data lines', () => {
+    const night = build({ layer: 'comfort', lights: true, basemap: 'dark' })
     expect(night.sources.night).toMatchObject({ type: 'vector' })
     expect(night.layers.find((l) => l.id === 'night-glow')).toMatchObject({ type: 'heatmap', 'source-layer': 'lamps' })
     expect(night.layers.find((l) => l.id === 'night-streets')).toMatchObject({
@@ -220,15 +220,18 @@ describe('buildStyle', () => {
       'source-layer': 'streets',
     })
     expect(night.layers.find((l) => l.id === 'night-lamps')).toMatchObject({ type: 'circle', minzoom: 14 })
-    // Other layers neither load the lamps nor draw them.
+    const at = (id: string) => night.layers.findIndex((l) => l.id === id)
+    expect(at('night-streets')).toBeLessThan(at('comfort-line'))
+    expect(at('night-lamps')).toBeGreaterThan(at('comfort-line'))
+    // Off, the lamps are neither loaded nor drawn.
     const day = build({ layer: 'comfort' })
     expect(day.sources.night).toBeUndefined()
     expect(day.layers.some((l) => l.id.startsWith('night-'))).toBe(false)
   })
 
-  it('draws the night layer on whichever basemap is chosen', () => {
+  it('draws the street lights on whichever basemap is chosen', () => {
     const colorOf = (basemap: 'light' | 'dark' | 'satellite') => {
-      const style = build({ layer: 'night', basemap })
+      const style = build({ layer: 'places', lights: true, basemap })
       const streets = style.layers.find((l) => l.id === 'night-streets')
       return { style, color: streets?.type === 'line' ? streets.paint?.['line-color'] : undefined }
     }

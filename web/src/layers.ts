@@ -2,7 +2,7 @@
 
 import type { KnownSurfaceId, PathwaySet, WidthBand } from './pathways'
 
-export const LAYER_IDS = ['places', 'pathways', 'comfort', 'night', 'collisions', 'thefts', 'construction'] as const
+export const LAYER_IDS = ['places', 'pathways', 'comfort', 'collisions', 'thefts', 'construction'] as const
 export type LayerId = (typeof LAYER_IDS)[number]
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
@@ -20,12 +20,19 @@ export const LTS_COLORS = ['#1B5FAE', '#62B0E8', '#F2A33A', '#B5341F'] as const
 /** Where cycling is not permitted, e.g. a sidewalk on a route. */
 export const NO_BIKES_COLOR = '#8A949A'
 
-/** Street light, for the night layer: soft warm white (LED) on dark ground, a deeper amber where the ground is pale. */
-export const LAMP_COLOR = '#FFF0D2'
+/** Lit, as data (the route card, the lighting filters): a deep amber on pale ground. */
 export const LAMP_COLOR_ON_PALE = '#D9730D'
 
+/**
+ * The street lights overlay: soft warm white (LED) on dark ground; on pale
+ * ground a light yellow, soft enough to sit under the data layers and apart
+ * from the comfort layer's amber.
+ */
+export const LAMP_COLOR = '#FFF0D2'
+export const STREET_LIGHT_ON_PALE = '#E6A800'
+
 export function lampColor(basemap: BasemapId): string {
-  return basemap === 'light' || basemap === 'grey' ? LAMP_COLOR_ON_PALE : LAMP_COLOR
+  return basemap === 'light' || basemap === 'grey' ? STREET_LIGHT_ON_PALE : LAMP_COLOR
 }
 
 /**

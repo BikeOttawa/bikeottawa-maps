@@ -2,7 +2,7 @@ import type { Collision, CollisionFilters, CollisionSpot } from '../collisions'
 import type { ComfortFilters, ComfortTotals } from '../comfort'
 import type { ConstructionFilters, ConstructionProps } from '../construction'
 import { useI18n } from '../i18n'
-import { type BasemapId, type LayerId, lampColor } from '../layers'
+import type { BasemapId, LayerId } from '../layers'
 import type { PathwayFilters, PathwayTotals } from '../pathways'
 import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
 import type { Theft, TheftFilters, TheftSpot } from '../thefts'
@@ -40,7 +40,7 @@ interface Props {
   onPathwayFiltersChange: (filters: PathwayFilters) => void
   /** Km of pathway by every combination of bands, from the pipeline; null when not known. */
   pathwayTotals: PathwayTotals | null
-  /** The night layer's colours depend on the ground they are drawn on. */
+  /** Some layers' colours depend on the ground they are drawn on. */
   basemap: BasemapId
   placeKinds: readonly PlaceKind[]
   onTogglePlaceKind: (kind: PlaceKind) => void
@@ -72,7 +72,6 @@ export function Legend({
   pathwayTotals,
 }: Props) {
   const { t } = useI18n()
-  const lamp = lampColor(basemap)
   return (
     <section className="legend" aria-label={t('legend')}>
       <h2 className="eyebrow">{t('legend')}</h2>
@@ -87,18 +86,6 @@ export function Legend({
           totals={pathwayTotals}
           basemap={basemap}
         />
-      )}
-      {layer === 'night' && (
-        <ul>
-          <li>
-            <span className="swatch line glow" style={{ background: lamp, color: lamp }} />
-            {t('night.street')}
-          </li>
-          <li>
-            <span className="swatch lamp" style={{ background: lamp, color: lamp }} />
-            {t('night.lamp')}
-          </li>
-        </ul>
       )}
       {layer === 'collisions' && (
         <CollisionLegend

@@ -62,6 +62,7 @@ interface Props {
   onBikeRoutesChange: (on: boolean) => void
   onWardsChange: (on: boolean) => void
   onRoadworkChange: (on: boolean) => void
+  onLightsChange: (on: boolean) => void
   /** Details of the selection, shown in a popup beside it. Null where they go elsewhere (phones). */
   popup: ReactNode | null
   /** How far you get, drawn when the style has a reach source. */
@@ -136,6 +137,7 @@ export function MapView({
   onBikeRoutesChange,
   onWardsChange,
   onRoadworkChange,
+  onLightsChange,
   popup,
   reach,
   found,
@@ -598,6 +600,8 @@ export function MapView({
             onWardsChange={onWardsChange}
             roadwork={Boolean(state.roadwork)}
             onRoadworkChange={onRoadworkChange}
+            lights={Boolean(state.lights)}
+            onLightsChange={onLightsChange}
           />,
           styleControl,
         )}

@@ -1,4 +1,4 @@
-import { bikewayColors, ROUTE_COLORS, routeBandColors, wardColors } from '../layers'
+import { bikewayColors, LAMP_COLOR_ON_PALE, ROUTE_COLORS, routeBandColors, wardColors } from '../layers'
 import { BARRICADE, CONE, CONSTRUCTION_DARK, CONSTRUCTION_ORANGE } from '../map/closureImage'
 
 /** Roadwork: a traffic cone, as the map draws each closure. */
@@ -26,6 +26,23 @@ export function BarricadeIcon({ size = 18 }: { size?: number }) {
         <polygon key={points[0][0]} points={points.join(' ')} fill={CONSTRUCTION_ORANGE} />
       ))}
       <rect {...board} fill="none" stroke={CONSTRUCTION_DARK} strokeWidth="1" />
+    </svg>
+  )
+}
+
+/** Street lights: a lamp on its post, its light spreading below. */
+export function LampIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" strokeLinecap="round">
+      <path d="M12 9.5 17.5 21h-11Z" fill={LAMP_COLOR_ON_PALE} fillOpacity="0.25" />
+      <path d="M5 21V5.5A2.5 2.5 0 0 1 7.5 3H12v3" stroke="#34404A" strokeWidth="2" />
+      <path
+        d="M9.5 6.5h5L12 9.5Z"
+        fill={LAMP_COLOR_ON_PALE}
+        stroke={LAMP_COLOR_ON_PALE}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
