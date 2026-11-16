@@ -14,6 +14,7 @@ The site installs as an app on phones and desktops (`vite-plugin-pwa` in `web/vi
 | `pipeline/`   | Builds the map tiles from OSM extracts (osmium, [stressmodel](https://github.com/BikeOttawa/stressmodel), tippecanoe) and fetches collisions and wards |
 | `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region |
 | `docker/`     | nginx config for the site image                                                                                                                       |
+| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                       |
 | `region.json` | Area covered and the OSM extracts to use                                                                                                              |
 
 ## Getting started
@@ -113,6 +114,8 @@ Elevation comes from NRCan's [MRDEM-30](https://datacube.services.geo.ca/stac/ap
 Cards for places and streets show street-level photos from [Mapillary](https://www.mapillary.com): a place's own photo when its OSM `mapillary` tag names one, then the photos taken nearby (the closest of each capture run), which the larger view steps through. They need a Mapillary client token in `VITE_MAPILLARY_TOKEN` (for local work, in `web/.env.development.local`, which git ignores); without one, cards link to the photo instead. Places also show the Fotoshi photos their `image:fotoshi` tag names (no key needed), and their `image` tag when it is a picture. Photos are only requested once a card is open.
 
 ## Deployment
+
+[docs/deployment.md](docs/deployment.md) explains step by step how to run it on one machine, or the site on GitHub Pages and the router on Google Cloud Run, and how to move it to maps.bikeottawa.ca.
 
 The `Deploy` workflow runs on every push to `main`, on `v*` tags and nightly. Each job brings the OSM data up to date (the file is carried between runs in the Actions cache).
 
