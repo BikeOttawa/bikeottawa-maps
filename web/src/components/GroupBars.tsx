@@ -80,13 +80,18 @@ export function Lines({
           </li>
         )
       })}
-      {picked.length > 0 && (
-        <li>
-          <button type="button" className="condition-all" onClick={onAll}>
-            {t('crash.showAll')}
-          </button>
-        </li>
-      )}
+      {/* Always there, hidden until something is picked, so picking moves nothing below. */}
+      <li>
+        <button
+          type="button"
+          className="condition-all"
+          onClick={onAll}
+          disabled={!picked.length}
+          style={picked.length ? undefined : { visibility: 'hidden' }}
+        >
+          {t('crash.showAll')}
+        </button>
+      </li>
     </ul>
   )
 }
@@ -153,7 +158,8 @@ export function GroupRow({
       <button type="button" className="condition-head" aria-expanded={open} onClick={onToggle}>
         <span className="condition-name">
           {name}
-          {picked.length > 0 && <span className="condition-picked">{picked.map(label).join(', ')}</span>}
+          {/* A line kept for what is picked, so the row does not grow when something is. */}
+          <span className="condition-picked">{picked.map(label).join(', ')}</span>
         </span>
         <span className="condition-split" aria-hidden="true">
           {present

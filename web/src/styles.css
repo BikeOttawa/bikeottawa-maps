@@ -1864,14 +1864,15 @@ a {
   font-weight: 600;
 }
 
+/* The name on its line, what is picked on one kept below it: picking moves nothing. */
 .condition-head {
   display: grid;
   grid-template-columns: 7.5em 1fr 12px;
-  align-items: center;
+  align-items: start;
   gap: 10px;
   width: 100%;
   min-height: 34px;
-  padding: 4px 2px;
+  padding: 2px;
   border: 0;
   border-radius: 6px;
   background: none;
@@ -1890,9 +1891,12 @@ a {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  line-height: 16px;
 }
 
 .condition-picked {
+  height: 14px;
+  line-height: 14px;
   overflow: hidden;
   color: var(--accent);
   font-size: 12px;
@@ -1906,6 +1910,7 @@ a {
   display: flex;
   gap: 2px;
   height: 8px;
+  margin-top: 4px;
   overflow: hidden;
   border-radius: 4px;
 }
@@ -1915,6 +1920,7 @@ a {
 }
 
 .condition-chevron {
+  margin-top: 2px;
   color: var(--muted);
   transition: transform 0.15s;
 }
