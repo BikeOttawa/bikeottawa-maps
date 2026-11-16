@@ -2,14 +2,14 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { bikeBand, comfortBands, comfortTotals, laneBand, speedBand, surfaceBand, typeBand } from './comfort.mjs'
 
-test('bands speed limits, untagged as unknown, none on paths', () => {
+test('bands speed limits, untagged as unknown, paths as 30 or less', () => {
   assert.equal(speedBand({ kind: 'street', maxspeed: '30' }), '30')
   assert.equal(speedBand({ kind: 'street', maxspeed: '40 km/h' }), '40')
   assert.equal(speedBand({ kind: 'street', maxspeed: '50' }), '50')
   assert.equal(speedBand({ kind: 'street', maxspeed: '80' }), '70')
   assert.equal(speedBand({ kind: 'street' }), 'unknown')
   assert.equal(speedBand({ kind: 'street', maxspeed: 'CA:ON:urban' }), 'unknown')
-  assert.equal(speedBand({ kind: 'path' }), undefined)
+  assert.equal(speedBand({ kind: 'path' }), '30')
 })
 
 test('bands lanes each way', () => {
@@ -48,6 +48,7 @@ test('sorts bike infrastructure and surface', () => {
   assert.equal(surfaceBand({ kind: 'path' }), 'unknown')
   assert.deepEqual(comfortBands({ kind: 'path', highway: 'cycleway', surface: 'asphalt' }), {
     type_band: 'path',
+    speed_band: '30',
     bike_band: 'path',
     surface_band: 'paved',
   })

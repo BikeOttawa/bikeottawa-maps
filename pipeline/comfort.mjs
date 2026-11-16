@@ -9,9 +9,9 @@ const number = (text) => {
   return Number.isFinite(n) ? n : null
 }
 
-/** Speed limit, km/h: up to 30, 40, 50, 60, or 70 and up; unknown when not tagged. Paths have none. */
+/** Speed limit, km/h: up to 30, 40, 50, 60, or 70 and up; unknown when not tagged. A path, with no cars, is up to 30. */
 export function speedBand(props) {
-  if (props.kind === 'path') return undefined
+  if (props.kind === 'path') return '30'
   const speed = number(props.maxspeed)
   if (speed === null) return 'unknown'
   if (speed <= 30) return '30'
@@ -106,7 +106,7 @@ export const COMFORT_SETS = ['stress', 'type', 'speed', 'lanes', 'bikeway', 'sur
 /**
  * Km of the comfort layer for each combination of bands: few enough rows (a
  * few hundred) for the legend to count any choice of filters from. A path's
- * speed and lanes are `-`.
+ * lanes are `-`.
  */
 export function comfortTotals() {
   const metres = new Map()

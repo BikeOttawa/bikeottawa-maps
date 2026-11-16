@@ -300,7 +300,7 @@ const en = {
   'comfort.surface.paved': 'Paved',
   'comfort.surface.unpaved': 'Gravel or dirt',
   'comfort.hint':
-    'Tap a line to show only those streets. The thin mark is how it stands before anything else is picked. Speed and lanes leave pathways out.',
+    'Tap a line to show only those streets. The thin mark is how it stands before anything else is picked. Pathways count as 30 km/h or less; picking lanes leaves them out.',
   'comfort.shown': '{km} shown',
   'lts.1': 'Comfortable for everyone',
   'lts.2': 'Fine for most adults',
@@ -855,7 +855,7 @@ const fr: Record<keyof typeof en, string> = {
   'comfort.surface.paved': 'Pavé',
   'comfort.surface.unpaved': 'Gravier ou terre',
   'comfort.hint':
-    'Touchez une ligne pour ne montrer que ces rues. Le trait fin : où elle en est avant tout autre choix. La vitesse et les voies laissent de côté les sentiers.',
+    'Touchez une ligne pour ne montrer que ces rues. Le trait fin : où elle en est avant tout autre choix. Les sentiers comptent comme 30 km/h ou moins; choisir des voies les laisse de côté.',
   'comfort.shown': '{km} montrés',
   'lts.1': 'Confortable pour tous',
   'lts.2': 'Convient à la plupart des adultes',
