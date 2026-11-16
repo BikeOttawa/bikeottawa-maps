@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
-import { CLOSURES_URL, type Closure, parseClosures } from './construction'
+import { REGION } from './config'
+import { CLOSURES_URL, type Closure, parseClosures, parseQuebecRoadwork, quebecRoadworkUrl } from './construction'
 import type { Lang } from './i18n'
 
+async function fetchJson(url: string, signal: AbortSignal): Promise<unknown> {
+  const res = await fetch(url, { signal })
+  if (!res.ok) throw new Error(`${res.status}`)
+  return res.json()
+}
+
 /**
- * The closures on the City's traffic map right now, in the language shown:
- * fetched when the construction layer first shows them, kept after that.
- * Null until they arrive, or if the City's map does not answer.
+ * The closures right now, in the language shown: the City of Ottawa's traffic
+ * map and Quebec's roadwork on its roads in the map's area, fetched when the
+ * roadwork overlay is first on and kept after that. Either source failing
+ * leaves the other's. Null until they answer.
  */
 export function useClosures(enabled: boolean, lang: Lang): readonly Closure[] | null {
   const [byLang, setByLang] = useState<Partial<Record<Lang, readonly Closure[]>>>({})
@@ -13,10 +21,18 @@ export function useClosures(enabled: boolean, lang: Lang): readonly Closure[] | 
   useEffect(() => {
     if (!enabled || closures) return
     const controller = new AbortController()
-    fetch(`${CLOSURES_URL}?accept-language=${lang}`, { signal: controller.signal })
-      .then((res) => res.json())
-      .then((json) => setByLang((known) => ({ ...known, [lang]: parseClosures(json) })))
-      .catch(() => {})
+    Promise.allSettled([
+      fetchJson(`${CLOSURES_URL}?accept-language=${lang}`, controller.signal).then((json) =>
+        parseClosures(json as Parameters<typeof parseClosures>[0]),
+      ),
+      fetchJson(quebecRoadworkUrl(REGION.bbox), controller.signal).then((json) =>
+        parseQuebecRoadwork(json as Parameters<typeof parseQuebecRoadwork>[0], lang),
+      ),
+    ]).then((results) => {
+      if (controller.signal.aborted) return
+      const found = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+      setByLang((known) => ({ ...known, [lang]: found }))
+    })
     return () => controller.abort()
   }, [enabled, lang, closures])
   return closures ?? null

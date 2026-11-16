@@ -6,6 +6,8 @@ import {
   formatConstructionFilters,
   parseClosures,
   parseConstructionFilters,
+  parseQuebecRoadwork,
+  quebecRoadworkUrl,
 } from './construction'
 
 describe('construction', () => {
@@ -56,7 +58,7 @@ describe('construction', () => {
     })
     expect(closures).toEqual([
       {
-        id: 1,
+        id: 'ottawa-1',
         at: [-75.750756, 45.387277],
         headline: 'Clare E/B between Churchill and Kirkwood',
         message: 'Clare eastbound closed.',
@@ -66,5 +68,47 @@ describe('construction', () => {
         source: 'CITY',
       },
     ])
+  })
+
+  it("reads Quebec's roadwork: the work as the title, the rest as text, a cone mid-stretch", () => {
+    const json = {
+      features: [
+        {
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: [
+              [-75.7, 45.43],
+              [-75.71, 45.44],
+              [-75.72, 45.45],
+            ],
+          },
+          properties: {
+            identifiant: '169869',
+            descriptionFrancais: 'Réfection de structures\nSur le pont Macdonald-Cartier\nDétour A-50',
+            descriptionAnglais: 'Structure repairs\nOn the Macdonald-Cartier Bridge\nDetour A-50',
+            detoursEtItinerairesFacultatifs: ' A-50 ',
+            debut: '2026/08/07 21:00:00',
+            fin: '2026/11/30 05:00:00',
+          },
+        },
+        { geometry: null, properties: { identifiant: '2' } },
+      ],
+    }
+    const [work, ...rest] = parseQuebecRoadwork(json, 'en')
+    expect(rest).toEqual([])
+    expect(work).toMatchObject({
+      id: 'quebec-169869',
+      headline: 'Structure repairs',
+      message: 'On the Macdonald-Cartier Bridge\nDetour A-50',
+      start: '2026-08-07T21:00',
+      end: '2026-11-30T05:00',
+      source: 'QUEBEC',
+    })
+    // The cone halfway along the stretch.
+    expect(work.at[0]).toBeCloseTo(-75.71)
+    expect(work.at[1]).toBeCloseTo(45.44)
+    // French gives the detour apart, as well as in its text.
+    expect(parseQuebecRoadwork(json, 'fr')[0]).toMatchObject({ headline: 'Réfection de structures', detour: 'A-50' })
+    expect(quebecRoadworkUrl([-76, 45, -75, 46])).toContain('bbox=45,-76,46,-75,urn:ogc:def:crs:EPSG::4326')
   })
 })

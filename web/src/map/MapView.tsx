@@ -229,7 +229,10 @@ export function MapView({
       if (!feature) return null
       if (feature.layer.id === 'closures-icon' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
-        return { kind: 'closure', id: Number(feature.properties.id), at: [x, y] }
+        return { kind: 'closure', id: String(feature.properties.id), at: [x, y] }
+      }
+      if (feature.layer.id === 'closures-line') {
+        return { kind: 'closure', id: String(feature.properties.id), at: [lngLat.lng, lngLat.lat] }
       }
       if (feature.layer.id === 'construction-line' || feature.layer.id === 'construction-point') {
         // A point project is anchored at itself, a line where it was clicked.

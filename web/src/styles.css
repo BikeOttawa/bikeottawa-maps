@@ -2282,6 +2282,8 @@ a {
   margin: 0;
   font-size: 13px;
   line-height: 1.4;
+  /* Quebec's descriptions put the place, the way and the detour on lines of their own. */
+  white-space: pre-line;
 }
 
 .construction-dot {

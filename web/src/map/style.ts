@@ -34,7 +34,7 @@ import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { VALUE_STEPS } from '../thefts'
-import { CLOSURE_IMAGE } from './closureImage'
+import { CLOSURE_IMAGE, CONSTRUCTION_ORANGE } from './closureImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -54,7 +54,7 @@ export type Selected =
   /** A project on the construction layer, with its properties. */
   | { kind: 'construction'; props: Record<string, unknown>; at: [number, number] }
   /** A closure on the construction layer, by its id on the City's traffic map. */
-  | { kind: 'closure'; id: number; at: [number, number] }
+  | { kind: 'closure'; id: string; at: [number, number] }
   /**
    * A way on the bike routes overlay: the routes it is directly on (relation
    * ids, best first) and the one picked out on the map, which may be a route
@@ -109,7 +109,7 @@ export interface StyleState {
 export const ROUTE_LAYERS = ['routes-band']
 
 /** Layers of the roadwork overlay a click can hit, over those of the data layer. */
-export const ROADWORK_LAYERS = ['closures-icon']
+export const ROADWORK_LAYERS = ['closures-icon', 'closures-line']
 
 /** Layers a click can hit, per data layer. */
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
@@ -929,7 +929,7 @@ const COLLISIONS_ATTRIBUTION =
 export const CONSTRUCTION_SOURCE = 'construction'
 export const CLOSURES_SOURCE = 'closures'
 const CLOSURES_ATTRIBUTION =
-  'Roadwork: <a href="https://traffic.ottawa.ca/map/" target="_blank" rel="noopener">City of Ottawa traffic map</a>'
+  'Roadwork: <a href="https://traffic.ottawa.ca/map/" target="_blank" rel="noopener">City of Ottawa</a>, <a href="https://www.quebec511.info" target="_blank" rel="noopener">Québec 511</a>'
 const CONSTRUCTION_ATTRIBUTION =
   'Construction: <a href="https://ottawa.ca/en/parking-roads-and-travel/road-construction-and-maintenance" target="_blank" rel="noopener">City of Ottawa</a>'
 export const THEFTS_SOURCE = 'thefts'
@@ -1210,11 +1210,39 @@ function constructionLayers(state: StyleState): { under: LayerSpecification[]; o
 /** The roadwork overlay: a cone at each closure on the City's traffic map, over any layer. */
 function roadworkLayers(state: StyleState): LayerSpecification[] {
   if (!state.roadwork) return []
+  const lines: FilterSpecification = ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString']]]
+  const width = (low: number, high: number): ExpressionSpecification => [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    10,
+    low,
+    16,
+    high,
+  ]
   return [
+    // A stretch of roadwork, where the source gives one: orange stripes on white, like a barrier.
+    {
+      id: 'closures-casing',
+      type: 'line',
+      source: CLOSURES_SOURCE,
+      filter: lines,
+      layout: { 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': width(5, 11) },
+    },
+    {
+      id: 'closures-line',
+      type: 'line',
+      source: CLOSURES_SOURCE,
+      filter: lines,
+      layout: { 'line-join': 'round' },
+      paint: { 'line-color': CONSTRUCTION_ORANGE, 'line-width': width(3, 7), 'line-dasharray': [1.5, 1] },
+    },
     {
       id: 'closures-icon',
       type: 'symbol',
       source: CLOSURES_SOURCE,
+      filter: ['==', ['geometry-type'], 'Point'],
       layout: {
         'icon-image': CLOSURE_IMAGE,
         'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.75, 15, 1.05],

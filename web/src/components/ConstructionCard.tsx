@@ -48,6 +48,7 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
     const when = start && end ? format.formatRange(start, end) : start ? format.format(start) : null
     const facts = [
       { label: t('construction.lanes'), value: closure.lanes ?? null },
+      { label: t('construction.detour'), value: closure.detour ?? null },
       { label: t('construction.by'), value: label(`construction.by.${closure.source}`) ?? closure.source ?? null },
     ]
     return (
@@ -70,6 +71,13 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
               </div>
             ))}
         </dl>
+        {closure.url && (
+          <p className="feature-links">
+            <a href={closure.url} target="_blank" rel="noopener noreferrer">
+              {t('construction.more')}
+            </a>
+          </p>
+        )}
       </section>
     )
   }
