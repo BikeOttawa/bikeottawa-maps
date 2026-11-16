@@ -24,7 +24,7 @@ import {
 import { DEFAULT_PATHWAY_FILTERS, type PathwayFilters, pathwayFilter, UNKNOWN_WIDTH, WIDTH_STOPS } from '../pathways'
 import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
-import type { Route, RouteHighlight } from '../route/brouter'
+import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -264,8 +264,8 @@ function stopsData(route: Route | null): FeatureCollection {
   }
 }
 
-/** Name of the map image for a stop sign or traffic light on the route. */
-export function stopImageId(kind: 'stop' | 'light' | ''): string {
+/** Name of the map image for a stop sign, traffic light or barrier on the route. */
+export function stopImageId(kind: StopKind | ''): string {
   return `route-${kind}`
 }
 
@@ -326,7 +326,7 @@ function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boo
       type: 'symbol',
       source: 'route-stops',
       // Too many to show from far out, unless they are what is being looked for.
-      minzoom: highlight === 'stop' || highlight === 'light' ? 0 : 12,
+      minzoom: (STOP_KINDS as readonly string[]).includes(highlight ?? '') ? 0 : 12,
       layout: {
         // Drawn on demand by the map view.
         'icon-image': ['concat', stopImageId(''), ['get', 'kind']],

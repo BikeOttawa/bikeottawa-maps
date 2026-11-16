@@ -20,7 +20,7 @@ import { ASSETS_BASE, REGION } from '../config'
 import type { BasemapId } from '../layers'
 import { isPlaceKind, placeImageId } from '../places'
 import { partOf } from '../route/breakdown'
-import type { LngLat, RouteHighlight } from '../route/brouter'
+import { type LngLat, type RouteHighlight, STOP_KINDS } from '../route/brouter'
 import { nearestOnRoute, pointAtDistance, routeProfile } from '../route/profile'
 import type { ReachShape } from '../route/reachArea'
 import type { RoutePoints } from '../route/state'
@@ -194,12 +194,12 @@ export function MapView({
     map.setMissingStyleImageResolver((id) => {
       if (map.hasImage(id)) return
       const place = id.slice(placeImageId('').length)
-      const marker =
-        id === stopImageId('stop') || id === stopImageId('light')
-          ? renderStopImage(id === stopImageId('stop') ? 'stop' : 'light')
-          : id.startsWith(placeImageId('')) && isPlaceKind(place)
-            ? renderPlaceImage(place)
-            : null
+      const stop = STOP_KINDS.find((kind) => id === stopImageId(kind))
+      const marker = stop
+        ? renderStopImage(stop)
+        : id.startsWith(placeImageId('')) && isPlaceKind(place)
+          ? renderPlaceImage(place)
+          : null
       if (marker) map.addImage(id, marker.image, { pixelRatio: marker.pixelRatio })
     })
 

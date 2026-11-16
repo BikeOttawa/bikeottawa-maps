@@ -20,10 +20,15 @@ export interface RouteSegment {
   reversed: boolean
 }
 
-/** A stop sign or a set of traffic lights the route has to obey. */
+/** What the route stops or slows down for: stop signs, traffic lights, and barriers across the way. */
+export const STOP_KINDS = ['stop', 'light', 'barrier'] as const
+export type StopKind = (typeof STOP_KINDS)[number]
+
 export interface RouteStop {
-  kind: 'stop' | 'light'
+  kind: StopKind
   lngLat: LngLat
+  /** For a barrier, its OSM `barrier` value: bollard, gate, cycle_barrier… (`kerb` for a raised kerb). */
+  barrier?: string
 }
 
 export interface Route {
@@ -78,11 +83,31 @@ export function rateStretch(tags: Record<string, string>): { lts: number; walk: 
 /** Closer together than this, in metres, signs or signals belong to the same junction. */
 const SAME_STOP_M = 30
 const SAME_LIGHTS_M = 60
+/** Barrier nodes this close are parts of one barrier, such as the two arms of a chicane. */
+const SAME_BARRIER_M = 10
+
+/** Barriers a bike gets through as on open road: a way in, a booth, a border, a cattle grid, a height limit. */
+const NO_OBSTACLE = new Set([
+  'entrance',
+  'toll_booth',
+  'border_control',
+  'cattle_grid',
+  'height_restrictor',
+  'no',
+  'kerb',
+])
+
+/** The barrier at a node, if any. A kerb counts only when raised, for a trailer or a cargo bike must lift over it. */
+function barrierAt(node: string): string | null {
+  if (node.includes(' kerb=raised ')) return 'kerb'
+  const value = / barrier=(\S+) /.exec(node)?.[1]
+  return value && !NO_OBSTACLE.has(value) ? value : null
+}
 
 /**
- * Stop signs and traffic lights along the route, from the tags in BRouter's
- * messages. A stop sign counts only when it faces the direction of travel, and
- * the several signal heads of one junction count once.
+ * Stop signs, traffic lights and barriers along the route, from the tags in
+ * BRouter's messages. A stop sign counts only when it faces the direction of
+ * travel, and the several signal heads of one junction count once.
  */
 export function findStops(header: string[], rows: string[][]): RouteStop[] {
   const col = (name: string) => header.indexOf(name)
@@ -97,10 +122,12 @@ export function findStops(header: string[], rows: string[][]): RouteStop[] {
   const stops: RouteStop[] = []
   let sinceStop = Number.POSITIVE_INFINITY
   let sinceLights = Number.POSITIVE_INFINITY
+  let sinceBarrier = Number.POSITIVE_INFINITY
   for (const row of rows) {
     const distance = Number(row[iDist]) || 0
     sinceStop += distance
     sinceLights += distance
+    sinceBarrier += distance
     const node = ` ${row[iNode] ?? ''} `
     const lngLat: LngLat = [Number(row[iLon]) / 1e6, Number(row[iLat]) / 1e6]
 
@@ -126,6 +153,11 @@ export function findStops(header: string[], rows: string[][]): RouteStop[] {
     if (signalled && sinceLights > SAME_LIGHTS_M) {
       stops.push({ kind: 'light', lngLat })
       sinceLights = 0
+    }
+    const barrier = barrierAt(node)
+    if (barrier) {
+      if (sinceBarrier > SAME_BARRIER_M) stops.push({ kind: 'barrier', lngLat, barrier })
+      sinceBarrier = 0
     }
   }
   return stops
@@ -203,7 +235,7 @@ export type ComfortKey = (typeof COMFORT_KEYS)[number]
 
 /**
  * Something in the route legend that can be picked out on the map: a part of
- * the breakdown on show (route/breakdown.ts), or the stop signs or traffic lights.
+ * the breakdown on show (route/breakdown.ts), or a kind of stop (STOP_KINDS).
  */
 export type RouteHighlight = string
 

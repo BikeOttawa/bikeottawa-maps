@@ -134,8 +134,30 @@ describe('findStops', () => {
     expect(kinds([row(100, 'highway=stop direction=forward', 'reversedirection=yes highway=residential')])).toEqual([])
   })
 
+  it('finds barriers across the way, and what they are', () => {
+    const stops = findStops(header, [
+      row(100, 'nodeaccessgranted=yes barrier=cycle_barrier'),
+      row(200, 'barrier=bollard bicycle=yes'),
+    ])
+    expect(stops.map((stop) => [stop.kind, stop.barrier])).toEqual([
+      ['barrier', 'cycle_barrier'],
+      ['barrier', 'bollard'],
+    ])
+    // The arms of one chicane, a few metres apart, are one barrier.
+    expect(kinds([row(100, 'barrier=cycle_barrier'), row(4, 'barrier=cycle_barrier')])).toEqual(['barrier'])
+  })
+
+  it('leaves out barriers a bike rides through, and kerbs unless raised', () => {
+    expect(
+      kinds([row(100, 'barrier=entrance'), row(100, 'barrier=cattle_grid'), row(100, 'barrier=toll_booth')]),
+    ).toEqual([])
+    expect(kinds([row(100, 'barrier=kerb kerb=lowered'), row(100, 'barrier=kerb'), row(100, 'kerb=flush')])).toEqual([])
+    const raised = findStops(header, [row(100, 'barrier=kerb kerb=raised'), row(100, 'highway=crossing kerb=raised')])
+    expect(raised.map((stop) => stop.barrier)).toEqual(['kerb', 'kerb'])
+  })
+
   it('copes with other node tags and with answers that have none', () => {
-    expect(kinds([row(100, 'entrance=yes'), row(100, 'barrier=bollard highway=stop')])).toEqual(['stop'])
+    expect(kinds([row(100, 'entrance=yes'), row(100, 'barrier=bollard highway=stop')])).toEqual(['stop', 'barrier'])
     expect(findStops(['Longitude', 'Latitude', 'Distance', 'WayTags'], [['1', '2', '3', 'highway=path']])).toEqual([])
   })
 })
@@ -172,7 +194,7 @@ describe('parseRoute', () => {
 
   it('lists the stops along the way', () => {
     expect(Array.isArray(route.stops)).toBe(true)
-    for (const stop of route.stops) expect(['stop', 'light']).toContain(stop.kind)
+    for (const stop of route.stops) expect(['stop', 'light', 'barrier']).toContain(stop.kind)
   })
 
   it('rejects a response without a route', () => {

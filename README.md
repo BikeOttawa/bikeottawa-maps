@@ -81,6 +81,8 @@ A bike route's card splits it by one of these, from the tags BRouter returns for
 - **Lighting**: `lit`;
 - **Snow**: `winter_service` where tagged; otherwise paved streets and sidewalks count as plowed, unpaved streets as unknown and unpaved paths as not plowed, as on the Winter layer.
 
+The card also counts the stop signs, traffic lights and barriers on the route, and each shows on the map. Barriers are nodes tagged `barrier` that a bike cannot simply ride through (bollards, gates, cycle barriers, blocks, stiles and the like) and raised kerbs (`kerb=raised`): worth knowing with a cargo bike or a trailer.
+
 Place search (on the map and in the planner) and the addresses shown for points picked on the map come from [Photon](https://photon.komoot.io); set `VITE_GEOCODER_URL` to use another Photon server. Without `VITE_ROUTER_URL` the "Plan a route" page says that no routing server is connected.
 
 ### How far

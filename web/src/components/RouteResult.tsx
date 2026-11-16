@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { LTS_COLORS } from '../layers'
-import { LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
+import { BARRIER_BOARD, BARRIER_STRIPES, LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
 import { distanceByPart, partLook, ROUTE_PARTS, ROUTE_VIEWS, type RouteView } from '../route/breakdown'
-import type { Route, RouteHighlight, RouteStop } from '../route/brouter'
+import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { downloadText, toGpx } from '../route/gpx'
 import { routeProfile, smoothElevation } from '../route/profile'
 import { stressLevel, stressScore } from '../route/stress'
@@ -33,9 +33,23 @@ function pickingProps(item: RouteHighlight, { pinned, onPoint, onPin }: Picking)
   }
 }
 
-const STOP_LABELS: Record<RouteStop['kind'], MessageKey> = { stop: 'stopSigns', light: 'trafficLights' }
+const STOP_LABELS: Record<StopKind, MessageKey> = { stop: 'stopSigns', light: 'trafficLights', barrier: 'barriers' }
 
-function StopIcon({ kind }: { kind: RouteStop['kind'] }) {
+function BarrierIcon() {
+  const { x, y, width, height, radius } = BARRIER_BOARD
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
+      <rect x={x} y={y} width={width} height={height} rx={radius} fill="#fff" />
+      {BARRIER_STRIPES.map((points) => (
+        <polygon key={points[0][0]} points={points.join(' ')} fill={STOP_RED} />
+      ))}
+      <rect x={x} y={y} width={width} height={height} rx={radius} fill="none" stroke={LIGHT_BODY} />
+    </svg>
+  )
+}
+
+function StopIcon({ kind }: { kind: StopKind }) {
+  if (kind === 'barrier') return <BarrierIcon />
   return kind === 'stop' ? (
     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
       <path d="M6.5 1.5h7l5 5v7l-5 5h-7l-5-5v-7z" fill={STOP_RED} />
@@ -51,12 +65,12 @@ function StopIcon({ kind }: { kind: RouteStop['kind'] }) {
   )
 }
 
-/** Stop signs and traffic lights on the route, counted on one line. */
+/** Stop signs, traffic lights and barriers on the route, counted on one line. */
 function StopCounts({ route, picking }: { route: Route; picking: Picking }) {
   const { t } = useI18n()
   return (
     <p className="stop-counts">
-      {(['stop', 'light'] as const).map((kind) => {
+      {STOP_KINDS.map((kind) => {
         const count = route.stops.filter((stop) => stop.kind === kind).length
         return (
           <button
