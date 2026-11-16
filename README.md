@@ -8,14 +8,14 @@ The site installs as an app on phones and desktops (`vite-plugin-pwa` in `web/vi
 
 ## Layout
 
-| Path          | What                                                                                                                                                  |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `web/`        | The app: React, TypeScript, Vite, MapLibre                                                                                                            |
+| Path          | What                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `web/`        | The app: React, TypeScript, Vite, MapLibre                                                                                                             |
 | `pipeline/`   | Builds the map tiles from OSM extracts (osmium, [stressmodel](https://github.com/BikeOttawa/stressmodel), tippecanoe) and fetches collisions and wards |
-| `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region |
-| `docker/`     | nginx config for the site image                                                                                                                       |
-| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                       |
-| `region.json` | Area covered and the OSM extracts to use                                                                                                              |
+| `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region  |
+| `docker/`     | nginx config for the site image                                                                                                                        |
+| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                        |
+| `region.json` | Area covered and the OSM extracts to use                                                                                                               |
 
 ## Getting started
 
