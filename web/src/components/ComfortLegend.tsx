@@ -23,6 +23,20 @@ interface Props {
 /** Speed limits are ordered: one red from light to dark, the slowest lightest. */
 const SPEED_STEPS = ['#F6D5B8', '#EDAF7F', '#E2804A', '#C8502A', '#8E2A12']
 
+/** Road classes, minor to major: one slate from light to dark; pathways green, tracks brown. */
+const TYPE_COLORS: Record<string, string> = {
+  path: '#1E7B34',
+  residential: '#C8D3DB',
+  service: '#AFBBC4',
+  minor: '#94A6B6',
+  tertiary: '#7690A8',
+  secondary: '#56748F',
+  primary: '#3A5873',
+  trunk: '#22394F',
+  track: '#B39264',
+  other: OTHER,
+}
+
 /** Lanes each way, ordered too: one blue, a single lane lightest. */
 const LANE_STEPS = ['#A9CBEA', '#4D8FCC', '#1F4E8C']
 
@@ -31,6 +45,7 @@ const surfaces = pathwayColors('light')
 /** Each set's colours: stress in the map's own, the rest in the colours they have elsewhere in the app. */
 const COLORS: Record<ComfortSet, Record<string, string>> = {
   stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
+  type: TYPE_COLORS,
   speed: Object.fromEntries(COMFORT_GROUPS.speed.map((g, i) => [g, SPEED_STEPS[i] ?? OTHER])),
   lanes: { '1': LANE_STEPS[0], '2': LANE_STEPS[1], '3': LANE_STEPS[2], unknown: OTHER },
   bikeway: {

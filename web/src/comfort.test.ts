@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { type ComfortTotals, comfortKm, comfortShownKm, formatComfortFilters, parseComfortFilters } from './comfort'
 
 const totals: ComfortTotals = {
-  sets: ['stress', 'speed', 'lanes', 'bikeway', 'surface'],
+  sets: ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface'],
   rows: [
-    ['4', '60', '3', 'none', 'paved', 10],
-    ['3', '50', '1', 'lane', 'paved', 20],
-    ['1', '40', '1', 'none', 'paved', 30],
-    ['1', '-', '-', 'path', 'unpaved', 40],
+    ['4', 'primary', '60', '3', 'none', 'paved', 10],
+    ['3', 'tertiary', '50', '1', 'lane', 'paved', 20],
+    ['1', 'residential', '40', '1', 'none', 'paved', 30],
+    ['1', 'path', '-', '-', 'path', 'unpaved', 40],
   ],
 }
 
@@ -24,6 +24,7 @@ describe('comfort filters', () => {
     expect(comfortShownKm(totals, {})).toBe(100)
     expect(comfortShownKm(totals, { stress: ['1'] })).toBe(70)
     expect(comfortShownKm(totals, { stress: ['1'], speed: ['40'] })).toBe(30)
+    expect(comfortShownKm(totals, { type: ['primary', 'tertiary'] })).toBe(30)
   })
 
   it('round-trips its picks through the URL', () => {

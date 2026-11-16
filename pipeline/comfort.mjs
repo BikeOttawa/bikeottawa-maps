@@ -45,6 +45,33 @@ export function laneBand(props, tags = {}) {
   return each <= 1 ? '1' : each === 2 ? '2' : '3'
 }
 
+/** Road classes as the legend groups them, a road's links with it. */
+const TYPE_OF = {
+  cycleway: 'path',
+  path: 'path',
+  footway: 'path',
+  bridleway: 'path',
+  pedestrian: 'path',
+  residential: 'residential',
+  living_street: 'residential',
+  service: 'service',
+  unclassified: 'minor',
+  tertiary: 'tertiary',
+  tertiary_link: 'tertiary',
+  secondary: 'secondary',
+  secondary_link: 'secondary',
+  primary: 'primary',
+  primary_link: 'primary',
+  trunk: 'trunk',
+  trunk_link: 'trunk',
+  track: 'track',
+}
+
+/** The kind of way: a pathway, a residential street, a service road… up to a primary road or a trunk; other for the rest. */
+export function typeBand(props) {
+  return TYPE_OF[props.highway] ?? (props.kind === 'path' ? 'path' : 'other')
+}
+
 const STREET_BIKEWAYS = { dedicated: 'path', lane: 'lane', shoulder: 'shoulder', shared: 'shared' }
 
 /** A pathway or cycle track, a painted lane, a paved shoulder, a shared lane, or none: riding with cars. */
@@ -63,6 +90,7 @@ export function surfaceBand(props) {
 /** The bands of a way on the comfort layer, as tile properties; the OSM tags tell which way it runs. */
 export function comfortBands(props, tags = {}) {
   const bands = {
+    type_band: typeBand(props),
     speed_band: speedBand(props),
     lane_band: laneBand(props, tags),
     bike_band: bikeBand(props),
@@ -73,7 +101,7 @@ export function comfortBands(props, tags = {}) {
 }
 
 /** The sets the legend filters by, in the order of each total's key. */
-export const COMFORT_SETS = ['stress', 'speed', 'lanes', 'bikeway', 'surface']
+export const COMFORT_SETS = ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface']
 
 /**
  * Km of the comfort layer for each combination of bands: few enough rows (a
@@ -87,6 +115,7 @@ export function comfortTotals() {
       if (!(props.lts > 0)) return
       const key = [
         props.lts,
+        props.type_band,
         props.speed_band ?? '-',
         props.lane_band ?? '-',
         props.bike_band,

@@ -2,12 +2,13 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 
 /**
  * The comfort layer's filters. The pipeline bands each way on the layer by its
- * speed limit, lanes, bike infrastructure and surface (pipeline/comfort.mjs),
+ * type, speed limit, lanes, bike infrastructure and surface (pipeline/comfort.mjs),
  * writes the bands into the tiles, and adds up the km of every combination
  * into meta.json for the legend's bars.
  */
 export const COMFORT_GROUPS = {
   stress: ['1', '2', '3', '4'],
+  type: ['path', 'residential', 'service', 'minor', 'tertiary', 'secondary', 'primary', 'trunk', 'track', 'other'],
   speed: ['30', '40', '50', '60', '70', 'unknown'],
   lanes: ['1', '2', '3', 'unknown'],
   bikeway: ['path', 'lane', 'shoulder', 'shared', 'none'],
@@ -19,6 +20,7 @@ export const COMFORT_SETS = Object.keys(COMFORT_GROUPS) as ComfortSet[]
 /** The tile property each set reads. */
 const PROPERTY: Record<ComfortSet, string> = {
   stress: 'lts',
+  type: 'type_band',
   speed: 'speed_band',
   lanes: 'lane_band',
   bikeway: 'bike_band',

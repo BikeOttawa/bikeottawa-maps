@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bikeBand, comfortBands, comfortTotals, laneBand, speedBand, surfaceBand } from './comfort.mjs'
+import { bikeBand, comfortBands, comfortTotals, laneBand, speedBand, surfaceBand, typeBand } from './comfort.mjs'
 
 test('bands speed limits, untagged as unknown, none on paths', () => {
   assert.equal(speedBand({ kind: 'street', maxspeed: '30' }), '30')
@@ -29,6 +29,15 @@ test('bands lanes each way', () => {
   assert.equal(laneBand({ kind: 'path' }, {}), undefined)
 })
 
+test('sorts ways into types, a road with its links', () => {
+  assert.equal(typeBand({ kind: 'path', highway: 'cycleway' }), 'path')
+  assert.equal(typeBand({ kind: 'street', highway: 'living_street' }), 'residential')
+  assert.equal(typeBand({ kind: 'street', highway: 'unclassified' }), 'minor')
+  assert.equal(typeBand({ kind: 'street', highway: 'secondary_link' }), 'secondary')
+  assert.equal(typeBand({ kind: 'path', highway: 'track' }), 'track')
+  assert.equal(typeBand({ kind: 'street', highway: 'busway' }), 'other')
+})
+
 test('sorts bike infrastructure and surface', () => {
   assert.equal(bikeBand({ kind: 'path' }), 'path')
   assert.equal(bikeBand({ kind: 'street', bikeway: 'dedicated' }), 'path')
@@ -37,17 +46,25 @@ test('sorts bike infrastructure and surface', () => {
   assert.equal(surfaceBand({ kind: 'street' }), 'paved')
   assert.equal(surfaceBand({ kind: 'street', surface: 'gravel' }), 'unpaved')
   assert.equal(surfaceBand({ kind: 'path' }), 'unknown')
-  assert.deepEqual(comfortBands({ kind: 'path', surface: 'asphalt' }), { bike_band: 'path', surface_band: 'paved' })
+  assert.deepEqual(comfortBands({ kind: 'path', highway: 'cycleway', surface: 'asphalt' }), {
+    type_band: 'path',
+    bike_band: 'path',
+    surface_band: 'paved',
+  })
 })
 
 test('adds up km by every combination of bands, the comfort layer only', () => {
   const totals = comfortTotals()
-  const street = { lts: 3, kind: 'street', ...comfortBands({ kind: 'street', maxspeed: '50', lanes: '2' }, {}) }
+  const street = {
+    lts: 3,
+    kind: 'street',
+    ...comfortBands({ kind: 'street', highway: 'tertiary', maxspeed: '50', lanes: '2' }, {}),
+  }
   totals.add(street, 1500)
   totals.add(street, 500)
   totals.add({ lts: 0, kind: 'street' }, 900)
   assert.deepEqual(totals.toJSON(), {
-    sets: ['stress', 'speed', 'lanes', 'bikeway', 'surface'],
-    rows: [['3', '50', '1', 'none', 'paved', 2]],
+    sets: ['stress', 'type', 'speed', 'lanes', 'bikeway', 'surface'],
+    rows: [['3', 'tertiary', '50', '1', 'none', 'paved', 2]],
   })
 })
