@@ -122,6 +122,8 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
           <a href={url} target="_blank" rel="noopener noreferrer">
             {t('construction.project')}
           </a>
+          {/* Whose page it is: the City's, or a utility's such as Enbridge. */}
+          <span>{new URL(url).hostname.replace(/^www\./, '')}</span>
         </p>
       )}
     </section>

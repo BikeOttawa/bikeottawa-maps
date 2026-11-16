@@ -27,6 +27,7 @@ import type { RoutePoints } from '../route/state'
 import { CLOSURE_IMAGE, renderClosureImage } from './closureImage'
 import { renderPlaceImage } from './placeImage'
 import { renderStopImage } from './stopImage'
+import { streetAlong } from './streetAlong'
 import {
   buildStyle,
   INTERACTIVE_LAYERS,
@@ -233,14 +234,17 @@ export function MapView({
       if (feature.layer.id === 'construction-line' || feature.layer.id === 'construction-point') {
         // A point project is anchored at itself, a line where it was clicked.
         const at = feature.geometry.type === 'Point' ? (feature.geometry.coordinates as [number, number]) : null
-        // The City gives no place name: the street under the click, from the basemap, in the language shown.
-        const road = map
+        // The City gives no place name: the street the project runs along there, from the basemap's
+        // roads near the click, in the language shown.
+        const reach = 2 * HIT_RADIUS
+        const streets = map
           .queryRenderedFeatures([
-            [point.x - HIT_RADIUS, point.y - HIT_RADIUS],
-            [point.x + HIT_RADIUS, point.y + HIT_RADIUS],
+            [point.x - reach, point.y - reach],
+            [point.x + reach, point.y + reach],
           ])
-          .find((f) => f.sourceLayer === 'roads' && f.properties.name)
-        const street = road ? String(road.properties[`name:${state.lang}`] ?? road.properties.name) : undefined
+          .filter((f) => f.sourceLayer === 'roads' && f.properties.name)
+          .map((f) => ({ name: String(f.properties[`name:${state.lang}`] ?? f.properties.name), geometry: f.geometry }))
+        const street = streetAlong([lngLat.lng, lngLat.lat], feature.geometry, streets) ?? undefined
         return {
           kind: 'construction',
           props: { ...feature.properties, ...(street && { street }) },
