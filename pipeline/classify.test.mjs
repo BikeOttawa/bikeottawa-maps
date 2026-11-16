@@ -120,23 +120,22 @@ test('bikeways are kept by their tags, even where the stress model rates them cl
   assert.equal(minzoom, 10)
 })
 
-test('ways closed to bikes are dropped unless they are off-street paths', () => {
+test('ways closed to bikes are dropped, off-street paths too', () => {
   assert.equal(classifyWay({ highway: 'motorway' }), null)
   assert.equal(classifyWay({ highway: 'residential', bicycle: 'no' }), null)
   assert.equal(classifyWay({ highway: 'footway', footway: 'sidewalk' }), null)
   assert.equal(classifyWay({ highway: 'steps' }), null)
   assert.equal(classifyWay({ building: 'yes' }), null)
-  const closedPath = classifyWay({ highway: 'footway', bicycle: 'no' })
-  assert.equal(closedPath.props.lts, 0)
-  assert.equal(closedPath.props.kind, 'path')
+  assert.equal(classifyWay({ highway: 'footway', bicycle: 'no' }), null)
 })
 
 test('private and closed ways are dropped unless bikes or people on foot are let in', () => {
+  // People on foot let in, on a path bikes are not kept off.
   assert.equal(classifyWay({ highway: 'footway', access: 'private' }), null)
   assert.equal(classifyWay({ highway: 'service', access: 'private' }), null)
   assert.equal(classifyWay({ highway: 'path', access: 'no' }), null)
   assert.equal(classifyWay({ highway: 'path', access: 'private', bicycle: 'yes' }).props.kind, 'path')
-  assert.equal(classifyWay({ highway: 'footway', access: 'no', foot: 'designated' }).props.kind, 'path')
+  assert.equal(classifyWay({ highway: 'path', access: 'no', foot: 'designated' }).props.kind, 'path')
   assert.notEqual(classifyWay({ highway: 'service', access: 'destination' }), null)
 })
 

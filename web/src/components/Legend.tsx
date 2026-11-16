@@ -2,7 +2,7 @@ import type { Collision, CollisionFilters, CollisionSpot } from '../collisions'
 import type { ComfortFilters, ComfortTotals } from '../comfort'
 import type { ConstructionFilters, ConstructionProps } from '../construction'
 import { useI18n } from '../i18n'
-import { type BasemapId, type LayerId, lampColor, WINTER_COLORS } from '../layers'
+import { type BasemapId, type LayerId, lampColor } from '../layers'
 import type { PathwayFilters, PathwayTotals } from '../pathways'
 import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
 import type { Theft, TheftFilters, TheftSpot } from '../thefts'
@@ -87,22 +87,6 @@ export function Legend({
           totals={pathwayTotals}
           basemap={basemap}
         />
-      )}
-      {layer === 'winter' && (
-        <ul>
-          {(['yes', 'no', 'unknown'] as const).map((value) => (
-            <li key={value}>
-              <span
-                className={`swatch line ${value === 'unknown' ? 'dashed' : ''}`}
-                style={{
-                  color: WINTER_COLORS[value],
-                  background: value === 'unknown' ? undefined : WINTER_COLORS[value],
-                }}
-              />
-              {t(`winter.${value}`)}
-            </li>
-          ))}
-        </ul>
       )}
       {layer === 'night' && (
         <ul>

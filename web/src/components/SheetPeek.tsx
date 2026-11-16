@@ -10,7 +10,6 @@ import {
   lampColor,
   pathwaySetColors,
   reachRamp,
-  WINTER_COLORS,
 } from '../layers'
 import { colorBy, PATHWAY_GROUPS, type PathwayFilters } from '../pathways'
 import type { PlaceKind } from '../places'
@@ -102,13 +101,6 @@ export function LayerPeek({
         <span>{t('peek.highStress')}</span>
       </>
     )
-  if (layer === 'winter')
-    return (['yes', 'no', 'unknown'] as const).map((value) => (
-      <span key={value} className="peek-item">
-        <Swatch color={WINTER_COLORS[value]} dashed={value === 'unknown'} />
-        {t(`winter.${value}`)}
-      </span>
-    ))
   if (layer === 'night') {
     const lamp = lampColor(basemap)
     return (

@@ -7,7 +7,8 @@
 /** Old path → what it opens here, as hash entries. */
 export const OLD_PAGES: Record<string, string> = {
   lts: 'layer=comfort',
-  winter: 'layer=winter',
+  // The winter map is the pathways layer coloured by snow clearing.
+  winter: 'layer=pathways&pathways=by:snow',
   pathways: 'layer=pathways',
   collisions: 'layer=collisions',
   amenities: 'layer=places',

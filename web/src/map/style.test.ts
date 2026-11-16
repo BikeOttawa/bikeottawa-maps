@@ -65,11 +65,10 @@ describe('buildStyle', () => {
     }
   })
 
-  it('loads street tiles only for comfort, pathways and winter, place tiles only for places', () => {
+  it('loads street tiles only for comfort and pathways, place tiles only for places', () => {
     const sources = (layerId: (typeof LAYER_IDS)[number]) => Object.keys(build({ layer: layerId }).sources)
     expect(sources('comfort')).toContain('overlays')
     expect(sources('pathways')).toContain('overlays')
-    expect(sources('winter')).toContain('overlays')
     expect(sources('comfort')).not.toContain('places')
     expect(sources('places')).toContain('places')
     // With no kind ticked there is nothing to draw, so nothing to load.

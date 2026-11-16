@@ -3,7 +3,7 @@ import { OLD_PAGES, oldPageHtml, oldPageTarget } from './oldSite'
 
 describe('old site pages', () => {
   it('open the matching map', () => {
-    expect(oldPageTarget('', OLD_PAGES.winter)).toBe('../#layer=winter')
+    expect(oldPageTarget('', OLD_PAGES.winter)).toBe('../#layer=pathways&pathways=by:snow')
     expect(oldPageTarget('', OLD_PAGES.isochrones)).toBe('../#mode=reach')
     expect(oldPageTarget('', OLD_PAGES.desire)).toBe('../')
   })

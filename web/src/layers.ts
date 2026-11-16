@@ -2,16 +2,7 @@
 
 import type { KnownSurfaceId, PathwaySet, WidthBand } from './pathways'
 
-export const LAYER_IDS = [
-  'places',
-  'pathways',
-  'comfort',
-  'winter',
-  'night',
-  'collisions',
-  'thefts',
-  'construction',
-] as const
+export const LAYER_IDS = ['places', 'pathways', 'comfort', 'night', 'collisions', 'thefts', 'construction'] as const
 export type LayerId = (typeof LAYER_IDS)[number]
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const

@@ -200,12 +200,11 @@ export function classifyWay(tags) {
 
   const lts = stressmodel.evaluateLTS({ tags }).lts
   const isPath = PATH_HIGHWAYS.has(highway)
-  const isSidewalk = tags.footway === 'sidewalk' || tags.footway === 'crossing'
   // The bike lanes overlay goes by the tags alone, whatever the stress model says.
   const bikeway = bikewayProps(tags)
   const pathway = isPathway(tags)
-  // Streets closed to bikes are dropped; off-street paths are kept for the winter layer.
-  if (lts === 0 && (!isPath || isSidewalk) && !bikeway.bikeway && !pathway) return null
+  // Ways closed to bikes are dropped, unless they carry a bikeway or are a pathway.
+  if (lts === 0 && !bikeway.bikeway && !pathway) return null
 
   const props = { lts, kind: isPath ? 'path' : 'street', highway }
   pick(tags, ['name', 'service', 'footway', 'surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'], props)

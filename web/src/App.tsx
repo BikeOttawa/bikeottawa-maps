@@ -112,14 +112,16 @@ interface UrlState {
 
 function readUrl(): UrlState {
   const hash = parseHash(window.location.hash)
+  // Links to the winter layer open the pathways coloured by snow clearing, which replaced it.
+  const winter = hash.layer === 'winter'
   return {
-    layer: isLayerId(hash.layer) ? hash.layer : DEFAULT_LAYER,
+    layer: winter ? 'pathways' : isLayerId(hash.layer) ? hash.layer : DEFAULT_LAYER,
     placeKinds: (hash.places ?? '').split(',').filter(isPlaceKind),
     collisions: parseCollisionFilters(hash.collisions),
     thefts: parseTheftFilters(hash.thefts),
     construction: parseConstructionFilters(hash.construction),
     comfortPicks: parseComfortFilters(hash.comfort),
-    pathways: parsePathwayFilters(hash.pathways),
+    pathways: winter ? { ...parsePathwayFilters(hash.pathways), by: 'snow' } : parsePathwayFilters(hash.pathways),
     mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
     points: parsePoints(hash.route),
     vias: parseVias(hash.via),

@@ -28,7 +28,6 @@ import {
   reachRamp,
   routeBandColors,
   theftColors,
-  WINTER_COLORS,
   wardColors,
 } from '../layers'
 import {
@@ -126,7 +125,6 @@ export const ROADWORK_LAYERS = ['closures-icon', 'closures-line']
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
-  winter: ['winter-line', 'winter-unknown'],
   places: ['places-icon'],
   night: [],
   collisions: ['collisions-point'],
@@ -520,10 +518,6 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   const bikeable: FilterSpecification = ['>', ['get', 'lts'], 0]
   // The comfort layer's picks, on top.
   const comfortable: FilterSpecification = ['all', bikeable, comfortFilter(state.comfort ?? {})]
-  // Paths with a winter status; indoor walkways have none and are left out.
-  const pathway: FilterSpecification = ['all', ['==', ['get', 'kind'], 'path'], ['has', 'winter']]
-  const plowKnown: FilterSpecification = ['all', pathway, ['!=', ['get', 'winter'], 'unknown']]
-  const plowUnknown: FilterSpecification = ['all', pathway, ['==', ['get', 'winter'], 'unknown']]
   const selectedWay: FilterSpecification = ['==', ['id'], state.selected?.kind === 'way' ? state.selected.id : -1]
   const selectedPlace: FilterSpecification = [
     '==',
@@ -545,13 +539,6 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
     },
     {
       ...way,
-      id: 'winter-casing',
-      filter: pathway,
-      layout: { ...round, ...show('winter') },
-      paint: { 'line-color': theme.casing, 'line-width': lineWidth(1.5), 'line-opacity': 0.7 * fade },
-    },
-    {
-      ...way,
       id: 'selected-way',
       filter: selectedWay,
       layout: round,
@@ -565,29 +552,6 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
       paint: {
         'line-color': ['match', ['get', 'lts'], 1, LTS_COLORS[0], 2, LTS_COLORS[1], 3, LTS_COLORS[2], LTS_COLORS[3]],
         'line-width': lineWidth(),
-        'line-opacity': fade,
-      },
-    },
-    {
-      ...way,
-      id: 'winter-line',
-      filter: plowKnown,
-      layout: { ...round, ...show('winter') },
-      paint: {
-        'line-color': ['match', ['get', 'winter'], 'yes', WINTER_COLORS.yes, WINTER_COLORS.no],
-        'line-width': lineWidth(0.5),
-        'line-opacity': fade,
-      },
-    },
-    {
-      ...way,
-      id: 'winter-unknown',
-      filter: plowUnknown,
-      layout: { 'line-join': 'round', ...show('winter') },
-      paint: {
-        'line-color': WINTER_COLORS.unknown,
-        'line-width': lineWidth(),
-        'line-dasharray': [2, 2],
         'line-opacity': fade,
       },
     },
@@ -609,9 +573,9 @@ function overlayLayers(state: StyleState, theme: Theme): LayerSpecification[] {
   return [...(showsWays(state) ? wayLayers : []), ...(loadsPlaces(state) ? placeLayers : [])]
 }
 
-/** Street data (comfort, pathways, winter) is drawn on those layers, except under the reach map. */
+/** Street data (comfort, pathways) is drawn on those layers, except under the reach map. */
 function showsWays(state: StyleState): boolean {
-  return (state.layer === 'comfort' || state.layer === 'pathways' || state.layer === 'winter') && !state.reach
+  return (state.layer === 'comfort' || state.layer === 'pathways') && !state.reach
 }
 
 /** Places are drawn on their layer, once at least one kind is ticked (none is, to begin with). */

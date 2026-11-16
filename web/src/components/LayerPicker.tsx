@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n'
-import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors, WINTER_COLORS } from '../layers'
+import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors } from '../layers'
 import { GROUP_COLORS } from '../places'
 import { BarricadeIcon } from './OverlayIcons'
 
@@ -30,21 +30,6 @@ function LayerIcon({ layer }: { layer: LayerId }) {
       <svg aria-hidden="true" {...common} strokeWidth="3" strokeLinecap="round">
         <path d="M5 22c0-5 9-4 9-9" stroke={colors.surface.asphalt} />
         <path d="M14 13c0-5-7-5-5-11" stroke={colors.unknown} />
-      </svg>
-    )
-  }
-  if (layer === 'winter') {
-    return (
-      <svg
-        aria-hidden="true"
-        {...common}
-        stroke={WINTER_COLORS.yes}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7" />
-        <path d="m9 4 3 3 3-3M9 20l3-3 3 3M3.5 11l3.5-1-1-3.5M20.5 13 17 14l1 3.5M3.5 13l3.5 1-1 3.5M20.5 11 17 10l1-3.5" />
       </svg>
     )
   }
