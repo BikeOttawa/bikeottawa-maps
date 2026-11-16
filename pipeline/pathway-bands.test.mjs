@@ -63,7 +63,7 @@ test('adds up km by every combination of bands and length', () => {
     sets: ['type', 'surface', 'width', 'snow', 'smoothness', 'lit', 'length'],
     rows: [
       ['path', 'asphalt', '1.5', 'yes', 'unknown', 'yes', '500', 1.2],
-      ['cycleway', 'unknown', 'unknown', 'unknown', 'unknown', 'no', '0', 0.3],
+      ['cycleway', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', '0', 0.3],
     ],
   })
 })

@@ -120,7 +120,7 @@ export function comfortTotals() {
         props.lane_band ?? '-',
         props.bike_band,
         props.surface_band,
-        props.lit_band ?? 'no',
+        props.lit_band ?? 'unknown',
       ].join('|')
       metres.set(key, (metres.get(key) ?? 0) + length)
     },

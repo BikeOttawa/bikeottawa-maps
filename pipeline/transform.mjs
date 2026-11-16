@@ -133,9 +133,12 @@ for await (const line of lines()) {
     counts.ways++
     counts.byLts[way.props.lts]++
     // Lit by its tag, or by the street lamps along it: for the lights overlay
-    // and the comfort and pathways filters.
+    // and the comfort and pathways filters. Not lit only when tagged so; without
+    // a tag or lamps, unknown.
     const isLitWay = isLit(tags, litShare(feature.geometry.coordinates))
-    if (way.props.lts > 0 || way.props.pathway) way.props.lit_band = isLitWay ? 'yes' : 'no'
+    if (way.props.lts > 0 || way.props.pathway) {
+      way.props.lit_band = isLitWay ? 'yes' : tags.lit === 'no' ? 'no' : 'unknown'
+    }
     // The comfort layer's filters: its bands, and their km for the legend.
     if (way.props.lts > 0) {
       Object.assign(way.props, comfortBands(way.props, tags))

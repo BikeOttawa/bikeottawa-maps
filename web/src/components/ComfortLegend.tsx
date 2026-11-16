@@ -62,7 +62,7 @@ const COLORS: Record<ComfortSet, Record<string, string>> = {
 /** The labels: the stress levels' short names, the bike infrastructure as the route card names it. */
 function labelKey(set: ComfortSet, group: string): MessageKey {
   if (set === 'stress') return `comfort.stress.${group}` as MessageKey
-  if (set === 'lit') return `litPart.${group}` as MessageKey
+  if (set === 'lit' && group !== 'unknown') return `litPart.${group}` as MessageKey
   if (set === 'bikeway') {
     const named: Record<string, MessageKey> = {
       path: 'comfort.bikeway.path',

@@ -71,7 +71,7 @@ export function pathwayTotals() {
         props.width_band,
         props.winter ?? 'unknown',
         props.smooth_band,
-        props.lit_band ?? 'no',
+        props.lit_band ?? 'unknown',
         lengthBand(props.island_m ?? 0),
       ].join('|')
       metres.set(key, (metres.get(key) ?? 0) + length)

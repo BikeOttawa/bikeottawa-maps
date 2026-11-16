@@ -19,7 +19,7 @@ export const PATHWAY_GROUPS = {
   width: ['3.5', '2.5', '1.5', '0', 'unknown'],
   snow: ['yes', 'no', 'unknown'],
   smoothness: ['excellent', 'good', 'intermediate', 'bad', 'unknown'],
-  lit: ['yes', 'no'],
+  lit: ['yes', 'no', 'unknown'],
 } as const
 export type PathwaySet = keyof typeof PATHWAY_GROUPS
 export const PATHWAY_SETS = Object.keys(PATHWAY_GROUPS) as PathwaySet[]

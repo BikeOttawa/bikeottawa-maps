@@ -49,6 +49,7 @@ const en = {
   'pathways.smoothness.bad': 'Bad or worse',
   'pathways.smoothness.unknown': 'Not tagged',
   'pathways.lit': 'Lighting',
+  'pathways.lit.unknown': 'Not tagged',
   'pathways.any': 'any',
   'pathways.atLeast': '{value} or more',
   'pathways.length': 'Length',
@@ -319,6 +320,7 @@ const en = {
   'comfort.surface.paved': 'Paved',
   'comfort.surface.unpaved': 'Gravel or dirt',
   'comfort.lit': 'Lighting',
+  'comfort.lit.unknown': 'Not tagged',
   'comfort.hint':
     'Tap a line to show only those streets. The thin mark is how it stands before anything else is picked. Pathways count as 30 km/h or less; picking lanes leaves them out.',
   'comfort.shown': '{km} shown',
@@ -623,6 +625,7 @@ const fr: Record<keyof typeof en, string> = {
   'pathways.smoothness.bad': 'Mauvais ou pire',
   'pathways.smoothness.unknown': 'Non indiqué',
   'pathways.lit': 'Éclairage',
+  'pathways.lit.unknown': 'Non indiqué',
   'pathways.any': 'toutes',
   'pathways.atLeast': '{value} ou plus',
   'pathways.length': 'Longueur',
@@ -894,6 +897,7 @@ const fr: Record<keyof typeof en, string> = {
   'comfort.surface.paved': 'Pavé',
   'comfort.surface.unpaved': 'Gravier ou terre',
   'comfort.lit': 'Éclairage',
+  'comfort.lit.unknown': 'Non indiqué',
   'comfort.hint':
     'Touchez une ligne pour ne montrer que ces rues. Le trait fin : où elle en est avant tout autre choix. Les sentiers comptent comme 30 km/h ou moins; choisir des voies les laisse de côté.',
   'comfort.shown': '{km} montrés',

@@ -223,7 +223,7 @@ const LIT_ON_DARK = { yes: '#FFC24A', no: '#6F7B80' }
 /**
  * The pathways layer's colours for each set the map can be coloured by. Ordered
  * sets run through one hue, strongest at the far end: darkest on pale ground,
- * brightest on dark. Not tagged is yellow in every set, so the gaps always show.
+ * brightest on dark. Not tagged is yellow, so the gaps show; grey for lighting.
  */
 export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<string, string>> {
   const pale = basemap === 'light' || basemap === 'grey'
@@ -240,7 +240,8 @@ export function pathwaySetColors(basemap: BasemapId): Record<PathwaySet, Record<
     smoothness: pale
       ? { excellent: '#D9CCEB', good: '#B09AD3', intermediate: '#8065B4', bad: '#4F3487', unknown }
       : { excellent: '#5B4391', good: '#8065B4', intermediate: '#B09AD3', bad: '#E2D6F5', unknown },
-    lit: pale ? LIT_ON_PALE : LIT_ON_DARK,
+    // Lighting's gaps are grey: most are dark paths no one has tagged, not ones to map first.
+    lit: { ...(pale ? LIT_ON_PALE : LIT_ON_DARK), unknown: OTHER },
   }
 }
 

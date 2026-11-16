@@ -14,7 +14,7 @@ export const COMFORT_GROUPS = {
   lanes: ['1', '2', '3', 'unknown'],
   bikeway: ['path', 'lane', 'shoulder', 'shared', 'none'],
   surface: ['paved', 'unpaved', 'unknown'],
-  lit: ['yes', 'no'],
+  lit: ['yes', 'no', 'unknown'],
 } as const
 export type ComfortSet = keyof typeof COMFORT_GROUPS
 export const COMFORT_SETS = Object.keys(COMFORT_GROUPS) as ComfortSet[]
