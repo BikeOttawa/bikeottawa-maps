@@ -38,8 +38,12 @@ describe('buildStyle', () => {
       build(patch)
         .layers.map((l) => l.id)
         .filter((id) => id.startsWith(prefix) && id !== `${prefix}heat`)
-    // Worst injury, and the value stolen, are one colour a spot.
+    // With no row open, worst injury and the value stolen are one colour a spot.
     expect(spots({ layer: 'collisions' }, 'collisions-')).toEqual(['collisions-point'])
+    expect(spots({ layer: 'collisions', collisionsBy: 'severity' }, 'collisions-')).toEqual([
+      'collisions-pie',
+      'collisions-point',
+    ])
     expect(spots({ layer: 'thefts' }, 'thefts-')).toEqual(['thefts-point'])
     expect(spots({ layer: 'thefts', theftsBy: 'where' }, 'thefts-')).toEqual(['thefts-pie', 'thefts-point'])
     const style = build({ layer: 'collisions', collisionsBy: 'weather' })

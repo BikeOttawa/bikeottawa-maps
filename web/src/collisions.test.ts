@@ -69,12 +69,22 @@ describe('collision filters in the URL', () => {
     expect(parseCollisionFilters('cars;1990-3000;bad;-2;mood:grim.light:noon')).toEqual(DEFAULT_COLLISION_FILTERS)
     expect(parseCollisionFilters(';;;3').minCount).toBe(3)
   })
+  it('opens no row at first, so spots show the worst injury; injury opens like any row', () => {
+    expect(DEFAULT_COLLISION_FILTERS.by).toBeNull()
+    expect(formatCollisionFilters({ ...DEFAULT_COLLISION_FILTERS, by: 'severity' })).toBe(';;;;;by:severity')
+    expect(parseCollisionFilters(';;;;;by:severity').by).toBe('severity')
+    expect(parseCollisionFilters(';;;;;by:none').by).toBeNull()
+  })
   it('colours a spot by the group most of its collisions fall in, the first listed on a tie', () => {
     const at = (weather: string) => ({ weather }) as unknown as CollisionProps
     expect(commonGroup([at('Rain'), at('Clear'), at('Rain')], 'weather')).toBe('rain')
     expect(commonGroup([at('Snow'), at('Clear')], 'weather')).toBe('clear')
     // And carries how many fall in each, in the groups' order, for its pie.
     expect(spotGroupCounts([at('Rain'), at('Clear'), at('Rain'), at('Fog')], 'weather')).toEqual([1, 2, 0, 1])
+    // Injuries count worst first, as the legend lists them.
+    const hurt = (severity: string) => ({ severity }) as unknown as CollisionProps
+    expect(spotGroupCounts([hurt('minor'), hurt('fatal'), hurt('minor')], 'severity')).toEqual([1, 0, 2, 0, 0])
+    expect(commonGroup([hurt('minor'), hurt('fatal')], 'severity')).toBe('fatal')
   })
 })
 

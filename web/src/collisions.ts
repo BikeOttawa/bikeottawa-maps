@@ -81,9 +81,6 @@ export interface CollisionFilters {
   by: CollisionSet | null
 }
 
-/** The set the spots are coloured by. */
-export const collisionColorBy = (f: CollisionFilters): CollisionSet => f.by ?? 'severity'
-
 /** Cyclists only, every year, every injury level, in any circumstances. */
 export const DEFAULT_COLLISION_FILTERS: CollisionFilters = {
   parties: ['bike'],
@@ -92,7 +89,7 @@ export const DEFAULT_COLLISION_FILTERS: CollisionFilters = {
   severities: SEVERITIES,
   minCount: 1,
   conditions: {},
-  by: 'severity',
+  by: null,
 }
 
 export interface CollisionProps {
@@ -210,7 +207,7 @@ export function formatCollisionFilters(f: CollisionFilters): string | null {
     CONDITION_IDS.filter((id) => f.conditions[id]?.length)
       .map((id) => `${id}:${f.conditions[id]?.join(',')}`)
       .join('.'),
-    formatBy(f.by, 'severity') ?? '',
+    formatBy(f.by, null) ?? '',
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
@@ -231,7 +228,7 @@ export function parseCollisionFilters(text: string | undefined): CollisionFilter
     severities: severities.length ? severities : d.severities,
     minCount: Number.isInteger(Number(minText)) && Number(minText) >= 1 ? Number(minText) : d.minCount,
     conditions: parseConditions(conditionText),
-    by: parseBy(text, COLLISION_SETS, 'severity'),
+    by: parseBy(text, COLLISION_SETS, null),
   }
 }
 
@@ -347,26 +344,37 @@ export function collisionSpots(all: readonly Collision[], f: CollisionFilters): 
   })
 }
 
-/** How many of a spot's collisions fall in each group of a circumstance, in the groups' order. */
-export function spotGroupCounts(items: readonly CollisionProps[], id: ConditionId): number[] {
-  const groups: readonly string[] = CONDITIONS[id]
+/** Injuries worst first, as the legend lists them. */
+export const SEVERITY_GROUPS: readonly Severity[] = [...SEVERITIES].reverse()
+
+/** A legend row's groups, in its order. */
+export function collisionGroups(set: CollisionSet): readonly string[] {
+  return set === 'severity' ? SEVERITY_GROUPS : CONDITIONS[set]
+}
+
+/** How many of a spot's collisions fall in each group of a legend row, in its order. */
+export function spotGroupCounts(items: readonly CollisionProps[], set: CollisionSet): number[] {
+  const groups = collisionGroups(set)
   const counts = groups.map(() => 0)
-  for (const p of items) counts[groups.indexOf(conditionOf(p, id))]++
+  for (const p of items) counts[groups.indexOf(set === 'severity' ? p.severity : conditionOf(p, set))]++
   return counts
 }
 
-/** The group of a circumstance most of a spot's collisions fall in; on a tie, the one listed first. */
-export function commonGroup(items: readonly CollisionProps[], id: ConditionId): string {
-  const counts = spotGroupCounts(items, id)
-  return CONDITIONS[id][counts.indexOf(Math.max(...counts))]
+/** The group of a legend row most of a spot's collisions fall in; on a tie, the one listed first. */
+export function commonGroup(items: readonly CollisionProps[], set: CollisionSet): string {
+  const counts = spotGroupCounts(items, set)
+  return collisionGroups(set)[counts.indexOf(Math.max(...counts))]
 }
 
 /**
  * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them. Coloured by a circumstance, each carries the group most of its
+ * them. Coloured by a legend row, each carries the group most of its
  * collisions fall in, and how many fall in each (`pie`, for big spots).
  */
-export function spotsGeoJSON(spots: readonly CollisionSpot[], by: CollisionSet = 'severity'): FeatureCollection<Point> {
+export function spotsGeoJSON(
+  spots: readonly CollisionSpot[],
+  by: CollisionSet | null = null,
+): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: [...spots]
@@ -378,7 +386,7 @@ export function spotsGeoJSON(spots: readonly CollisionSpot[], by: CollisionSet =
           count: spot.items.length,
           worst: spot.worst,
           weight: spot.weight,
-          ...(by !== 'severity' && {
+          ...(by && {
             group: commonGroup(spot.items, by),
             pie: spotGroupCounts(spot.items, by).join(','),
           }),

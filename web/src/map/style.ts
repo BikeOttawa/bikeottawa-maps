@@ -1,7 +1,7 @@
 import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/basemaps'
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
-import { CONDITIONS, type CollisionSet, conditionColor, SEVERITIES } from '../collisions'
+import { type CollisionSet, collisionGroups, conditionColor, SEVERITIES, type Severity } from '../collisions'
 import {
   type ComfortFilters,
   comfortColorBy,
@@ -106,7 +106,7 @@ export interface StyleState {
   /** The collisions layer's spots, built from the filters; null until loaded. */
   collisions: FeatureCollection | null
   /** The legend's open row the spots are coloured by (their `group`); worst injury when left out. */
-  collisionsBy?: CollisionSet
+  collisionsBy?: CollisionSet | null
   /** The thefts layer's spots, built from the filters; null until loaded. */
   thefts?: FeatureCollection | null
   /** The legend's open row the spots are coloured by (their `group`); by value stolen when none. */
@@ -1007,23 +1007,24 @@ function spotLayers(
 /**
  * Collisions involving cyclists or pedestrians: where they cluster, zoomed
  * out, and each spot zoomed in, sized by how many happened there and coloured
- * by the worst injury among them.
+ * by the worst injury among them, or by the legend's open row.
  */
 function collisionLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
   if (state.layer !== 'collisions' || state.reach) return { under: [], over: [] }
   const colors = collisionColors(state.basemap)
-  // Coloured by the legend's open row: worst injury at first, or the circumstance most of a spot's collisions share.
-  const by = state.collisionsBy ?? 'severity'
-  const byWorst = (by === 'severity'
-    ? ['match', ['get', 'worst'], ...SEVERITIES.flatMap((s) => [s, colors[s]]), colors.none]
+  // With no row open, the worst injury among a spot's collisions; with one, its groups' split.
+  const by = state.collisionsBy ?? null
+  const pies = by
+    ? collisionGroups(by).map((group) => (by === 'severity' ? colors[group as Severity] : conditionColor(by, group)))
+    : null
+  const byWorst = (by && pies
+    ? ['match', ['get', 'group'], ...collisionGroups(by).flatMap((group, i) => [group, pies[i]]), OTHER]
     : [
         'match',
-        ['get', 'group'],
-        ...CONDITIONS[by].flatMap((group) => [group, conditionColor(by, group)]),
-        OTHER,
+        ['get', 'worst'],
+        ...SEVERITIES.flatMap((s) => [s, colors[s]]),
+        colors.none,
       ]) as unknown as ExpressionSpecification
-  // Worst injury is one colour; a circumstance shows its split on big spots.
-  const pies = by === 'severity' ? null : CONDITIONS[by].map((group) => conditionColor(by, group))
   const pale = state.basemap === 'light' || state.basemap === 'grey'
   return {
     under: [

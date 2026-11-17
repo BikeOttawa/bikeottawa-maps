@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import bikeOttawaLogo from './assets/bike-ottawa.png'
 import {
   type CollisionFilters,
-  collisionColorBy,
   collisionSpots,
   formatCollisionFilters,
   parseCollisionFilters,
@@ -774,7 +773,7 @@ export function App() {
     () => allSpots?.filter((s) => s.items.length >= collisions.minCount) ?? null,
     [allSpots, collisions.minCount],
   )
-  const collisionsBy = collisionColorBy(collisions)
+  const collisionsBy = collisions.by
   const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots, collisionsBy) : null), [spots, collisionsBy])
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
   // Thefts, the same way: loaded with their layer, gathered at intersections.

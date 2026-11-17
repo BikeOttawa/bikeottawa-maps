@@ -9,6 +9,7 @@ import {
   conditionColor,
   conditionCounts,
   SEVERITIES,
+  SEVERITY_GROUPS,
   type Severity,
   severityCounts,
 } from '../collisions'
@@ -51,7 +52,7 @@ function InjuryRow({
   return (
     <GroupRow
       name={t('crash.injury')}
-      groups={[...SEVERITIES].reverse()}
+      groups={SEVERITY_GROUPS}
       counts={counts}
       picked={picked}
       compared={CONDITION_IDS.some((id) => filters.conditions[id]?.length)}
