@@ -1,6 +1,7 @@
 import type { FeatureCollection, LineString, MultiLineString } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
 import { formatBy, parseBy } from './bands'
+import { type Lang, translator } from './i18n'
 
 /**
  * Construction: the City of Ottawa's forecast of capital works, roads, sewers,
@@ -121,6 +122,8 @@ export interface Closure {
   line?: LineString | MultiLineString
   headline: string
   message: string
+  /** The street, as the City names it: "Clare". */
+  street?: string
   /** Which lanes, in the City's words: "closed", "1 Right Lane(s)". */
   lanes?: string
   /** The way round, as Quebec gives it. */
@@ -155,6 +158,7 @@ interface RawEvent {
   id: number
   headline?: string
   message?: string
+  mainStreet?: string
   lanes?: string
   generation_source?: string
   schedule?: { startDateTime?: string; endDateTime?: string }[]
@@ -180,6 +184,7 @@ export function parseClosures(json: { events?: RawEvent[] }): Closure[] {
       at: [at[0], at[1]],
       headline: (event.headline ?? '').trim(),
       message: (event.message ?? '').trim(),
+      street: event.mainStreet?.trim() || undefined,
       lanes: event.lanes?.trim() || undefined,
       start: starts.sort()[0],
       end: ends.sort().at(-1),
@@ -277,4 +282,32 @@ export function closuresGeoJSON(closures: readonly Closure[]): FeatureCollection
       })),
     ],
   }
+}
+
+/** A closure's bubble on a route says what it is in at most this many characters a line. */
+const SUMMARY_MAX = 48
+
+/** Text cut at a word to fit SUMMARY_MAX, ending in … where cut. */
+function shorten(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  if (flat.length <= SUMMARY_MAX) return flat
+  const cut = flat.slice(0, SUMMARY_MAX - 1)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[\s,;:.–-]+$/, '')}…`
+}
+
+/**
+ * A closure in two lines, for its bubble on the route: the street and what is
+ * closed there ("Clare : closed"), else its headline; then until when.
+ */
+export function closureSummary(closure: Closure, lang: Lang): string {
+  const t = translator(lang)
+  const what =
+    closure.street && closure.lanes
+      ? `${closure.street}${t('colon')}${closure.lanes}`
+      : shorten(closure.headline || closure.message)
+  const end = closure.end ? new Date(closure.end) : null
+  if (!end || Number.isNaN(end.getTime())) return what
+  const day = end.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { month: 'short', day: 'numeric' })
+  return `${what}\n${t('closureUntil').replace('{date}', day)}`
 }

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { LTS_COLORS } from '../layers'
-import { BOLLARD, BOLLARD_XS, GROUND, LIGHT_BODY, LIGHT_COLORS, STOP_RED } from '../map/stopImage'
 import { distanceByPart, partLook, ROUTE_PARTS, ROUTE_VIEWS, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { downloadText, toGpx } from '../route/gpx'
@@ -9,9 +8,9 @@ import { routeProfile, smoothElevation } from '../route/profile'
 import { stressLevel, stressScore } from '../route/stress'
 import type { Travel } from '../route/styles'
 import type { RouteState } from '../route/useRoute'
-import { visibleRoute } from '../route/useRoute'
 import { ElevationChart } from './ElevationChart'
 import { GroupRow } from './GroupBars'
+import { StopIcon } from './StopIcon'
 
 /** What the legend needs to pick things out on the map: pointing shows them, a click keeps them and zooms there. */
 interface Picking {
@@ -34,54 +33,31 @@ function pickingProps(item: RouteHighlight, { pinned, onPoint, onPin }: Picking)
   }
 }
 
-const STOP_LABELS: Record<StopKind, MessageKey> = { stop: 'stopSigns', light: 'trafficLights', barrier: 'barriers' }
-
-function BarrierIcon() {
-  const { y, width, height, radius, bandY, bandHeight } = BOLLARD
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
-      <path d={`M${GROUND.x1} ${GROUND.y}H${GROUND.x2}`} stroke={LIGHT_BODY} strokeWidth="1.5" strokeLinecap="round" />
-      {BOLLARD_XS.map((x) => (
-        <g key={x}>
-          <rect x={x} y={y} width={width} height={height} rx={radius} fill={LIGHT_BODY} />
-          <rect x={x} y={bandY} width={width} height={bandHeight} fill="#fff" />
-        </g>
-      ))}
-    </svg>
-  )
+const STOP_LABELS: Record<StopKind, MessageKey> = {
+  stop: 'stopSigns',
+  light: 'trafficLights',
+  barrier: 'barriers',
+  roadwork: 'roadwork',
 }
 
-function StopIcon({ kind }: { kind: StopKind }) {
-  if (kind === 'barrier') return <BarrierIcon />
-  return kind === 'stop' ? (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
-      <path d="M6.5 1.5h7l5 5v7l-5 5h-7l-5-5v-7z" fill={STOP_RED} />
-      <rect x="5.5" y="8.75" width="9" height="2.5" fill="#fff" />
-    </svg>
-  ) : (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20">
-      <rect x="5.5" y="1" width="9" height="18" rx="3" fill={LIGHT_BODY} />
-      {LIGHT_COLORS.map((color, i) => (
-        <circle key={color} cx="10" cy={4.8 + i * 5.2} r="2" fill={color} />
-      ))}
-    </svg>
-  )
-}
+const STOP_HINTS: Partial<Record<StopKind, MessageKey>> = { barrier: 'barriersHint', roadwork: 'roadworkOnRoute' }
 
-/** Stop signs, traffic lights and barriers on the route, counted on one line. */
+/** Stop signs, traffic lights, barriers and roadwork on the route, counted on one line: only those it has. */
 function StopCounts({ route, picking }: { route: Route; picking: Picking }) {
   const { t } = useI18n()
+  const counted = STOP_KINDS.map((kind) => [kind, route.stops.filter((stop) => stop.kind === kind).length] as const)
+  if (!counted.some(([, count]) => count)) return null
   return (
     <p className="stop-counts">
-      {STOP_KINDS.map((kind) => {
-        const count = route.stops.filter((stop) => stop.kind === kind).length
+      {counted.map(([kind, count]) => {
+        if (!count) return null
+        const hint = STOP_HINTS[kind]
         return (
           <button
             key={kind}
             type="button"
             className="stop-count"
-            title={kind === 'barrier' ? `${t('barriersHint')} ${t('showOnRoute')}` : t('showOnRoute')}
-            disabled={count === 0}
+            title={hint ? `${t(hint)} ${t('showOnRoute')}` : t('showOnRoute')}
             {...pickingProps(kind, picking)}
           >
             <StopIcon kind={kind} />
@@ -148,6 +124,8 @@ interface Props {
   /** On foot, the cycling-only parts (comfort, stress, stops) are left out. */
   travel: Travel
   state: RouteState
+  /** The route shown, with the roadwork on it once the closures are in. */
+  route: Route | null
   /** The row open on the card, which colours the route; none at first. */
   view: RouteView | null
   onViewChange: (view: RouteView | null) => void
@@ -164,6 +142,7 @@ interface Props {
 export function RouteResult({
   travel,
   state,
+  route,
   view,
   onViewChange,
   hover,
@@ -175,7 +154,6 @@ export function RouteResult({
 }: Props) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
-  const route = visibleRoute(state)
   const picking: Picking = { highlight, pinned, onPoint: onPointPart, onPin: onPinPart }
   const profile = useMemo(() => (route ? smoothElevation(routeProfile(route.coords)) : []), [route])
 

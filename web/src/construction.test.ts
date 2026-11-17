@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  closureSummary,
   constructionCounts,
   constructionShown,
   DEFAULT_CONSTRUCTION_FILTERS,
@@ -46,6 +47,7 @@ describe('construction', () => {
           id: 1,
           headline: ' Clare E/B between Churchill and Kirkwood ',
           message: 'Clare eastbound closed.',
+          mainStreet: ' Clare ',
           lanes: 'closed',
           generation_source: 'CITY',
           schedule: [
@@ -64,6 +66,7 @@ describe('construction', () => {
         at: [-75.750756, 45.387277],
         headline: 'Clare E/B between Churchill and Kirkwood',
         message: 'Clare eastbound closed.',
+        street: 'Clare',
         lanes: 'closed',
         start: '2026-03-23T06:00',
         end: '2026-12-01T19:00',
@@ -112,5 +115,21 @@ describe('construction', () => {
     // French gives the detour apart, as well as in its text.
     expect(parseQuebecRoadwork(json, 'fr')[0]).toMatchObject({ headline: 'Réfection de structures', detour: 'A-50' })
     expect(quebecRoadworkUrl([-76, 45, -75, 46])).toContain('bbox=45,-76,46,-75,urn:ogc:def:crs:EPSG::4326')
+  })
+})
+
+describe('closureSummary', () => {
+  const clare = { id: 'ottawa-1', at: [0, 0] as [number, number], headline: 'Clare E/B', message: '' }
+  it('says the street, what is closed there and until when', () => {
+    expect(closureSummary({ ...clare, street: 'Clare', lanes: 'closed', end: '2026-12-01T19:00' }, 'en')).toBe(
+      'Clare: closed\nuntil Dec 1',
+    )
+    expect(closureSummary({ ...clare, street: 'Clare', lanes: 'fermée', end: '2026-12-01T19:00' }, 'fr')).toMatch(
+      /^Clare\u00a0: fermée\njusqu’au 1 déc/,
+    )
+  })
+  it('falls back on the headline, cut at a word when long', () => {
+    const long = '(MTO) HWY 417 Westbound Off-ramp [ - RICHMOND RD (IC 130)/BAYSHORE DR ]'
+    expect(closureSummary({ ...clare, headline: long }, 'en')).toBe('(MTO) HWY 417 Westbound Off-ramp [ - RICHMOND…')
   })
 })

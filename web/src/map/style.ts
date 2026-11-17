@@ -73,6 +73,7 @@ import {
   SPOTS_FROM,
   spotRadius,
 } from './pieImage'
+import { BUBBLE_IMAGE } from './stopImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -91,8 +92,10 @@ export type Selected =
   | { kind: 'theft'; spot: string; at: [number, number] }
   /** A project on the construction layer, with its properties. */
   | { kind: 'construction'; props: Record<string, unknown>; at: [number, number] }
-  /** A closure on the construction layer, by its id on the City's traffic map. */
+  /** A closure on the construction layer or the route, by its id on the City's traffic map. */
   | { kind: 'closure'; id: string; at: [number, number] }
+  /** A barrier on the route, by its OSM `barrier` value. */
+  | { kind: 'barrier'; barrier: string; at: [number, number] }
   /**
    * A way on the bike routes overlay: the routes it is directly on (relation
    * ids, best first) and the one picked out on the map, which may be a route
@@ -336,7 +339,12 @@ function stopsData(route: Route | null): FeatureCollection {
     type: 'FeatureCollection',
     features: (route?.stops ?? []).map((stop) => ({
       type: 'Feature',
-      properties: { kind: stop.kind },
+      properties: {
+        kind: stop.kind,
+        ...(stop.barrier && { barrier: stop.barrier }),
+        ...(stop.closure && { closure: stop.closure }),
+        ...(stop.label && { label: stop.label }),
+      },
       geometry: { type: 'Point', coordinates: stop.lngLat },
     })),
   }
@@ -393,7 +401,7 @@ function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boo
       source: 'route-stops',
       filter: ['==', ['get', 'kind'], highlight ?? ''],
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 15, 14, 18, 18],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 9, 15, 18, 18, 24],
         'circle-color': HIGHLIGHT_COLOR,
         'circle-stroke-color': theme.contrast,
         'circle-stroke-width': 1,
@@ -408,11 +416,53 @@ function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boo
       layout: {
         // Drawn on demand by the map view.
         'icon-image': ['concat', stopImageId(''), ['get', 'kind']],
-        'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.55, 15, 0.9, 18, 1.2],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.75, 15, 1.2, 18, 1.6],
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
       },
       paint: { 'icon-opacity': otherStops },
+    },
+  ]
+}
+
+/**
+ * Barriers and roadwork picked out on the route say what they are in a bubble
+ * above them, over everything else on the map.
+ */
+function routeBubbleLayers(highlight: RouteHighlight | null): LayerSpecification[] {
+  if (highlight !== 'barrier' && highlight !== 'roadwork') return []
+  return [
+    {
+      id: 'route-stops-bubble',
+      type: 'symbol',
+      source: 'route-stops',
+      filter: ['all', ['==', ['get', 'kind'], highlight], ['has', 'label']],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 12,
+        'text-max-width': 14,
+        'text-anchor': 'bottom',
+        // Clear of the yellow ring below, which grows with the zoom: its radius, the tail, a gap.
+        'text-offset': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          12,
+          ['literal', [0, -1.9]],
+          15,
+          ['literal', [0, -2.4]],
+          18,
+          ['literal', [0, -2.9]],
+        ],
+        'icon-image': BUBBLE_IMAGE,
+        'icon-text-fit': 'both',
+        'icon-text-fit-padding': [3, 7, 3, 7],
+        // Only the few picked out get one: each shows, over the map's own labels.
+        'text-allow-overlap': true,
+        'icon-allow-overlap': true,
+      },
+      paint: { 'text-color': '#16242b' },
     },
   ]
 }
@@ -1589,6 +1639,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...thefts.over,
       ...construction.over,
       ...roadworkLayers(state),
+      ...routeBubbleLayers(state.routeHighlight),
     ],
   }
 }

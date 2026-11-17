@@ -1,4 +1,5 @@
 import type { StopKind } from '../route/brouter'
+import { renderClosureImage } from './closureImage'
 
 /** Marker size in CSS pixels, and how much sharper than that it is drawn. */
 const SIZE = 20
@@ -16,8 +17,60 @@ export const BOLLARD_XS = [3.5, 12] as const
 export const BOLLARD = { y: 3.5, width: 4.5, height: 13, radius: 2.25, bandY: 6.5, bandHeight: 2.5 }
 export const GROUND = { x1: 1.5, x2: 18.5, y: 17.5 }
 
-/** A small stop sign, traffic light or barrier for the map. The legend draws the same shapes in SVG. */
+/** Map image name of the bubble that says what a picked-out stop is. */
+export const BUBBLE_IMAGE = 'route-bubble'
+
+/**
+ * A white speech bubble with its tail at the bottom, stretched around its
+ * text: the corners and the tail keep their shape. In canvas pixels at twice
+ * CSS size: a body 48 by 40 with 11 px corners, the tail 12 wide and 11 long.
+ */
+export function renderBubbleImage(): {
+  image: ImageData
+  pixelRatio: number
+  stretchX: [number, number][]
+  stretchY: [number, number][]
+  content: [number, number, number, number]
+} | null {
+  const [w, h, r, tail] = [48, 40, 11, 11]
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h + tail
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  const [x0, y0, x1, y1] = [1, 1, w - 1, h - 1]
+  const mid = w / 2
+  ctx.beginPath()
+  ctx.moveTo(x0 + r, y0)
+  ctx.arcTo(x1, y0, x1, y0 + r, r)
+  ctx.arcTo(x1, y1, x1 - r, y1, r)
+  ctx.lineTo(mid + 6, y1)
+  ctx.lineTo(mid, y1 + tail - 1)
+  ctx.lineTo(mid - 6, y1)
+  ctx.arcTo(x0, y1, x0, y1 - r, r)
+  ctx.arcTo(x0, y0, x0 + r, y0, r)
+  ctx.closePath()
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fill()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = '#B9C3C6'
+  ctx.stroke()
+  return {
+    image: ctx.getImageData(0, 0, canvas.width, canvas.height),
+    pixelRatio: 2,
+    // Straight edges only, either side of the tail, so it stays in the middle.
+    stretchX: [
+      [r + 1, mid - 6],
+      [mid + 6, w - r - 1],
+    ],
+    stretchY: [[r + 1, h - r - 1]],
+    content: [r + 1, 9, w - r - 1, h - 9],
+  }
+}
+
+/** A small stop sign, traffic light or barrier for the map, or roadwork's cone. The legend draws the same shapes in SVG. */
 export function renderStopImage(kind: StopKind): { image: ImageData; pixelRatio: number } | null {
+  if (kind === 'roadwork') return renderClosureImage()
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = SIZE * PIXEL_RATIO
   const ctx = canvas.getContext('2d')

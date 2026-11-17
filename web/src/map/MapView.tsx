@@ -27,7 +27,7 @@ import type { RoutePoints } from '../route/state'
 import { CLOSURE_IMAGE, renderClosureImage } from './closureImage'
 import { PIE_PREFIX, renderPieImage } from './pieImage'
 import { renderPlaceImage } from './placeImage'
-import { renderStopImage } from './stopImage'
+import { BUBBLE_IMAGE, renderBubbleImage, renderStopImage } from './stopImage'
 import { streetAlong } from './streetAlong'
 import {
   buildStyle,
@@ -48,6 +48,9 @@ addProtocol('pmtiles', new Protocol().tile)
 
 /** How far around a click or tap, in pixels, a feature still counts as hit. */
 const HIT_RADIUS = 8
+
+/** The route's stop icons and their bubbles: barriers and roadwork open a card. */
+const ROUTE_STOP_LAYERS = ['route-stops', 'route-stops-bubble']
 /** How close to the route, in pixels, the pointer has to be to mark a spot on it. */
 const ROUTE_HOVER_RADIUS = 16
 /** The basemap only covers the region, so panning stops a little beyond it. */
@@ -203,6 +206,14 @@ export function MapView({
     map.setMissingStyleImageResolver((id) => {
       if (map.hasImage(id)) return
       const place = id.slice(placeImageId('').length)
+      if (id === BUBBLE_IMAGE) {
+        const bubble = renderBubbleImage()
+        if (bubble) {
+          const { image, ...options } = bubble
+          map.addImage(id, image, options)
+        }
+        return
+      }
       const stop = STOP_KINDS.find((kind) => id === stopImageId(kind))
       const marker = stop
         ? renderStopImage(stop)
@@ -217,11 +228,13 @@ export function MapView({
     })
 
     const featureAt = (point: { x: number; y: number }, lngLat: { lng: number; lat: number }): Selected | null => {
-      // Planning a route or how far, only places are picked; a click anywhere else is a route point.
+      // Planning a route or how far, only places and the route's barriers and roadwork are
+      // picked; a click anywhere else is a route point.
       const { routing, state } = latest.current
-      const overlays = routing ? [] : [...ROADWORK_LAYERS, ...ROUTE_LAYERS]
+      const overlays = routing ? ROUTE_STOP_LAYERS : [...ROADWORK_LAYERS, ...ROUTE_LAYERS]
       const layers = [...INTERACTIVE_LAYERS[state.layer], ...overlays].filter(
-        (id) => map.getLayer(id) && (!routing || INTERACTIVE_LAYERS.places.includes(id)),
+        (id) =>
+          map.getLayer(id) && (!routing || INTERACTIVE_LAYERS.places.includes(id) || ROUTE_STOP_LAYERS.includes(id)),
       )
       if (!layers.length) return null
       const hits = map.queryRenderedFeatures(
@@ -231,10 +244,20 @@ export function MapView({
         ],
         { layers },
       )
-      const [feature] = hits
+      // Stop signs and lights have nothing more to show.
+      const [feature] = hits.filter(
+        (hit) => !ROUTE_STOP_LAYERS.includes(hit.layer.id) || ['barrier', 'roadwork'].includes(hit.properties.kind),
+      )
       if (!feature) return null
       // Merged spots open nothing: a click zooms in until they split.
       if (feature.properties.cluster) return null
+      if (ROUTE_STOP_LAYERS.includes(feature.layer.id) && feature.geometry.type === 'Point') {
+        const [x, y] = feature.geometry.coordinates
+        const { closure, barrier } = feature.properties
+        if (closure) return { kind: 'closure', id: String(closure), at: [x, y] }
+        if (barrier) return { kind: 'barrier', barrier: String(barrier), at: [x, y] }
+        return null
+      }
       if (feature.layer.id === 'closures-icon' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'closure', id: String(feature.properties.id), at: [x, y] }

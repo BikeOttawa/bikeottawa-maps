@@ -8,6 +8,7 @@ import {
   spotsGeoJSON,
 } from './collisions'
 import { type ComfortFilters, type ComfortTotals, formatComfortFilters, parseComfortFilters } from './comfort'
+import { BarrierCard, barrierLabel } from './components/BarrierCard'
 import { BikeRouteCard } from './components/BikeRouteCard'
 import { CollisionCard } from './components/CollisionCard'
 import { ConstructionCard } from './components/ConstructionCard'
@@ -26,6 +27,7 @@ import { TheftCard } from './components/TheftCard'
 import { ASSETS_BASE, ROUTER_URL } from './config'
 import {
   type ConstructionFilters,
+  closureSummary,
   closuresGeoJSON,
   formatConstructionFilters,
   parseConstructionFilters,
@@ -39,12 +41,13 @@ import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePat
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import type { RouteView } from './route/breakdown'
-import type { LngLat, RouteHighlight } from './route/brouter'
+import type { LngLat, RouteHighlight, RouteStop } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
 import { locate } from './route/locate'
 import { DEFAULT_REACH_MINUTES, isReachMinutes, type ReachMinutes, type ReachView, reachCover } from './route/reach'
 import { reachArea } from './route/reachArea'
 import { useReachPlaces } from './route/reachPlaces'
+import { roadworkOnRoute } from './route/roadwork'
 import {
   formatParams,
   formatPoints,
@@ -456,7 +459,22 @@ export function App() {
   const reaching = mode === 'reach' && ROUTER_URL !== null
   const routeHighlight = planning ? (pointedPart ?? pinnedPart) : null
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
-  const route = planning ? visibleRoute(routeState) : null
+  // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
+  const closures = useClosures(roadwork || (planning && travel === 'bike'), lang)
+  const plannedRoute = planning ? visibleRoute(routeState) : null
+  // A bike route counts the roadwork on it with its stops, once the closures are in; its
+  // barriers are named, for their bubbles on the map.
+  const route = useMemo(() => {
+    if (!plannedRoute || travel !== 'bike') return plannedRoute
+    const t = translator(lang)
+    const byId = new Map((closures ?? []).map((closure) => [closure.id, closure]))
+    const stops = [...plannedRoute.stops, ...(closures ? roadworkOnRoute(plannedRoute, closures) : [])]
+    const label = (stop: RouteStop) => {
+      const closure = stop.closure && byId.get(stop.closure)
+      return closure ? closureSummary(closure, lang) : stop.barrier ? t(barrierLabel(stop.barrier)) : undefined
+    }
+    return { ...plannedRoute, stops: stops.map((stop) => ({ ...stop, label: label(stop) })) }
+  }, [plannedRoute, closures, travel, lang])
   const reachState = useReach(ROUTER_URL, points[0]?.lngLat ?? null, minutes, profile, reaching)
   const reach = reaching ? visibleReach(reachState) : null
   const cover = useMemo(() => (reach ? reachCover(reach) : null), [reach])
@@ -764,8 +782,6 @@ export function App() {
   // Thefts, the same way: loaded with their layer, gathered at intersections.
   // Projects: the map fetches the file itself; the legend counts them.
   const projects = useProjects(layer === 'construction')
-  // Roadwork: the closures, fetched live while the overlay is on (the projects load as a file the map fetches).
-  const closures = useClosures(roadwork, lang)
   const closureGeo = useMemo(() => (closures ? closuresGeoJSON(closures) : null), [closures])
   const theftData = useTheftData(layer === 'thefts')
   const allTheftSpots = useMemo(() => (theftData ? theftSpots(theftData, thefts) : null), [theftData, thefts])
@@ -897,7 +913,8 @@ export function App() {
     setRouteHover(null)
     setPointedPart(null)
     setPinnedPart(null)
-  }, [route])
+    // A new route from the router, not the roadwork being added to the one shown.
+  }, [plannedRoute])
   // The parts of one view are not the parts of another.
   const changeRouteView = useCallback((view: RouteView | null) => {
     setRouteView(view)
@@ -944,7 +961,9 @@ export function App() {
 
   // Details of the selection: a popup beside it on the map, or the bottom sheet on phones.
   const details =
-    !selected || (routing && selected.kind !== 'place') ? null : selected.kind === 'route' ? (
+    // Planning, places open a card, and the route's barriers and roadwork.
+    !selected || (routing && !['place', 'closure', 'barrier'].includes(selected.kind)) ? null : selected.kind ===
+      'route' ? (
       <BikeRouteCard
         selected={selected}
         onClose={() => setSelected(null)}
@@ -966,6 +985,8 @@ export function App() {
           <ConstructionCard closure={closure} basemap={basemap} onClose={() => setSelected(null)} />
         ) : null
       })()
+    ) : selected.kind === 'barrier' ? (
+      <BarrierCard barrier={selected.barrier} at={selected.at} onClose={() => setSelected(null)} />
     ) : selected.kind === 'theft' ? (
       <TheftCard
         items={theftSpotByKey.get(selected.spot)?.items ?? []}
@@ -1097,6 +1118,7 @@ export function App() {
               <RouteResult
                 travel={travel}
                 state={routeState}
+                route={route}
                 view={routeView}
                 onViewChange={changeRouteView}
                 hover={routeHover}

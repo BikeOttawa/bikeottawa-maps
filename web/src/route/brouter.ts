@@ -20,8 +20,11 @@ export interface RouteSegment {
   reversed: boolean
 }
 
-/** What the route stops or slows down for: stop signs, traffic lights, and barriers across the way. */
-export const STOP_KINDS = ['stop', 'light', 'barrier'] as const
+/**
+ * What the route stops or slows down for: stop signs, traffic lights, barriers
+ * across the way, and roadwork on the roadwork overlay (route/roadwork.ts).
+ */
+export const STOP_KINDS = ['stop', 'light', 'barrier', 'roadwork'] as const
 export type StopKind = (typeof STOP_KINDS)[number]
 
 export interface RouteStop {
@@ -29,6 +32,10 @@ export interface RouteStop {
   lngLat: LngLat
   /** For a barrier, its OSM `barrier` value: bollard, gate, cycle_barrier… (`kerb` for a raised kerb). */
   barrier?: string
+  /** For roadwork, the closure's id on the Roadwork overlay. */
+  closure?: string
+  /** What it is, in a few words, for its bubble on the map. */
+  label?: string
 }
 
 export interface Route {
