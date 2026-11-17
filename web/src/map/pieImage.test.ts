@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { pieMinCount } from './pieImage'
+import { pieMinSize, spotSize } from './pieImage'
 
-describe('pies', () => {
-  it('go on spots big enough for their slices to read, smaller ones as the map zooms in', () => {
-    expect(pieMinCount(12)).toBe(10)
-    expect(pieMinCount(13)).toBe(7)
-    expect(pieMinCount(14)).toBe(4)
-    expect(pieMinCount(15)).toBe(3)
-    expect(pieMinCount(16)).toBe(2)
-    expect(pieMinCount(20)).toBe(2)
+describe('spots', () => {
+  it('are sized against the busiest, so it is as big on every layer, and a handful never makes a big spot', () => {
+    expect(spotSize(1, 127)).toBe(0)
+    expect(spotSize(127, 127)).toBe(1)
+    expect(spotSize(10, 10)).toBe(1)
+    expect(spotSize(3, 3)).toBeCloseTo(Math.sqrt(2 / 9))
+  })
+  it('show their split as a pie once big enough for the slices to read, smaller ones as the map zooms in', () => {
+    expect(pieMinSize(12)).toBeCloseTo(4 / 7)
+    expect(pieMinSize(17)).toBeCloseTo(1 / 18)
+    expect(pieMinSize(14)).toBeLessThan(pieMinSize(13))
   })
 })

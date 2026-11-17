@@ -8,10 +8,21 @@ const SPOTS_FULL = 17
 
 /**
  * A spot's radius in pixels where spots first show and at full size: one
- * item's, then growing with the square root of the rest, so area follows the count.
+ * item's, and the busiest spot's, so the busiest are as big on every layer.
  */
-const RADIUS = { first: { one: 3, step: 1.4 }, full: { one: 6, step: 3 } } as const
+const RADIUS = { first: { one: 3, most: 10 }, full: { one: 6, most: 24 } } as const
 type Radius = (typeof RADIUS)[keyof typeof RADIUS]
+
+/** Spots are sized against the busiest, taken as at least this many items, so a handful never makes a big spot. */
+const BUSIEST_AT_LEAST = 10
+
+/**
+ * How big a spot is, from one item (0) to the busiest (1), as its `size`:
+ * the square root of its count, so area follows the count.
+ */
+export function spotSize(count: number, busiest: number): number {
+  return Math.sqrt(Math.max(0, count - 1) / (Math.max(busiest, BUSIEST_AT_LEAST) - 1))
+}
 
 /** The smallest radius at which a spot shows its split as a pie: slices of smaller ones would not read. */
 const PIE_MIN_RADIUS = 7
@@ -25,13 +36,12 @@ const PIXEL_RATIO = 2
 
 export const PIE_PREFIX = 'pie:'
 
-function radiusOf(count: number, { one, step }: Radius): number {
-  return one + step * Math.sqrt(Math.max(0, count - 1))
+function radiusExpression({ one, most }: Radius): ExpressionSpecification {
+  return ['+', one, ['*', most - one, ['get', 'size']]]
 }
 
-function radiusExpression({ one, step }: Radius): ExpressionSpecification {
-  return ['+', one, ['*', step, ['sqrt', ['-', ['get', 'count'], 1]]]]
-}
+/** A pie's radius at full size, in whole pixels: it is drawn that big. */
+const pieRadius: ExpressionSpecification = ['round', radiusExpression(RADIUS.full)]
 
 /** A spot's radius, growing with the zoom and its count. */
 export const spotRadius: ExpressionSpecification = [
@@ -50,51 +60,53 @@ export const pieSize: ExpressionSpecification = [
   ['linear'],
   ['zoom'],
   SPOTS_FROM,
-  ['/', radiusExpression(RADIUS.first), radiusExpression(RADIUS.full)],
+  ['/', radiusExpression(RADIUS.first), pieRadius],
   SPOTS_FULL,
-  1,
+  ['/', radiusExpression(RADIUS.full), pieRadius],
 ]
 
 /**
- * The fewest items a spot needs to be drawn as a pie at a zoom: as many as
- * make it PIE_MIN_RADIUS across at that zoom's smallest. Filters see whole
- * zooms only, so this steps at each.
+ * The smallest `size` a spot needs to be drawn as a pie at a zoom: PIE_MIN_RADIUS
+ * at that zoom's smallest. Filters see whole zooms only, so this steps at each.
  */
-export function pieMinCount(zoom: number): number {
+export function pieMinSize(zoom: number): number {
   const t = Math.min(1, Math.max(0, (zoom - SPOTS_FROM) / (SPOTS_FULL - SPOTS_FROM)))
-  const at = (key: 'one' | 'step') => RADIUS.first[key] + t * (RADIUS.full[key] - RADIUS.first[key])
-  const n = ((PIE_MIN_RADIUS - at('one')) / at('step')) ** 2 + 1
-  return Math.max(2, Math.ceil(n - 1e-9))
+  const at = (key: 'one' | 'most') => RADIUS.first[key] + t * (RADIUS.full[key] - RADIUS.first[key])
+  return Math.max(0, (PIE_MIN_RADIUS - at('one')) / (at('most') - at('one')))
 }
 
-/** Whether a spot is drawn as a pie at the zoom its tile was made for. */
+/** Whether a spot is drawn as a pie at the zoom its tile was made for: one of two or more items, big enough. */
 export const isPie: ExpressionSpecification = [
-  '>=',
-  ['get', 'count'],
+  'all',
+  ['>', ['get', 'count'], 1],
   [
-    'step',
-    ['zoom'],
-    pieMinCount(Math.floor(SPOTS_FROM)),
-    ...Array.from({ length: SPOTS_FULL - Math.floor(SPOTS_FROM) }, (_, i) => {
-      const zoom = Math.floor(SPOTS_FROM) + i + 1
-      return [zoom, pieMinCount(zoom)]
-    }).flat(),
+    '>=',
+    ['get', 'size'],
+    [
+      'step',
+      ['zoom'],
+      pieMinSize(Math.floor(SPOTS_FROM)),
+      ...Array.from({ length: SPOTS_FULL - Math.floor(SPOTS_FROM) }, (_, i) => {
+        const zoom = Math.floor(SPOTS_FROM) + i + 1
+        return [zoom, pieMinSize(zoom)]
+      }).flat(),
+    ],
   ],
 ]
 
-/** The image of a spot's pie: its ring, its groups' colours in order, and its `pie` counts in the same order. */
+/** The image of a spot's pie: its ring, its groups' colours in order, its `pie` counts in the same order, and its radius. */
 export function pieImage(colors: readonly string[], ring: string): ExpressionSpecification {
-  return ['concat', `${PIE_PREFIX}${ring}:${colors.join(',')}:`, ['get', 'pie']]
+  return ['concat', `${PIE_PREFIX}${ring}:${colors.join(',')}:`, ['get', 'pie'], ':', ['to-string', pieRadius]]
 }
 
 /** A spot's pie for the map, at its full size: a slice per group from the top, clockwise, ringed to stand apart. */
 export function renderPieImage(id: string): { image: ImageData; pixelRatio: number } | null {
-  const [ring, colorList, countList] = id.slice(PIE_PREFIX.length).split(':')
+  const [ring, colorList, countList, radius] = id.slice(PIE_PREFIX.length).split(':')
   const colors = colorList?.split(',') ?? []
   const counts = countList?.split(',').map(Number) ?? []
   const total = counts.reduce((sum, n) => sum + n, 0)
-  if (!ring || !total || counts.length !== colors.length || counts.some((n) => !(n >= 0))) return null
-  const r = radiusOf(total, RADIUS.full)
+  const r = Number(radius)
+  if (!ring || !total || !(r > 0) || counts.length !== colors.length || counts.some((n) => !(n >= 0))) return null
   const size = Math.ceil(2 * (r + RING) + 2)
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size * PIXEL_RATIO

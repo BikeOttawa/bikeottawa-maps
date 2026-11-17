@@ -25,12 +25,12 @@ const layer = (style: ReturnType<typeof build>, id: string) => {
 }
 
 describe('buildStyle', () => {
-  it('draws collision spots only while their layer is on, sized by their count', () => {
+  it('draws collision spots only while their layer is on, sized against the busiest', () => {
     expect(build().sources.collisions).toBeUndefined()
     const spots: FeatureCollection = { type: 'FeatureCollection', features: [] }
     const style = build({ layer: 'collisions', collisions: spots })
     expect(style.sources.collisions).toMatchObject({ data: spots })
-    expect(JSON.stringify((layer(style, 'collisions-point') as { paint?: unknown }).paint)).toContain('count')
+    expect(JSON.stringify((layer(style, 'collisions-point') as { paint?: unknown }).paint)).toContain('size')
   })
 
   it('shows the split of big spots as pies, under the small ones, while a row colours them', () => {

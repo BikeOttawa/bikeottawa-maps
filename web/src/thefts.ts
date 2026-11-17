@@ -2,6 +2,7 @@ import type { FeatureCollection, Point } from 'geojson'
 import { formatBy, parseBy } from './bands'
 import { collisionLocation } from './collisions'
 import { HUES, OTHER, SEASON_HUES } from './layers'
+import { spotSize } from './map/pieImage'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -253,12 +254,13 @@ export function commonTheftGroup(items: readonly TheftProps[], id: TheftGroupId)
 
 /**
  * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them. Coloured by a set, each carries the group most of its thefts fall
- * in, and how many fall in each (`pie`, for big spots).
+ * them, sized against the busiest. Coloured by a set, each carries the group
+ * most of its thefts fall in, and how many fall in each (`pie`, for big spots).
  */
 export function theftSpotsGeoJSON(
   spots: readonly TheftSpot[],
   by: TheftGroupId | null = null,
+  busiest = 1,
 ): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
@@ -269,6 +271,7 @@ export function theftSpotsGeoJSON(
         properties: {
           key: spot.key,
           count: spot.items.length,
+          size: spotSize(spot.items.length, busiest),
           value: spot.value,
           valued: spot.valued,
           ...(by && { group: commonTheftGroup(spot.items, by), pie: spotTheftCounts(spot.items, by).join(',') }),

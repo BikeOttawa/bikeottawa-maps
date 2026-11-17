@@ -774,7 +774,10 @@ export function App() {
     [allSpots, collisions.minCount],
   )
   const collisionsBy = collisions.by
-  const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots, collisionsBy) : null), [spots, collisionsBy])
+  const collisionGeo = useMemo(
+    () => (spots ? spotsGeoJSON(spots, collisionsBy, busiestSpot) : null),
+    [spots, collisionsBy, busiestSpot],
+  )
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
   // Thefts, the same way: loaded with their layer, gathered at intersections.
   // Projects: the map fetches the file itself; the legend counts them.
@@ -793,8 +796,8 @@ export function App() {
     [allTheftSpots, thefts.minCount, thefts.minValue],
   )
   const theftGeo = useMemo(
-    () => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots, thefts.by) : null),
-    [shownTheftSpots, thefts.by],
+    () => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots, thefts.by, busiestTheftSpot) : null),
+    [shownTheftSpots, thefts.by, busiestTheftSpot],
   )
   const theftSpotByKey = useMemo(
     () => new Map((shownTheftSpots ?? []).map((spot) => [spot.key, spot])),

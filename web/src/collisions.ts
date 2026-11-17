@@ -2,6 +2,7 @@ import type { FeatureCollection, Point } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
 import { formatBy, parseBy } from './bands'
 import { HUES, OTHER, SEASON_HUES } from './layers'
+import { spotSize } from './map/pieImage'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -368,12 +369,13 @@ export function commonGroup(items: readonly CollisionProps[], set: CollisionSet)
 
 /**
  * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them. Coloured by a legend row, each carries the group most of its
- * collisions fall in, and how many fall in each (`pie`, for big spots).
+ * them, sized against the busiest. Coloured by a legend row, each carries
+ * the group most of its collisions fall in, and how many fall in each (`pie`, for big spots).
  */
 export function spotsGeoJSON(
   spots: readonly CollisionSpot[],
   by: CollisionSet | null = null,
+  busiest = 1,
 ): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
@@ -384,6 +386,7 @@ export function spotsGeoJSON(
         properties: {
           key: spot.key,
           count: spot.items.length,
+          size: spotSize(spot.items.length, busiest),
           worst: spot.worst,
           weight: spot.weight,
           ...(by && {
