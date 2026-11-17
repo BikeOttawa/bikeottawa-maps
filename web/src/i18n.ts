@@ -192,7 +192,7 @@ const en = {
   'crash.everyYear': 'Show every year',
   'crash.conditionsHint':
     'Open a row to colour the spots by their collisions: big ones show each group’s share, small ones the most common. With none open, they show the worst injury. Tap a line to show only those collisions; the thin mark is how it stands before anything else is picked.',
-  'crash.groupShare': '{share} ({count}); {all} before any pick',
+  'crash.groupShare': '{count} ({share}); {all} before any pick',
   'crash.showAll': 'Show all',
   'condition.light': 'Light',
   'condition.season': 'Time of year',
@@ -770,7 +770,7 @@ const fr: Record<keyof typeof en, string> = {
   'crash.everyYear': 'Montrer toutes les années',
   'crash.conditionsHint':
     'Ouvrez une rangée pour colorer les endroits selon leurs collisions\u00a0: les gros montrent la part de chaque groupe, les petits le plus fréquent. Sans rangée ouverte, ils montrent la blessure la plus grave. Touchez une ligne pour ne montrer que ces collisions; le trait fin\u00a0: où elle en est avant tout autre choix.',
-  'crash.groupShare': '{share} ({count}); {all} avant tout choix',
+  'crash.groupShare': '{count} ({share}); {all} avant tout choix',
   'crash.showAll': 'Tout montrer',
   'condition.light': 'Luminosité',
   'condition.season': 'Saison',

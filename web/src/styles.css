@@ -1943,7 +1943,7 @@ a {
 
 .condition-group {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1.3fr) minmax(64px, 1fr) 34px;
+  grid-template-columns: 14px minmax(0, 1.3fr) minmax(64px, 1fr) calc(var(--figure, 4ch) + 2px);
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -1978,7 +1978,7 @@ a {
   white-space: nowrap;
 }
 
-/* Share of the collisions shown, out of all of them; the tick is the share before any pick. */
+/* Share of the items shown, out of all of them; the tick is the share before any pick. */
 .condition-bar {
   position: relative;
   height: 8px;

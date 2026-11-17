@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useI18n } from '../i18n'
 
 export { HUES, OTHER, SEASON_HUES } from '../layers'
@@ -51,8 +52,10 @@ export function Lines({
   const { t } = useI18n()
   const top = Math.max(...lines.map((l) => Math.max(l.value, l.tick ?? 0)), Number.MIN_VALUE)
   const along = (value: number) => `${(value / top) * 100}%`
+  // The figures' column fits the longest, the same on every line so the bars line up.
+  const figure = { '--figure': `${Math.max(...lines.map((l) => l.figure.length))}ch` } as CSSProperties
   return (
-    <ul className="condition-groups">
+    <ul className="condition-groups" style={figure}>
       {lines.map((line) => {
         const isPicked = picked.includes(line.key)
         return (
@@ -99,7 +102,7 @@ export interface GroupCounts {
 
 /**
  * One set of groups as a thin split bar under its name, opening into a line
- * per group with its share. What is picked shows beside the name.
+ * per group with how many it has. What is picked shows beside the name.
  */
 export function GroupRow({
   name,
@@ -122,7 +125,7 @@ export function GroupRow({
   compared: boolean
   color: (group: string) => string
   label: (group: string) => string
-  /** How the hover text writes an amount: a count by default. */
+  /** How an amount is written: a count by default. */
   amount?: (n: number) => string
   onPick: (next: string[]) => void
   open: boolean
@@ -141,7 +144,7 @@ export function GroupRow({
     color: color(group),
     value: share(group),
     tick: compared ? shareAll(group) : null,
-    figure: percent(share(group)),
+    figure: (amount ?? number)(counts.shown.get(group) ?? 0),
     title: t('crash.groupShare')
       .replace('{count}', (amount ?? number)(counts.shown.get(group) ?? 0))
       .replace('{share}', percent(share(group)))
