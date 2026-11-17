@@ -1,7 +1,7 @@
 import type { ExpressionSpecification } from 'maplibre-gl'
 
 /** Zoom from which collisions and thefts show as spots; further out they make a heat map. */
-export const SPOTS_FROM = 12.5
+export const SPOTS_FROM = 11.5
 
 /** Zoom from which spots have their full size. */
 const SPOTS_FULL = 17
