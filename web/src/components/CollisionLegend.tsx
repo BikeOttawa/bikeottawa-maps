@@ -1,12 +1,5 @@
 import { useMemo } from 'react'
-import {
-  COLLISION_PARTIES,
-  COLLISION_YEARS,
-  type Collision,
-  type CollisionFilters,
-  type CollisionSpot,
-  countByMonth,
-} from '../collisions'
+import { COLLISION_YEARS, type Collision, type CollisionFilters, type CollisionSpot, countByMonth } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
 import { CollisionConditions } from './CollisionConditions'
@@ -50,23 +43,8 @@ export function CollisionLegend({ spots, collisions, busiestSpot, filters, onCha
   )
   const changeYears = (from: number, to: number) => onChange({ ...filters, from, to })
 
-  const toggle = <T,>(list: readonly T[], value: T): T[] =>
-    list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
-
   return (
     <div className="collision-legend">
-      <div className="collision-parties">
-        {COLLISION_PARTIES.map((party) => (
-          <label key={party} className="check">
-            <input
-              type="checkbox"
-              checked={filters.parties.includes(party)}
-              onChange={() => onChange({ ...filters, parties: toggle(filters.parties, party) })}
-            />
-            {t(`crash.${party}`)}
-          </label>
-        ))}
-      </div>
       <YearRange
         years={COLLISION_YEARS}
         from={filters.from}

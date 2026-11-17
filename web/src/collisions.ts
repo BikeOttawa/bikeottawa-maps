@@ -1,5 +1,4 @@
 import type { FeatureCollection, Point } from 'geojson'
-import type { ExpressionSpecification } from 'maplibre-gl'
 import { formatBy, parseBy } from './bands'
 import { HUES, OTHER, SEASON_HUES } from './layers'
 import { spotScale } from './map/pieImage'
@@ -17,6 +16,12 @@ export type Severity = (typeof SEVERITIES)[number]
 /** Who was hurt or involved, besides people in vehicles. */
 export const COLLISION_PARTIES = ['bike', 'foot'] as const
 export type CollisionParty = (typeof COLLISION_PARTIES)[number]
+
+/** Whose collision it is: a cyclist's when one was involved (with a pedestrian too, in a handful), else a pedestrian's. */
+export const partyOf = (p: CollisionProps): CollisionParty => (p.bicycles > 0 ? 'bike' : 'foot')
+
+/** Cyclists and pedestrians in the first categorical hues. */
+export const partyColor = (party: string): string => HUES[COLLISION_PARTIES.indexOf(party as CollisionParty)] ?? OTHER
 
 /** The years in the data. 2023 was never published by the city. */
 export const COLLISION_YEARS = { first: 2017, last: 2024, missing: [2023] } as const
@@ -52,8 +57,8 @@ const CONDITION_OF: Record<Exclude<ConditionId, 'season'>, Record<string, string
   control: { 'Traffic signal': 'signal', 'Stop sign': 'stop', 'No control': 'none' },
 }
 
-/** The legend's rows: worst injury, then the circumstances. */
-export const COLLISION_SETS = ['severity', ...CONDITION_IDS] as const
+/** The legend's rows: who was involved, worst injury, then the circumstances. */
+export const COLLISION_SETS = ['party', 'severity', ...CONDITION_IDS] as const
 export type CollisionSet = (typeof COLLISION_SETS)[number]
 
 /** A circumstance's groups in the categorical hues, seasons in their own; other grey. */
@@ -111,8 +116,8 @@ export interface CollisionProps {
 
 /** Whether a collision passes the filters. */
 export function matchesCollision(p: CollisionProps, f: CollisionFilters): boolean {
-  const party = (f.parties.includes('bike') && p.bicycles > 0) || (f.parties.includes('foot') && p.pedestrians > 0)
-  if (!party || p.year < f.from || p.year > f.to || !f.severities.includes(p.severity)) return false
+  if (!f.parties.includes(partyOf(p)) || p.year < f.from || p.year > f.to || !f.severities.includes(p.severity))
+    return false
   return CONDITION_IDS.every((id) => {
     const picked = f.conditions[id]
     return !picked?.length || picked.includes(conditionOf(p, id))
@@ -142,18 +147,24 @@ export function conditionCounts(
   return { shown, all: every }
 }
 
-/** The same test as a map filter. */
-export function collisionFilter(f: CollisionFilters): ExpressionSpecification {
-  const parties: ExpressionSpecification[] = []
-  if (f.parties.includes('bike')) parties.push(['>', ['get', 'bicycles'], 0])
-  if (f.parties.includes('foot')) parties.push(['>', ['get', 'pedestrians'], 0])
-  return [
-    'all',
-    parties.length ? ['any', ...parties] : false,
-    ['>=', ['get', 'year'], f.from],
-    ['<=', ['get', 'year'], f.to],
-    ['in', ['get', 'severity'], ['literal', [...f.severities]]],
-  ]
+/**
+ * How the collisions split between cyclists and pedestrians: `shown` under
+ * every filter but who, `all` for the years picked alone.
+ */
+export function partyCounts(
+  all: readonly CollisionProps[],
+  f: CollisionFilters,
+): { shown: Map<string, number>; all: Map<string, number> } {
+  const everyone = { ...f, parties: COLLISION_PARTIES }
+  const base = { ...everyone, severities: SEVERITIES, conditions: {} }
+  const shown = new Map<string, number>()
+  const every = new Map<string, number>()
+  for (const p of all) {
+    if (!matchesCollision(p, base)) continue
+    every.set(partyOf(p), (every.get(partyOf(p)) ?? 0) + 1)
+    if (matchesCollision(p, everyone)) shown.set(partyOf(p), (shown.get(partyOf(p)) ?? 0) + 1)
+  }
+  return { shown, all: every }
 }
 
 /** Collisions by month (`2019-06`), under every filter but the years, so the years left out still show. */
@@ -350,14 +361,19 @@ export const SEVERITY_GROUPS: readonly Severity[] = [...SEVERITIES].reverse()
 
 /** A legend row's groups, in its order. */
 export function collisionGroups(set: CollisionSet): readonly string[] {
-  return set === 'severity' ? SEVERITY_GROUPS : CONDITIONS[set]
+  return set === 'party' ? COLLISION_PARTIES : set === 'severity' ? SEVERITY_GROUPS : CONDITIONS[set]
+}
+
+/** Which group of a legend row a collision falls in. */
+function groupOf(p: CollisionProps, set: CollisionSet): string {
+  return set === 'party' ? partyOf(p) : set === 'severity' ? p.severity : conditionOf(p, set)
 }
 
 /** How many of a spot's collisions fall in each group of a legend row, in its order. */
 export function spotGroupCounts(items: readonly CollisionProps[], set: CollisionSet): number[] {
   const groups = collisionGroups(set)
   const counts = groups.map(() => 0)
-  for (const p of items) counts[groups.indexOf(set === 'severity' ? p.severity : conditionOf(p, set))]++
+  for (const p of items) counts[groups.indexOf(groupOf(p, set))]++
   return counts
 }
 

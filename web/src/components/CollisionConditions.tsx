@@ -1,13 +1,17 @@
 import { useMemo } from 'react'
 import {
+  COLLISION_PARTIES,
   CONDITION_IDS,
   CONDITIONS,
   type Collision,
   type CollisionFilters,
+  type CollisionParty,
   type CollisionProps,
   type ConditionId,
   conditionColor,
   conditionCounts,
+  partyColor,
+  partyCounts,
   SEVERITIES,
   SEVERITY_GROUPS,
   type Severity,
@@ -18,7 +22,7 @@ import { type BasemapId, collisionColors } from '../layers'
 import { GroupRow } from './GroupBars'
 
 /**
- * The collisions shown, split by worst injury and by circumstance, as filters:
+ * The collisions shown, split by who was involved, worst injury and circumstance, as filters:
  * each a thin split bar that opens into its groups' shares, a line picking
  * those collisions. A tick on each bar marks the group as it is before any
  * pick, so a pick shows how those collisions differ. The open row colours the
@@ -31,6 +35,38 @@ const groupLabel = (id: ConditionId, group: string) =>
     : id === 'season'
       ? `season.${group}`
       : `condition.${id}.${group}`) as MessageKey
+
+/** Collisions by who was involved: cyclists only at first. */
+function PartyRow({
+  all,
+  filters,
+  onChange,
+}: {
+  all: readonly CollisionProps[]
+  filters: CollisionFilters
+  onChange: (filters: CollisionFilters) => void
+}) {
+  const { t } = useI18n()
+  const counts = useMemo(() => partyCounts(all, filters), [all, filters])
+  // Everyone shown is the same as none picked.
+  const picked: readonly CollisionParty[] = filters.parties.length === COLLISION_PARTIES.length ? [] : filters.parties
+  return (
+    <GroupRow
+      name={t('crash.party')}
+      groups={COLLISION_PARTIES}
+      counts={counts}
+      picked={picked}
+      compared={
+        filters.severities.length < SEVERITIES.length || CONDITION_IDS.some((id) => filters.conditions[id]?.length)
+      }
+      color={partyColor}
+      label={(group) => t(`crash.${group as CollisionParty}`)}
+      onPick={(next) => onChange({ ...filters, parties: next.length ? (next as CollisionParty[]) : COLLISION_PARTIES })}
+      open={filters.by === 'party'}
+      onToggle={() => onChange({ ...filters, by: filters.by === 'party' ? null : 'party' })}
+    />
+  )
+}
 
 /** Collisions by worst injury, worst first, in the map's colours. */
 function InjuryRow({
@@ -109,6 +145,7 @@ export function CollisionConditions({ collisions, filters, onChange, basemap }: 
   return (
     <fieldset className="conditions">
       <legend>{t('crash.filters')}</legend>
+      <PartyRow all={all} filters={filters} onChange={onChange} />
       <InjuryRow all={all} filters={filters} onChange={onChange} basemap={basemap} />
       {CONDITION_IDS.map((id) => (
         <ConditionRow key={id} id={id} all={all} filters={filters} onChange={onChange} />

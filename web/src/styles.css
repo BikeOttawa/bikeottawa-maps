@@ -1684,11 +1684,6 @@ a {
   margin-top: 8px;
 }
 
-.collision-parties {
-  display: flex;
-  gap: 18px;
-}
-
 .year-range {
   display: flex;
   flex-direction: column;

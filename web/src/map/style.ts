@@ -1,7 +1,14 @@
 import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/basemaps'
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
-import { type CollisionSet, collisionGroups, conditionColor, SEVERITIES, type Severity } from '../collisions'
+import {
+  type CollisionSet,
+  collisionGroups,
+  conditionColor,
+  partyColor,
+  SEVERITIES,
+  type Severity,
+} from '../collisions'
 import {
   type ComfortFilters,
   comfortColorBy,
@@ -1032,7 +1039,9 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
   // With no row open, the worst injury among a spot's collisions; with one, its groups' split.
   const by = state.collisionsBy ?? null
   const pies = by
-    ? collisionGroups(by).map((group) => (by === 'severity' ? colors[group as Severity] : conditionColor(by, group)))
+    ? collisionGroups(by).map((group) =>
+        by === 'party' ? partyColor(group) : by === 'severity' ? colors[group as Severity] : conditionColor(by, group),
+      )
     : null
   const byWorst = pies
     ? mostCommon(pies)

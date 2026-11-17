@@ -11,6 +11,7 @@ import {
   formatCollisionFilters,
   matchesCollision,
   parseCollisionFilters,
+  partyCounts,
   spotGroupCounts,
   worstFirst,
 } from './collisions'
@@ -30,6 +31,20 @@ describe('collision filters', () => {
   it('shows cyclists in every year by default', () => {
     expect(matchesCollision(collision({}), DEFAULT_COLLISION_FILTERS)).toBe(true)
     expect(matchesCollision(collision({ bicycles: 0, pedestrians: 1 }), DEFAULT_COLLISION_FILTERS)).toBe(false)
+  })
+  it("counts a collision as a cyclist's when one was involved, a pedestrian too or not", () => {
+    const all = [collision({}), collision({ bicycles: 0, pedestrians: 1 }), collision({ bicycles: 1, pedestrians: 1 })]
+    const walking = { ...DEFAULT_COLLISION_FILTERS, parties: ['foot'] as const }
+    expect(all.map((p) => matchesCollision(p, walking))).toEqual([false, true, false])
+    expect(spotGroupCounts(all, 'party')).toEqual([2, 1])
+    // Split under every other filter, cyclists picked or not.
+    expect(partyCounts(all, DEFAULT_COLLISION_FILTERS).shown).toEqual(
+      new Map([
+        ['bike', 2],
+        ['foot', 1],
+      ]),
+    )
+    expect(parseCollisionFilters(';;;;;by:party').by).toBe('party')
   })
   it('filters by year and injury', () => {
     const f = { ...DEFAULT_COLLISION_FILTERS, from: 2020, to: 2021, severities: ['fatal', 'major'] as const }
