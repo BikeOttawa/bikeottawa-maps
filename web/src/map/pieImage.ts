@@ -10,7 +10,7 @@ const SPOTS_FULL = 17
  * A spot's radius in pixels where spots first show and at full size: one
  * item's, and the busiest spot's, so the busiest are as big on every layer.
  */
-const RADIUS = { first: { one: 3, most: 10 }, full: { one: 6, most: 24 } } as const
+const RADIUS = { first: { one: 3.75, most: 12.5 }, full: { one: 7.5, most: 30 } } as const
 type Radius = (typeof RADIUS)[keyof typeof RADIUS]
 
 /** Spots are sized against the busiest, taken as at least this many items, so a handful never makes a big spot. */
