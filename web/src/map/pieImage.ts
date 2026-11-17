@@ -25,7 +25,7 @@ export function spotSize(count: number, busiest: number): number {
 }
 
 /** The smallest radius at which a spot shows its split as a pie: slices of smaller ones would not read. */
-const PIE_MIN_RADIUS = 7
+const PIE_MIN_RADIUS = 5
 
 /** The ring around each spot and the lines between its slices, in pixels at full size. */
 const RING = 1.5
