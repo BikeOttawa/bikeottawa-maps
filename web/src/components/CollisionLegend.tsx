@@ -3,6 +3,7 @@ import { COLLISION_YEARS, type Collision, type CollisionFilters, type CollisionS
 import { useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
 import { CollisionConditions } from './CollisionConditions'
+import { LegendNote } from './LegendNote'
 import { MinCountSlider, YearRange } from './YearRange'
 
 interface Props {
@@ -70,11 +71,15 @@ export function CollisionLegend({ spots, collisions, busiestSpot, filters, onCha
           {t('crash.shown').replace('{count}', number(shown)).replace('{spots}', number(spots.length))}
         </p>
       )}
-      <p className="footnote">
-        {t('crash.source')
-          .replace('{first}', String(COLLISION_YEARS.first))
-          .replace('{last}', String(COLLISION_YEARS.last))}
-      </p>
+      <LegendNote>
+        <p>{t('crash.conditionsHint')}</p>
+        <p>{t('crash.circles')}</p>
+        <p>
+          {t('crash.source')
+            .replace('{first}', String(COLLISION_YEARS.first))
+            .replace('{last}', String(COLLISION_YEARS.last))}
+        </p>
+      </LegendNote>
     </div>
   )
 }

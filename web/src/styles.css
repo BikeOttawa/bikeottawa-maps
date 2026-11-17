@@ -352,6 +352,26 @@ a {
   color: var(--muted);
 }
 
+/* A layer's how-to and source, folded at the foot of its legend. */
+.legend-note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.legend-note summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.legend-note summary:hover {
+  color: var(--accent);
+}
+
+.legend-note p {
+  margin: 6px 0 0;
+}
+
 .link-button {
   padding: 0;
   border: 0;

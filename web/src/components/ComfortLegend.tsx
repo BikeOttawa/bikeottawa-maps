@@ -11,6 +11,7 @@ import {
 import { isMessageKey, type MessageKey, useI18n } from '../i18n'
 import { comfortSetColors, LTS_COLORS } from '../layers'
 import { GroupRow, OTHER } from './GroupBars'
+import { LegendNote } from './LegendNote'
 
 interface Props {
   filters: ComfortFilters
@@ -88,9 +89,11 @@ export function ComfortLegend({ filters, onChange, totals }: Props) {
             onToggle={() => onChange({ ...filters, by: filters.by === set ? null : set })}
           />
         ))}
-        <p className="footnote">{t('comfort.hint')}</p>
       </fieldset>
       <p className="collision-total">{t('comfort.shown').replace('{km}', km(comfortShownKm(totals, filters)))}</p>
+      <LegendNote>
+        <p>{t('comfort.hint')}</p>
+      </LegendNote>
     </div>
   )
 }

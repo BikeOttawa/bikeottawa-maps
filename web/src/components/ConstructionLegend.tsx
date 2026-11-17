@@ -10,6 +10,7 @@ import {
 import { useI18n } from '../i18n'
 import { type BasemapId, CONSTRUCTION_KIND_COLORS, constructionColors } from '../layers'
 import { GroupRow, OTHER } from './GroupBars'
+import { LegendNote } from './LegendNote'
 
 interface Props {
   filters: ConstructionFilters
@@ -63,14 +64,16 @@ export function ConstructionLegend({ filters, onChange, projects, basemap }: Pro
               open={filters.by === 'kind'}
               onToggle={() => onChange({ ...filters, by: filters.by === 'kind' ? null : 'kind' })}
             />
-            <p className="footnote">{t('construction.hint')}</p>
           </fieldset>
           <p className="collision-total">
             {t('construction.shown').replace('{count}', number(constructionShown(projects, filters)))}
           </p>
         </>
       )}
-      <p className="footnote">{t('construction.source')}</p>
+      <LegendNote>
+        {projects && <p>{t('construction.hint')}</p>}
+        <p>{t('construction.source')}</p>
+      </LegendNote>
     </div>
   )
 }

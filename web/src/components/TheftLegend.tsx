@@ -16,6 +16,7 @@ import {
   VALUE_STOPS,
 } from '../thefts'
 import { GroupRow } from './GroupBars'
+import { LegendNote } from './LegendNote'
 import { MinCountSlider, YearRange } from './YearRange'
 
 interface Props {
@@ -166,7 +167,6 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
               onToggle={() => onChange({ ...filters, by: filters.by === id ? null : id })}
             />
           ))}
-          <p className="footnote">{t('theft.hint')}</p>
         </fieldset>
       )}
       <MinCountSlider
@@ -190,9 +190,13 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
           {t('theft.shown').replace('{count}', number(shown)).replace('{spots}', number(spots.length))}
         </p>
       )}
-      <p className="footnote">
-        {t('theft.source').replace('{first}', String(THEFT_YEARS.first)).replace('{last}', String(THEFT_YEARS.last))}
-      </p>
+      <LegendNote>
+        <p>{t('theft.hint')}</p>
+        <p>{t('theft.circles')}</p>
+        <p>
+          {t('theft.source').replace('{first}', String(THEFT_YEARS.first)).replace('{last}', String(THEFT_YEARS.last))}
+        </p>
+      </LegendNote>
     </div>
   )
 }

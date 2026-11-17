@@ -152,7 +152,6 @@ export function CollisionConditions({ collisions, filters, onChange, basemap }: 
       {CONDITION_IDS.map((id) => (
         <ConditionRow key={id} id={id} all={all} filters={filters} onChange={onChange} />
       ))}
-      <p className="footnote">{t('crash.conditionsHint')}</p>
     </fieldset>
   )
 }

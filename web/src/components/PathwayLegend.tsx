@@ -13,6 +13,7 @@ import {
   pathwayShownKm,
 } from '../pathways'
 import { GroupRow, OTHER } from './GroupBars'
+import { LegendNote } from './LegendNote'
 
 interface Props {
   filters: PathwayFilters
@@ -72,7 +73,6 @@ export function PathwayLegend({ filters, onChange, totals, basemap }: Props) {
               onToggle={() => onChange({ ...filters, by: filters.by === set ? null : set })}
             />
           ))}
-          <p className="footnote">{t('pathways.hint')}</p>
         </fieldset>
       ) : (
         // Without the pipeline's totals, the surfaces as a plain key.
@@ -105,6 +105,11 @@ export function PathwayLegend({ filters, onChange, totals, basemap }: Props) {
       </label>
       {totals && (
         <p className="collision-total">{t('comfort.shown').replace('{km}', km(pathwayShownKm(totals, filters)))}</p>
+      )}
+      {totals && (
+        <LegendNote>
+          <p>{t('pathways.hint')}</p>
+        </LegendNote>
       )}
     </div>
   )
