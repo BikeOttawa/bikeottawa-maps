@@ -295,14 +295,10 @@ a {
 }
 
 .place-group {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 12px;
   margin: 10px 0 0;
   padding: 0;
   border: 0;
   min-width: 0;
-  font-size: 14px;
 }
 
 .place-group legend {
@@ -311,6 +307,42 @@ a {
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
+}
+
+.place-group legend .check {
+  min-height: 28px;
+}
+
+/* A kind of place as a chip: outlined while hidden, filled with its group's colour when shown. */
+.place-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.place-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.place-chip:hover {
+  border-color: var(--chip);
+}
+
+.place-chip[aria-pressed="true"] {
+  border-color: var(--chip);
+  background: var(--chip);
+  color: #fff;
 }
 
 .footnote {

@@ -628,11 +628,8 @@ export function App() {
   // The card stays open: a mapper looks at a path one way, then the other.
   const changePathways = useCallback((next: PathwayFilters) => update({ pathways: next }), [update])
 
-  const togglePlaceKind = useCallback((kind: PlaceKind) => {
-    setUrl((current) => {
-      const kinds = current.placeKinds
-      return { ...current, placeKinds: kinds.includes(kind) ? kinds.filter((k) => k !== kind) : [...kinds, kind] }
-    })
+  const changePlaceKinds = useCallback((placeKinds: readonly PlaceKind[]) => {
+    setUrl((current) => ({ ...current, placeKinds }))
     setSelected(null)
   }, [])
 
@@ -1146,7 +1143,7 @@ export function App() {
                   comfortTotals={tileMeta?.comfort ?? null}
                   basemap={basemap}
                   placeKinds={placeKinds}
-                  onTogglePlaceKind={togglePlaceKind}
+                  onPlaceKindsChange={changePlaceKinds}
                   collisionSpots={spots}
                   collisions={collisionData}
                   busiestSpot={busiestSpot}

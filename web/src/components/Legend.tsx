@@ -1,10 +1,11 @@
+import type { CSSProperties } from 'react'
 import type { Collision, CollisionFilters, CollisionSpot } from '../collisions'
 import type { ComfortFilters, ComfortTotals } from '../comfort'
 import type { ConstructionFilters, ConstructionProps } from '../construction'
 import { useI18n } from '../i18n'
 import type { BasemapId, LayerId } from '../layers'
 import type { PathwayFilters, PathwayTotals } from '../pathways'
-import { kindsInGroup, PLACE_GROUP_IDS, type PlaceKind } from '../places'
+import { kindsInGroup, PLACE_GROUP_IDS, type PlaceGroupId, type PlaceKind, placeColor } from '../places'
 import type { Theft, TheftFilters, TheftSpot } from '../thefts'
 import { CollisionLegend } from './CollisionLegend'
 import { ComfortLegend } from './ComfortLegend'
@@ -43,7 +44,7 @@ interface Props {
   /** Some layers' colours depend on the ground they are drawn on. */
   basemap: BasemapId
   placeKinds: readonly PlaceKind[]
-  onTogglePlaceKind: (kind: PlaceKind) => void
+  onPlaceKindsChange: (kinds: readonly PlaceKind[]) => void
 }
 
 export function Legend({
@@ -53,7 +54,7 @@ export function Legend({
   comfortTotals,
   basemap,
   placeKinds,
-  onTogglePlaceKind,
+  onPlaceKindsChange,
   collisionSpots,
   collisions,
   busiestSpot,
@@ -75,7 +76,8 @@ export function Legend({
   return (
     <section className="legend" aria-label={t('legend')}>
       <h2 className="eyebrow">{t('legend')}</h2>
-      <p className="legend-desc">{t(`layer.${layer}.desc`)}</p>
+      {/* Places say what they are on their chips. */}
+      {layer !== 'places' && <p className="legend-desc">{t(`layer.${layer}.desc`)}</p>}
       {layer === 'comfort' && (
         <ComfortLegend filters={comfortFilters} onChange={onComfortFiltersChange} totals={comfortTotals} />
       )}
@@ -117,17 +119,68 @@ export function Legend({
       )}
       {layer === 'places' &&
         PLACE_GROUP_IDS.map((group) => (
-          <fieldset key={group} className="place-group">
-            <legend>{t(`group.${group}`)}</legend>
-            {kindsInGroup(group).map((kind) => (
-              <label key={kind} className="check">
-                <input type="checkbox" checked={placeKinds.includes(kind)} onChange={() => onTogglePlaceKind(kind)} />
-                <PlaceIcon kind={kind} />
-                {t(`place.${kind}`)}
-              </label>
-            ))}
-          </fieldset>
+          <PlaceGroup key={group} group={group} picked={placeKinds} onChange={onPlaceKindsChange} />
         ))}
     </section>
+  )
+}
+
+/**
+ * A group of place kinds: a chip per kind that shows or hides it, and a tick
+ * box on the group's name for all of them, half ticked when some are on.
+ */
+function PlaceGroup({
+  group,
+  picked,
+  onChange,
+}: {
+  group: PlaceGroupId
+  picked: readonly PlaceKind[]
+  onChange: (kinds: readonly PlaceKind[]) => void
+}) {
+  const { t } = useI18n()
+  const kinds = kindsInGroup(group)
+  const on = kinds.filter((kind) => picked.includes(kind))
+  const all = on.length === kinds.length
+  return (
+    <fieldset className="place-group">
+      <legend>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={all}
+            ref={(input) => {
+              if (input) input.indeterminate = on.length > 0 && !all
+            }}
+            onChange={() =>
+              onChange(
+                all
+                  ? picked.filter((kind) => !kinds.includes(kind))
+                  : [...picked, ...kinds.filter((kind) => !on.includes(kind))],
+              )
+            }
+          />
+          {t(`group.${group}`)}
+        </label>
+      </legend>
+      <div className="place-chips">
+        {kinds.map((kind) => {
+          const isOn = on.includes(kind)
+          return (
+            <button
+              key={kind}
+              type="button"
+              className="place-chip"
+              aria-pressed={isOn}
+              style={{ '--chip': placeColor(kind) } as CSSProperties}
+              onClick={() => onChange(isOn ? picked.filter((k) => k !== kind) : [...picked, kind])}
+            >
+              <PlaceIcon kind={kind} />
+              {t(`place.${kind}`)}
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }
