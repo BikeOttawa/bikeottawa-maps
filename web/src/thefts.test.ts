@@ -5,6 +5,7 @@ import {
   formatTheftFilters,
   matchesTheft,
   parseTheftFilters,
+  spotTheftCounts,
   type Theft,
   type TheftProps,
   theftGroupCounts,
@@ -89,6 +90,8 @@ describe('thefts', () => {
     const at = (time: string) => ({ time }) as unknown as TheftProps
     expect(commonTheftGroup([at('night'), at('morning'), at('night')], 'time')).toBe('night')
     expect(commonTheftGroup([at('evening'), at('morning')], 'time')).toBe('morning')
+    // And carries how many fall in each, in the groups' order, for its pie.
+    expect(spotTheftCounts([at('night'), at('morning'), at('night')], 'time')).toEqual([1, 0, 0, 2])
   })
 
   it('gathers thefts at their intersection, the most recent first', () => {

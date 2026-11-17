@@ -33,6 +33,26 @@ describe('buildStyle', () => {
     expect(JSON.stringify((layer(style, 'collisions-point') as { paint?: unknown }).paint)).toContain('count')
   })
 
+  it('shows the split of big spots as pies, under the small ones, while a row colours them', () => {
+    const spots = (patch: Partial<StyleState>, prefix: string) =>
+      build(patch)
+        .layers.map((l) => l.id)
+        .filter((id) => id.startsWith(prefix) && id !== `${prefix}heat`)
+    // Worst injury, and the value stolen, are one colour a spot.
+    expect(spots({ layer: 'collisions' }, 'collisions-')).toEqual(['collisions-point'])
+    expect(spots({ layer: 'thefts' }, 'thefts-')).toEqual(['thefts-point'])
+    expect(spots({ layer: 'thefts', theftsBy: 'where' }, 'thefts-')).toEqual(['thefts-pie', 'thefts-point'])
+    const style = build({ layer: 'collisions', collisionsBy: 'weather' })
+    expect(spots({ layer: 'collisions', collisionsBy: 'weather' }, 'collisions-')).toEqual([
+      'collisions-pie',
+      'collisions-point',
+    ])
+    // Each spot is one or the other.
+    const pie = layer(style, 'collisions-pie') as { filter: unknown; layout: Record<string, unknown> }
+    expect(layer(style, 'collisions-point').filter).toEqual(['!', pie.filter])
+    expect(JSON.stringify(pie.layout['icon-image'])).toContain('pie:')
+  })
+
   it('gives the reach map the street lines to itself', () => {
     const style = build({ layer: 'comfort', reach: { minutes: 15, area: false } })
     expect(style.sources.reach).toBeDefined()
@@ -51,7 +71,8 @@ describe('buildStyle', () => {
 
   it('draws, and so downloads, only the active data layer', () => {
     for (const active of LAYER_IDS) {
-      const style = build({ layer: active })
+      // A row open, so spots have their pies too.
+      const style = build({ layer: active, collisionsBy: 'weather', theftsBy: 'where' })
       for (const id of LAYER_IDS) {
         for (const mapLayer of INTERACTIVE_LAYERS[id]) {
           const found = style.layers.find((l) => l.id === mapLayer) as { layout?: { visibility?: string } } | undefined

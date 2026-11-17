@@ -54,6 +54,7 @@ import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
 import { CLOSURE_IMAGE, CONSTRUCTION_ORANGE } from './closureImage'
+import { isPie, pieImage, pieSize, SPOTS_FROM, spotRadius } from './pieImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -143,8 +144,8 @@ export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
   places: ['places-icon'],
-  collisions: ['collisions-point'],
-  thefts: ['thefts-point'],
+  collisions: ['collisions-point', 'collisions-pie'],
+  thefts: ['thefts-point', 'thefts-pie'],
   construction: ['construction-point', 'construction-line'],
 }
 
@@ -942,8 +943,66 @@ const THEFTS_ATTRIBUTION =
 const ELEVATION_ATTRIBUTION =
   'Elevation: <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener">NRCan</a>'
 
-/** Zoom from which single collisions show; further out they make a heat map. */
-const COLLISION_POINTS_FROM = 12.5
+const COLLISION_POINTS_FROM = SPOTS_FROM
+
+/**
+ * Collision or theft spots, sized by their count. Coloured by a group, the
+ * ones big enough show their split as a pie (`pie` counts, in the groups'
+ * order); smaller ones keep the colour most of their items share and are
+ * drawn over the pies, as smaller spots are drawn over bigger ones.
+ */
+function spotLayers(
+  layer: 'collisions' | 'thefts',
+  color: ExpressionSpecification,
+  pale: boolean,
+  pies: readonly string[] | null,
+): LayerSpecification[] {
+  const ring = pale ? '#ffffff' : '#111417'
+  const fadeIn: ExpressionSpecification = [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    COLLISION_POINTS_FROM,
+    0,
+    COLLISION_POINTS_FROM + 0.7,
+    1,
+  ]
+  const source = layer === 'collisions' ? COLLISIONS_SOURCE : THEFTS_SOURCE
+  const points: LayerSpecification = {
+    id: `${layer}-point`,
+    type: 'circle',
+    source,
+    minzoom: COLLISION_POINTS_FROM,
+    ...(pies && { filter: ['!', isPie] as unknown as FilterSpecification }),
+    paint: {
+      'circle-color': color,
+      'circle-radius': spotRadius,
+      'circle-stroke-color': ring,
+      'circle-stroke-width': 1,
+      'circle-opacity': fadeIn,
+      'circle-stroke-opacity': fadeIn,
+    },
+  }
+  if (!pies) return [points]
+  return [
+    {
+      id: `${layer}-pie`,
+      type: 'symbol',
+      source,
+      minzoom: COLLISION_POINTS_FROM,
+      filter: isPie as unknown as FilterSpecification,
+      layout: {
+        'icon-image': pieImage(pies, ring),
+        'icon-size': pieSize,
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'symbol-z-order': 'source',
+      },
+      paint: { 'icon-opacity': fadeIn },
+    },
+    points,
+  ]
+}
 
 /**
  * Collisions involving cyclists or pedestrians: where they cluster, zoomed
@@ -963,22 +1022,9 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
         ...CONDITIONS[by].flatMap((group) => [group, conditionColor(by, group)]),
         OTHER,
       ]) as unknown as ExpressionSpecification
-  // Area grows with the number of collisions: radius with its square root.
-  const radius = (one: number, step: number): ExpressionSpecification => [
-    '+',
-    one,
-    ['*', step, ['sqrt', ['-', ['get', 'count'], 1]]],
-  ]
+  // Worst injury is one colour; a circumstance shows its split on big spots.
+  const pies = by === 'severity' ? null : CONDITIONS[by].map((group) => conditionColor(by, group))
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  const fadeIn: ExpressionSpecification = [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    COLLISION_POINTS_FROM,
-    0,
-    COLLISION_POINTS_FROM + 0.7,
-    1,
-  ]
   return {
     under: [
       {
@@ -1018,30 +1064,7 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
         },
       },
     ],
-    over: [
-      {
-        id: 'collisions-point',
-        type: 'circle',
-        source: COLLISIONS_SOURCE,
-        minzoom: COLLISION_POINTS_FROM,
-        paint: {
-          'circle-color': byWorst,
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            COLLISION_POINTS_FROM,
-            radius(3, 1.4),
-            17,
-            radius(6, 3),
-          ],
-          'circle-stroke-color': pale ? '#ffffff' : '#111417',
-          'circle-stroke-width': 1,
-          'circle-opacity': fadeIn,
-          'circle-stroke-opacity': fadeIn,
-        },
-      },
-    ],
+    over: spotLayers('collisions', byWorst, pale, pies),
   }
 }
 
@@ -1064,21 +1087,7 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
         ['step', ['get', 'value'], values[0], ...VALUE_STEPS.flatMap((step, i) => [step, values[i + 1]])],
       ]) as unknown as ExpressionSpecification
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  // Area grows with the number of thefts: radius with its square root.
-  const radius = (one: number, step: number): ExpressionSpecification => [
-    '+',
-    one,
-    ['*', step, ['sqrt', ['-', ['get', 'count'], 1]]],
-  ]
-  const fadeIn: ExpressionSpecification = [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    COLLISION_POINTS_FROM,
-    0,
-    COLLISION_POINTS_FROM + 0.7,
-    1,
-  ]
+  const pies = by ? THEFT_GROUPS[by].map((group) => theftGroupColor(by, group)) : null
   return {
     under: [
       {
@@ -1118,30 +1127,7 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
         },
       },
     ],
-    over: [
-      {
-        id: 'thefts-point',
-        type: 'circle',
-        source: THEFTS_SOURCE,
-        minzoom: COLLISION_POINTS_FROM,
-        paint: {
-          'circle-color': byValue,
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            COLLISION_POINTS_FROM,
-            radius(3, 1.4),
-            17,
-            radius(6, 3),
-          ],
-          'circle-stroke-color': pale ? '#ffffff' : '#111417',
-          'circle-stroke-width': 1,
-          'circle-opacity': fadeIn,
-          'circle-stroke-opacity': fadeIn,
-        },
-      },
-    ],
+    over: spotLayers('thefts', byValue, pale, pies),
   }
 }
 

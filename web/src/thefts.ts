@@ -237,17 +237,24 @@ export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] 
   return spots
 }
 
+/** How many of a spot's thefts fall in each group of a set, in the groups' order. */
+export function spotTheftCounts(items: readonly TheftProps[], id: TheftGroupId): number[] {
+  const groups: readonly string[] = THEFT_GROUPS[id]
+  const counts = groups.map(() => 0)
+  for (const p of items) counts[groups.indexOf(theftGroupOf(p, id))]++
+  return counts
+}
+
 /** The group of a set most of a spot's thefts fall in; on a tie, the one listed first. */
 export function commonTheftGroup(items: readonly TheftProps[], id: TheftGroupId): string {
-  const counts = new Map<string, number>()
-  for (const p of items) counts.set(theftGroupOf(p, id), (counts.get(theftGroupOf(p, id)) ?? 0) + 1)
-  const groups: readonly string[] = THEFT_GROUPS[id]
-  return groups.reduce((best, group) => ((counts.get(group) ?? 0) > (counts.get(best) ?? 0) ? group : best))
+  const counts = spotTheftCounts(items, id)
+  return THEFT_GROUPS[id][counts.indexOf(Math.max(...counts))]
 }
 
 /**
  * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them. Coloured by a set, each carries the group most of its thefts fall in.
+ * them. Coloured by a set, each carries the group most of its thefts fall
+ * in, and how many fall in each (`pie`, for big spots).
  */
 export function theftSpotsGeoJSON(
   spots: readonly TheftSpot[],
@@ -264,7 +271,7 @@ export function theftSpotsGeoJSON(
           count: spot.items.length,
           value: spot.value,
           valued: spot.valued,
-          ...(by && { group: commonTheftGroup(spot.items, by) }),
+          ...(by && { group: commonTheftGroup(spot.items, by), pie: spotTheftCounts(spot.items, by).join(',') }),
         },
         geometry: { type: 'Point', coordinates: spot.at },
       })),

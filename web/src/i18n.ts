@@ -118,7 +118,7 @@ const en = {
     'Ottawa Police Service open data, {first} to {last}. The police place each theft at the nearest intersection.',
   'theft.filters': 'What, when and where from',
   'theft.hint':
-    'Open a row to colour the spots by what most of their thefts share; with none open, they show the value stolen. Tap a line to show only those thefts; the thin mark is how it stands before anything else is picked.',
+    'Open a row to colour the spots by their thefts: big ones show each group’s share, small ones the most common. With none open, they show the value stolen. Tap a line to show only those thefts; the thin mark is how it stands before anything else is picked.',
   'theftGroup.where': 'Taken from',
   'theftGroup.time': 'Time of day',
   'theftGroup.season': 'Time of year',
@@ -191,7 +191,7 @@ const en = {
   'crash.onlyYear': 'Show {year} only',
   'crash.everyYear': 'Show every year',
   'crash.conditionsHint':
-    'The open row colours the spots, each by what most of its collisions share. Tap a line to show only those collisions; the thin mark is how it stands before anything else is picked.',
+    'The open row colours the spots: big ones show each group’s share, small ones the most common. Tap a line to show only those collisions; the thin mark is how it stands before anything else is picked.',
   'crash.groupShare': '{share} ({count}); {all} before any pick',
   'crash.showAll': 'Show all',
   'condition.light': 'Light',
@@ -696,7 +696,7 @@ const fr: Record<keyof typeof en, string> = {
     'Données ouvertes du Service de police d’Ottawa, de {first} à {last}. La police place chaque vol à l’intersection la plus proche.',
   'theft.filters': 'Quoi, quand et d’où',
   'theft.hint':
-    'Ouvrez une rangée pour colorer les endroits selon ce que partagent la plupart de leurs vols; sans rangée ouverte, ils montrent la valeur volée. Touchez une ligne pour ne montrer que ces vols; le trait fin\u00a0: où elle en est avant tout autre choix.',
+    'Ouvrez une rangée pour colorer les endroits selon leurs vols\u00a0: les gros montrent la part de chaque groupe, les petits le plus fréquent. Sans rangée ouverte, ils montrent la valeur volée. Touchez une ligne pour ne montrer que ces vols; le trait fin\u00a0: où elle en est avant tout autre choix.',
   'theftGroup.where': 'Lieu du vol',
   'theftGroup.time': 'Moment',
   'theftGroup.season': 'Saison',
@@ -769,7 +769,7 @@ const fr: Record<keyof typeof en, string> = {
   'crash.onlyYear': 'Ne montrer que {year}',
   'crash.everyYear': 'Montrer toutes les années',
   'crash.conditionsHint':
-    'La rangée ouverte colore les endroits, chacun selon ce que partagent la plupart de ses collisions. Touchez une ligne pour ne montrer que ces collisions; le trait fin\u00a0: où elle en est avant tout autre choix.',
+    'La rangée ouverte colore les endroits\u00a0: les gros montrent la part de chaque groupe, les petits le plus fréquent. Touchez une ligne pour ne montrer que ces collisions; le trait fin\u00a0: où elle en est avant tout autre choix.',
   'crash.groupShare': '{share} ({count}); {all} avant tout choix',
   'crash.showAll': 'Tout montrer',
   'condition.light': 'Luminosité',

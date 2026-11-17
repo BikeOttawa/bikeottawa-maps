@@ -12,6 +12,7 @@ import {
   formatCollisionFilters,
   matchesCollision,
   parseCollisionFilters,
+  spotGroupCounts,
   worstFirst,
 } from './collisions'
 
@@ -72,6 +73,8 @@ describe('collision filters in the URL', () => {
     const at = (weather: string) => ({ weather }) as unknown as CollisionProps
     expect(commonGroup([at('Rain'), at('Clear'), at('Rain')], 'weather')).toBe('rain')
     expect(commonGroup([at('Snow'), at('Clear')], 'weather')).toBe('clear')
+    // And carries how many fall in each, in the groups' order, for its pie.
+    expect(spotGroupCounts([at('Rain'), at('Clear'), at('Rain'), at('Fog')], 'weather')).toEqual([1, 2, 0, 1])
   })
 })
 

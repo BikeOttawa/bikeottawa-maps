@@ -25,6 +25,7 @@ import { nearestOnRoute, pointAtDistance, routeProfile } from '../route/profile'
 import type { ReachShape } from '../route/reachArea'
 import type { RoutePoints } from '../route/state'
 import { CLOSURE_IMAGE, renderClosureImage } from './closureImage'
+import { PIE_PREFIX, renderPieImage } from './pieImage'
 import { renderPlaceImage } from './placeImage'
 import { renderStopImage } from './stopImage'
 import { streetAlong } from './streetAlong'
@@ -206,9 +207,11 @@ export function MapView({
         ? renderStopImage(stop)
         : id === CLOSURE_IMAGE
           ? renderClosureImage()
-          : id.startsWith(placeImageId('')) && isPlaceKind(place)
-            ? renderPlaceImage(place)
-            : null
+          : id.startsWith(PIE_PREFIX)
+            ? renderPieImage(id)
+            : id.startsWith(placeImageId('')) && isPlaceKind(place)
+              ? renderPlaceImage(place)
+              : null
       if (marker) map.addImage(id, marker.image, { pixelRatio: marker.pixelRatio })
     })
 
@@ -256,11 +259,11 @@ export function MapView({
           at: at ?? [lngLat.lng, lngLat.lat],
         }
       }
-      if (feature.layer.id === 'thefts-point' && feature.geometry.type === 'Point') {
+      if (feature.layer.id.startsWith('thefts-') && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'theft', spot: String(feature.properties.key), at: [x, y] }
       }
-      if (feature.layer.id === 'collisions-point' && feature.geometry.type === 'Point') {
+      if (feature.layer.id.startsWith('collisions-') && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'collision', spot: String(feature.properties.key), at: [x, y] }
       }

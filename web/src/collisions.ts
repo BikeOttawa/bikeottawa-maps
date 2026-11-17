@@ -347,18 +347,24 @@ export function collisionSpots(all: readonly Collision[], f: CollisionFilters): 
   })
 }
 
+/** How many of a spot's collisions fall in each group of a circumstance, in the groups' order. */
+export function spotGroupCounts(items: readonly CollisionProps[], id: ConditionId): number[] {
+  const groups: readonly string[] = CONDITIONS[id]
+  const counts = groups.map(() => 0)
+  for (const p of items) counts[groups.indexOf(conditionOf(p, id))]++
+  return counts
+}
+
 /** The group of a circumstance most of a spot's collisions fall in; on a tie, the one listed first. */
 export function commonGroup(items: readonly CollisionProps[], id: ConditionId): string {
-  const counts = new Map<string, number>()
-  for (const p of items) counts.set(conditionOf(p, id), (counts.get(conditionOf(p, id)) ?? 0) + 1)
-  const groups: readonly string[] = CONDITIONS[id]
-  return groups.reduce((best, group) => ((counts.get(group) ?? 0) > (counts.get(best) ?? 0) ? group : best))
+  const counts = spotGroupCounts(items, id)
+  return CONDITIONS[id][counts.indexOf(Math.max(...counts))]
 }
 
 /**
  * Spots for the map: bigger ones first, so smaller ones are drawn on top of
  * them. Coloured by a circumstance, each carries the group most of its
- * collisions fall in.
+ * collisions fall in, and how many fall in each (`pie`, for big spots).
  */
 export function spotsGeoJSON(spots: readonly CollisionSpot[], by: CollisionSet = 'severity'): FeatureCollection<Point> {
   return {
@@ -372,7 +378,10 @@ export function spotsGeoJSON(spots: readonly CollisionSpot[], by: CollisionSet =
           count: spot.items.length,
           worst: spot.worst,
           weight: spot.weight,
-          ...(by !== 'severity' && { group: commonGroup(spot.items, by) }),
+          ...(by !== 'severity' && {
+            group: commonGroup(spot.items, by),
+            pie: spotGroupCounts(spot.items, by).join(','),
+          }),
         },
         geometry: { type: 'Point', coordinates: spot.at },
       })),
