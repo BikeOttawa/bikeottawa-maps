@@ -49,6 +49,9 @@ addProtocol('pmtiles', new Protocol().tile)
 /** How far around a click or tap, in pixels, a feature still counts as hit. */
 const HIT_RADIUS = 8
 
+/** A trip's routes not chosen, and their time bubbles: a click picks one. */
+const OTHER_ROUTE_LAYERS = ['route-others-label', 'route-others-line', 'route-others-casing']
+
 /** The route's stop icons and their bubbles: barriers and roadwork open a card. */
 const ROUTE_STOP_LAYERS = ['route-stops', 'route-stops-bubble']
 /** How close to the route, in pixels, the pointer has to be to mark a spot on it. */
@@ -91,6 +94,8 @@ interface Props {
     zoomTo: RouteHighlight | null
     /** Marker that shows a spinner while its result is on the way: B for a route, A for how far. */
     busy?: 0 | 1 | null
+    /** Picks one of the trip's other routes, drawn grey, by its place among them. */
+    onChooseRoute: (index: number) => void
   } | null
 }
 
@@ -326,6 +331,20 @@ export function MapView({
       return null
     }
 
+    // Planning, the other route under the pointer, by its place among the trip's routes.
+    const otherRouteAt = (point: { x: number; y: number }): number | null => {
+      const layers = OTHER_ROUTE_LAYERS.filter((id) => map.getLayer(id))
+      if (!latest.current.routing || !layers.length) return null
+      const [hit] = map.queryRenderedFeatures(
+        [
+          [point.x - HIT_RADIUS, point.y - HIT_RADIUS],
+          [point.x + HIT_RADIUS, point.y + HIT_RADIUS],
+        ],
+        { layers },
+      )
+      return hit ? Number(hit.properties.choice) : null
+    }
+
     map.on('click', (e) => {
       const merged = mergedAt(e.point)
       if (merged) {
@@ -341,12 +360,18 @@ export function MapView({
       }
       const { routing, onSelect } = latest.current
       const feature = featureAt(e.point, e.lngLat)
+      const other = feature ? null : otherRouteAt(e.point)
+      if (routing && other !== null) {
+        routing.onChooseRoute(other)
+        return
+      }
       onSelect(feature)
       if (routing && !feature) routing.onMapClick([e.lngLat.lng, e.lngLat.lat])
     })
     map.on('mousemove', (e) => {
       const { routing, profile } = latest.current
-      const overFeature = featureAt(e.point, e.lngLat) !== null || mergedAt(e.point) !== null
+      const overFeature =
+        featureAt(e.point, e.lngLat) !== null || mergedAt(e.point) !== null || otherRouteAt(e.point) !== null
       if (!routing) {
         map.getCanvas().style.cursor = overFeature ? 'pointer' : ''
         return

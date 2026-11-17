@@ -73,7 +73,7 @@ import {
   type WalkStyleId,
 } from './route/styles'
 import { useReach, visibleReach } from './route/useReach'
-import { useRoute, visibleRoute } from './route/useRoute'
+import { useRoute, visibleRoutes } from './route/useRoute'
 import { formatTheftFilters, parseTheftFilters, type TheftFilters, theftSpots, theftSpotsGeoJSON } from './thefts'
 import { useClosures } from './useClosures'
 import { useCollisionData, useTheftData } from './usePoints'
@@ -113,6 +113,8 @@ interface UrlState {
   walkStyle: WalkStyleId
   /** Riding time shown in the How far mode. */
   minutes: ReachMinutes
+  /** Which of a trip's routes is chosen: the router's best (0) or one of its alternatives. */
+  alt: number
 }
 
 function readUrl(): UrlState {
@@ -135,6 +137,7 @@ function readUrl(): UrlState {
     custom: parseParams(hash.custom, PRESETS.balanced),
     walkStyle: isWalkStyleId(hash.walk) ? hash.walk : 'normal',
     minutes: isReachMinutes(hash.minutes) ? (Number(hash.minutes) as ReachMinutes) : DEFAULT_REACH_MINUTES,
+    alt: /^[12]$/.test(hash.alt ?? '') ? Number(hash.alt) : 0,
   }
 }
 
@@ -159,6 +162,7 @@ function writeUrl(state: UrlState): void {
     ['style', riding && state.travel === 'bike' && state.style !== DEFAULT_STYLE ? state.style : null],
     ['custom', riding && state.travel === 'bike' && state.style === 'custom' ? formatParams(state.custom) : null],
     ['walk', riding && state.travel === 'foot' && state.walkStyle !== 'normal' ? state.walkStyle : null],
+    ['alt', routing && state.alt > 0 ? String(state.alt) : null],
   ]
   // MapLibre keeps its own `map=` entry in the hash; only ours are touched.
   const hash = entries.reduce((h, [key, value]) => withHashParam(h, key, value), window.location.hash)
@@ -461,7 +465,20 @@ export function App() {
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
   const closures = useClosures(roadwork || (planning && travel === 'bike'), lang)
-  const plannedRoute = planning ? visibleRoute(routeState) : null
+  const plannedRoutes = planning ? visibleRoutes(routeState) : []
+  // The route chosen holds for the trip it was chosen on: new points or another style start from the best.
+  const trip = JSON.stringify([points.map((p) => p?.lngLat), vias, profile])
+  const [altTrip, setAltTrip] = useState(trip)
+  const alt = altTrip === trip ? url.alt : 0
+  const choice = plannedRoutes[alt] ? alt : 0
+  const plannedRoute = plannedRoutes[choice] ?? null
+  const chooseRoute = useCallback(
+    (index: number) => {
+      setAltTrip(trip)
+      setUrl((current) => ({ ...current, alt: index }))
+    },
+    [trip],
+  )
   // A bike route counts the roadwork on it with its stops, once the closures are in; its
   // barriers are named, for their bubbles on the map.
   const route = useMemo(() => {
@@ -511,7 +528,7 @@ export function App() {
     rememberLang(lang)
   }, [lang, t])
 
-  useEffect(() => writeUrl(url), [url])
+  useEffect(() => writeUrl({ ...url, alt }), [url, alt])
 
   useEffect(() => rememberBasemap(BASEMAP_KEY, basemap), [basemap])
   useEffect(() => rememberBikeLanes(bikeLanes), [bikeLanes])
@@ -802,6 +819,9 @@ export function App() {
     [shownTheftSpots],
   )
 
+  // Looking closely at the chosen route: a row open, a part or stop picked out, a barrier or closure open.
+  const routeClose =
+    routeView !== null || routeHighlight !== null || selected?.kind === 'barrier' || selected?.kind === 'closure'
   const styleState = useMemo<StyleState>(
     () => ({
       lang,
@@ -811,6 +831,8 @@ export function App() {
       placePoints,
       selected,
       route,
+      routeOthers: plannedRoutes.flatMap((other, i) => (i === choice ? [] : [{ route: other, choice: i }])),
+      routeOthersDim: routeClose,
       routeHighlight,
       routeView: routeColoured,
       routeOnFoot: travel === 'foot',
@@ -838,6 +860,9 @@ export function App() {
       placePoints,
       selected,
       route,
+      plannedRoutes,
+      choice,
+      routeClose,
       routeHighlight,
       routeColoured,
       travel,
@@ -873,6 +898,7 @@ export function App() {
             onHover: setRouteHover,
             zoomTo: pinnedPart,
             busy: routeState.status === 'loading' ? (1 as const) : null,
+            onChooseRoute: chooseRoute,
           }
         : reaching
           ? {
@@ -887,6 +913,7 @@ export function App() {
               onHover: ignore,
               zoomTo: null,
               busy: reachState.status === 'loading' ? (0 as const) : null,
+              onChooseRoute: ignore,
             }
           : null,
     [
@@ -904,6 +931,7 @@ export function App() {
       removeVia,
       routeHover,
       pinnedPart,
+      chooseRoute,
     ],
   )
 
@@ -1119,6 +1147,9 @@ export function App() {
                 travel={travel}
                 state={routeState}
                 route={route}
+                routes={plannedRoutes}
+                choice={choice}
+                onChoose={chooseRoute}
                 view={routeView}
                 onViewChange={changeRouteView}
                 hover={routeHover}

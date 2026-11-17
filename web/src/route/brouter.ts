@@ -59,9 +59,10 @@ export function profileQuery({ name, params }: Profile): string {
   return `profile=${name}${tuning.join('')}`
 }
 
-export function routeUrl(base: string, points: readonly LngLat[], profile: Profile): string {
+/** The router's route between points: its best (0), or its next best (1 to 3), each away from those before. */
+export function routeUrl(base: string, points: readonly LngLat[], profile: Profile, alternative = 0): string {
   const lonlats = points.map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`).join('|')
-  return `${base}?lonlats=${lonlats}&alternativeidx=0&format=geojson&${profileQuery(profile)}`
+  return `${base}?lonlats=${lonlats}&alternativeidx=${alternative}&format=geojson&${profileQuery(profile)}`
 }
 
 function parseTags(text: string): Record<string, string> {
@@ -224,8 +225,9 @@ export async function fetchRoute(
   points: readonly LngLat[],
   profile: Profile,
   signal?: AbortSignal,
+  alternative = 0,
 ): Promise<Route> {
-  const res = await fetch(routeUrl(base, points, profile), { signal })
+  const res = await fetch(routeUrl(base, points, profile, alternative), { signal })
   // BRouter answers failures (no road nearby, outside the covered area) as plain text.
   if (!res.ok) throw new RouteError((await res.text()).trim() || `Routing failed (${res.status})`)
   const text = await res.text()

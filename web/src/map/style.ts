@@ -114,6 +114,10 @@ export interface StyleState {
   selected: Selected | null
   /** Planned route to draw, coloured by what the route card shows (`routeView`). */
   route: Route | null
+  /** The trip's other routes, drawn grey to pick from, by their place among its routes. */
+  routeOthers?: { route: Route; choice: number }[]
+  /** Faint and without their bubbles, while the chosen route is looked at closely. */
+  routeOthersDim?: boolean
   /** Legend item to pick out on the route, the rest of it stepping back. */
   routeHighlight: RouteHighlight | null
   /** What the route line is coloured by; comfort when not given. */
@@ -334,6 +338,49 @@ function routeData(route: Route | null, view: RouteView): FeatureCollection {
   }
 }
 
+/** A route's point halfway along it, where its bubble goes. */
+function halfway(route: Route): [number, number] | null {
+  const { coords } = route
+  if (!coords.length) return null
+  const kx = Math.cos((coords[0][1] * Math.PI) / 180)
+  const lengths = coords.map((point, i) =>
+    i ? Math.hypot((point[0] - coords[i - 1][0]) * kx, point[1] - coords[i - 1][1]) : 0,
+  )
+  const half = lengths.reduce((sum, n) => sum + n, 0) / 2
+  let along = 0
+  for (let i = 1; i < coords.length; i++) {
+    along += lengths[i]
+    if (along >= half) return [coords[i][0], coords[i][1]]
+  }
+  return [coords[0][0], coords[0][1]]
+}
+
+/** The routes not chosen: each as a line, and a point halfway along it for its time. */
+function otherRoutesData(others: StyleState['routeOthers']): FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (others ?? []).flatMap(({ route, choice }) => {
+      const middle = halfway(route)
+      return [
+        {
+          type: 'Feature' as const,
+          properties: { choice },
+          geometry: { type: 'LineString' as const, coordinates: route.coords.map(([lon, lat]) => [lon, lat]) },
+        },
+        ...(middle
+          ? [
+              {
+                type: 'Feature' as const,
+                properties: { choice, label: `${Math.max(1, Math.round(route.time / 60))} min` },
+                geometry: { type: 'Point' as const, coordinates: middle },
+              },
+            ]
+          : []),
+      ]
+    }),
+  }
+}
+
 function stopsData(route: Route | null): FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -358,17 +405,43 @@ export function stopImageId(kind: StopKind | ''): string {
 /** Marks the stretches picked out from the route's breakdown. */
 const HIGHLIGHT_COLOR = '#FFD60A'
 
+/** Colour of a trip's routes not chosen. */
+const OTHER_ROUTE_COLOR = '#7F8C92'
+
 /** Colour of a walking route. */
 const WALK_ROUTE_COLOR = '#0B6E6E'
 
-function routeLayers(theme: Theme, highlight: RouteHighlight | null, onFoot: boolean): LayerSpecification[] {
+function routeLayers(
+  theme: Theme,
+  highlight: RouteHighlight | null,
+  onFoot: boolean,
+  dimOthers: boolean,
+): LayerSpecification[] {
   const round = { 'line-cap': 'round' as const, 'line-join': 'round' as const }
   // With something picked out, everything else on the route fades so it is easy to find.
   const rest: ExpressionSpecification | number = highlight ? ['case', ['==', ['get', 'part'], highlight], 1, 0.3] : 1
   const otherStops: ExpressionSpecification | number = highlight
     ? ['case', ['==', ['get', 'kind'], highlight], 1, 0.3]
     : 1
+  const lines: FilterSpecification = ['==', ['geometry-type'], 'LineString']
   return [
+    // The trip's other routes, grey under the chosen one, to pick from.
+    {
+      id: 'route-others-casing',
+      type: 'line',
+      source: 'route-others',
+      filter: lines,
+      layout: round,
+      paint: { 'line-color': '#ffffff', 'line-width': lineWidth(6), 'line-opacity': dimOthers ? 0.3 : 0.85 },
+    },
+    {
+      id: 'route-others-line',
+      type: 'line',
+      source: 'route-others',
+      filter: lines,
+      layout: round,
+      paint: { 'line-color': OTHER_ROUTE_COLOR, 'line-width': lineWidth(3), 'line-opacity': dimOthers ? 0.3 : 1 },
+    },
     {
       id: 'route-highlight',
       type: 'line',
@@ -459,6 +532,35 @@ function routeBubbleLayers(highlight: RouteHighlight | null): LayerSpecification
         'icon-text-fit': 'both',
         'icon-text-fit-padding': [3, 7, 3, 7],
         // Only the few picked out get one: each shows, over the map's own labels.
+        'text-allow-overlap': true,
+        'icon-allow-overlap': true,
+      },
+      paint: { 'text-color': '#16242b' },
+    },
+  ]
+}
+
+/**
+ * Each route not chosen says how long it takes, in a bubble halfway along it;
+ * a click picks it. None while the chosen route is looked at closely.
+ */
+function otherRouteLabelLayers(dim: boolean): LayerSpecification[] {
+  if (dim) return []
+  return [
+    {
+      id: 'route-others-label',
+      type: 'symbol',
+      source: 'route-others',
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 12,
+        'text-anchor': 'bottom',
+        'text-offset': [0, -0.9],
+        'icon-image': BUBBLE_IMAGE,
+        'icon-text-fit': 'both',
+        'icon-text-fit-padding': [3, 7, 3, 7],
         'text-allow-overlap': true,
         'icon-allow-overlap': true,
       },
@@ -1550,6 +1652,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
         ...(state.route && { attribution: ELEVATION_ATTRIBUTION }),
       },
       'route-stops': { type: 'geojson', data: stopsData(state.route) },
+      'route-others': { type: 'geojson', data: otherRoutesData(state.routeOthers) },
       ...(state.placeHighlight && {
         [PLACE_HIGHLIGHT_SOURCE]: {
           type: 'geojson',
@@ -1628,7 +1731,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...collisions.under,
       ...thefts.under,
       ...construction.under,
-      ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false),
+      ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false, state.routeOthersDim ?? false),
       ...base.slice(at),
       ...reachLabelLayers(state.reach, state.basemap, theme),
       ...routeLabelLayers(state, theme),
@@ -1640,6 +1743,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...construction.over,
       ...roadworkLayers(state),
       ...routeBubbleLayers(state.routeHighlight),
+      ...otherRouteLabelLayers(state.routeOthersDim ?? false),
     ],
   }
 }

@@ -120,12 +120,66 @@ function Breakdown({
   )
 }
 
+/**
+ * The trip's routes side by side, the chosen one pressed: how long each takes,
+ * how far it is and, riding, how stressful. Shown once there is more than one.
+ */
+function RouteOptions({
+  routes,
+  choice,
+  onChoose,
+  bike,
+}: {
+  routes: readonly Route[]
+  choice: number
+  onChoose: (index: number) => void
+  bike: boolean
+}) {
+  const { t } = useI18n()
+  if (routes.length < 2) return null
+  return (
+    <fieldset className="route-options" aria-label={t('routeOptions')}>
+      {routes.map((route, i) => {
+        const stress = stressScore(route.segments)
+        const level = stressLevel(stress)
+        return (
+          <button
+            key={`${route.distance}:${route.time}`}
+            type="button"
+            className="route-option"
+            aria-pressed={i === choice}
+            onClick={() => onChoose(i)}
+          >
+            <b className="route-option-time">{Math.max(1, Math.round(route.time / 60))} min</b>
+            <span className="route-option-more">
+              {(route.distance / 1000).toFixed(1)} km
+              {bike && (
+                <span
+                  className={`stress-score level-${level}`}
+                  style={{ background: LTS_COLORS[level - 1] }}
+                  title={t('stressAbout')}
+                >
+                  {stress}
+                </span>
+              )}
+            </span>
+          </button>
+        )
+      })}
+    </fieldset>
+  )
+}
+
 interface Props {
   /** On foot, the cycling-only parts (comfort, stress, stops) are left out. */
   travel: Travel
   state: RouteState
   /** The route shown, with the roadwork on it once the closures are in. */
   route: Route | null
+  /** The trip's routes, the router's best first, and the one chosen. */
+  routes: readonly Route[]
+  choice: number
+  onChoose: (index: number) => void
   /** The row open on the card, which colours the route; none at first. */
   view: RouteView | null
   onViewChange: (view: RouteView | null) => void
@@ -143,6 +197,9 @@ export function RouteResult({
   travel,
   state,
   route,
+  routes,
+  choice,
+  onChoose,
   view,
   onViewChange,
   hover,
@@ -202,6 +259,7 @@ export function RouteResult({
           </div>
         )}
       </dl>
+      <RouteOptions routes={routes} choice={choice} onChoose={onChoose} bike={travel === 'bike'} />
       {travel === 'bike' && <Breakdown route={route} view={view} onViewChange={onViewChange} picking={picking} />}
       {travel === 'bike' && <StopCounts route={route} picking={picking} />}
       <ElevationChart profile={profile} label={t('elevation')} hover={hover} onHover={onHover} />
