@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  commonTheftGroup,
   DEFAULT_THEFT_FILTERS,
   formatTheftFilters,
   matchesTheft,
@@ -72,13 +73,22 @@ describe('thefts', () => {
       minCount: 5,
       minValue: 5000,
       groups: { where: ['outdoors'], season: ['summer', 'fall'], value: ['1000', '2500'], recovered: ['yes'] },
+      by: 'time' as const,
     }
     const text = formatTheftFilters(f)
-    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500.recovered:yes;5000')
+    expect(text).toBe('2019-2024;5;where:outdoors.season:summer,fall.value:1000,2500.recovered:yes;5000;by:time')
     expect(parseTheftFilters(text ?? '')).toEqual(f)
     expect(formatTheftFilters(DEFAULT_THEFT_FILTERS)).toBeNull()
     expect(parseTheftFilters('1990-2050;0;where:moon;1234')).toEqual(DEFAULT_THEFT_FILTERS)
     expect(parseTheftFilters(';;;10000').minValue).toBe(10000)
+    // No row open at first: the spots show the value stolen.
+    expect(parseTheftFilters(undefined).by).toBeNull()
+  })
+
+  it('colours a spot by the group most of its thefts fall in, the first listed on a tie', () => {
+    const at = (time: string) => ({ time }) as unknown as TheftProps
+    expect(commonTheftGroup([at('night'), at('morning'), at('night')], 'time')).toBe('night')
+    expect(commonTheftGroup([at('evening'), at('morning')], 'time')).toBe('morning')
   })
 
   it('gathers thefts at their intersection, the most recent first', () => {

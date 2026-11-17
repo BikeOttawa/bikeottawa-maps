@@ -117,7 +117,8 @@ const en = {
   'theft.source':
     'Ottawa Police Service open data, {first} to {last}. The police place each theft at the nearest intersection.',
   'theft.filters': 'What, when and where from',
-  'theft.hint': 'Tap a line to show only those thefts. The thin mark is how it stands before anything else is picked.',
+  'theft.hint':
+    'Open a row to colour the spots by what most of their thefts share; with none open, they show the value stolen. Tap a line to show only those thefts; the thin mark is how it stands before anything else is picked.',
   'theftGroup.where': 'Taken from',
   'theftGroup.time': 'Time of day',
   'theftGroup.season': 'Time of year',
@@ -694,7 +695,8 @@ const fr: Record<keyof typeof en, string> = {
   'theft.source':
     'Données ouvertes du Service de police d’Ottawa, de {first} à {last}. La police place chaque vol à l’intersection la plus proche.',
   'theft.filters': 'Quoi, quand et d’où',
-  'theft.hint': 'Touchez une ligne pour ne montrer que ces vols. Le trait fin : où elle en est avant tout autre choix.',
+  'theft.hint':
+    'Ouvrez une rangée pour colorer les endroits selon ce que partagent la plupart de leurs vols; sans rangée ouverte, ils montrent la valeur volée. Touchez une ligne pour ne montrer que ces vols; le trait fin\u00a0: où elle en est avant tout autre choix.',
   'theftGroup.where': 'Lieu du vol',
   'theftGroup.time': 'Moment',
   'theftGroup.season': 'Saison',

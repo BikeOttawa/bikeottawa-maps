@@ -1,4 +1,4 @@
-import { type CSSProperties, useMemo, useState } from 'react'
+import { type CSSProperties, useMemo } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { type BasemapId, theftColors } from '../layers'
 import {
@@ -10,11 +10,12 @@ import {
   type TheftGroupId,
   type TheftProps,
   type TheftSpot,
+  theftGroupColor,
   theftGroupCounts,
   theftsByMonth,
   VALUE_STOPS,
 } from '../thefts'
-import { GroupRow, HUES, OTHER, SEASON_HUES } from './GroupBars'
+import { GroupRow } from './GroupBars'
 import { MinCountSlider, YearRange } from './YearRange'
 
 interface Props {
@@ -27,18 +28,6 @@ interface Props {
   filters: TheftFilters
   onChange: (filters: TheftFilters) => void
   basemap: BasemapId
-}
-
-/** Values are ordered, so one purple from light to dark; the other sets take the categorical hues. */
-const VALUE_HUES = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
-
-function colorOf(id: TheftGroupId, group: string): string {
-  if (group === 'other' || group === 'unknown') return OTHER
-  if (id === 'season') return SEASON_HUES[group] ?? OTHER
-  // Found again green, still missing orange.
-  if (id === 'recovered') return group === 'yes' ? HUES[2] : HUES[1]
-  const index = (THEFT_GROUPS[id] as readonly string[]).indexOf(group)
-  return id === 'value' ? VALUE_HUES[index] : HUES[index]
 }
 
 function labelKey(id: TheftGroupId, group: string): MessageKey {
@@ -73,7 +62,7 @@ function TheftGroupRow({
       picked={filters.groups[id] ?? []}
       // The tick only says something once the thefts differ from the comparison.
       compared={THEFT_GROUP_IDS.some((other) => other !== id && filters.groups[other]?.length)}
-      color={(group) => colorOf(id, group)}
+      color={(group) => theftGroupColor(id, group)}
       label={(group) => t(labelKey(id, group))}
       onPick={(next) => onChange({ ...filters, groups: { ...filters.groups, [id]: next } })}
       open={open}
@@ -148,7 +137,6 @@ function MinValueSlider({
 /** Which years and which thefts the thefts layer shows, with how many of each. */
 export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, basemap }: Props) {
   const { t, lang } = useI18n()
-  const [open, setOpen] = useState<TheftGroupId | null>('where')
   const all = useMemo(() => thefts?.map((theft) => theft.props) ?? null, [thefts])
   const months = useMemo(() => (all ? theftsByMonth(all, filters) : null), [all, filters])
   const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
@@ -174,8 +162,8 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
               all={all}
               filters={filters}
               onChange={onChange}
-              open={open === id}
-              onToggle={() => setOpen(open === id ? null : id)}
+              open={filters.by === id}
+              onToggle={() => onChange({ ...filters, by: filters.by === id ? null : id })}
             />
           ))}
           <p className="footnote">{t('theft.hint')}</p>

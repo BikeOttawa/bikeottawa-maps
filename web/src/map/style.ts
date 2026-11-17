@@ -52,7 +52,7 @@ import {
 import { type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
-import { VALUE_STEPS } from '../thefts'
+import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
 import { CLOSURE_IMAGE, CONSTRUCTION_ORANGE } from './closureImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
@@ -108,6 +108,8 @@ export interface StyleState {
   collisionsBy?: CollisionSet
   /** The thefts layer's spots, built from the filters; null until loaded. */
   thefts?: FeatureCollection | null
+  /** The legend's open row the spots are coloured by (their `group`); by value stolen when none. */
+  theftsBy?: TheftGroupId | null
   /** What the construction layer shows. */
   construction?: ConstructionFilters
   /** The roadwork overlay: the closures on the City's traffic map right now, as cones. */
@@ -1050,13 +1052,17 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
 function theftLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
   if (state.layer !== 'thefts' || state.reach) return { under: [], over: [] }
   const { values, noValue, heat } = theftColors(state.basemap)
-  // Coloured by the dollars stolen there, a step per band; grey where none was given.
-  const byValue = [
-    'case',
-    ['==', ['get', 'valued'], 0],
-    noValue,
-    ['step', ['get', 'value'], values[0], ...VALUE_STEPS.flatMap((step, i) => [step, values[i + 1]])],
-  ] as unknown as ExpressionSpecification
+  // Coloured by the dollars stolen there, a step per band, grey where none was
+  // given; or, with a row open in the legend, by what most of its thefts share.
+  const by = state.theftsBy
+  const byValue = (by
+    ? ['match', ['get', 'group'], ...THEFT_GROUPS[by].flatMap((group) => [group, theftGroupColor(by, group)]), OTHER]
+    : [
+        'case',
+        ['==', ['get', 'valued'], 0],
+        noValue,
+        ['step', ['get', 'value'], values[0], ...VALUE_STEPS.flatMap((step, i) => [step, values[i + 1]])],
+      ]) as unknown as ExpressionSpecification
   const pale = state.basemap === 'light' || state.basemap === 'grey'
   // Area grows with the number of thefts: radius with its square root.
   const radius = (one: number, step: number): ExpressionSpecification => [

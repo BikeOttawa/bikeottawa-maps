@@ -793,7 +793,10 @@ export function App() {
     () => allTheftSpots?.filter((s) => s.items.length >= thefts.minCount && s.value >= thefts.minValue) ?? null,
     [allTheftSpots, thefts.minCount, thefts.minValue],
   )
-  const theftGeo = useMemo(() => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots) : null), [shownTheftSpots])
+  const theftGeo = useMemo(
+    () => (shownTheftSpots ? theftSpotsGeoJSON(shownTheftSpots, thefts.by) : null),
+    [shownTheftSpots, thefts.by],
+  )
   const theftSpotByKey = useMemo(
     () => new Map((shownTheftSpots ?? []).map((spot) => [spot.key, spot])),
     [shownTheftSpots],
@@ -814,6 +817,7 @@ export function App() {
       collisions: layer === 'collisions' ? collisionGeo : null,
       collisionsBy,
       thefts: layer === 'thefts' ? theftGeo : null,
+      theftsBy: thefts.by,
       construction,
       comfort: comfortPicks,
       roadwork,
@@ -839,6 +843,7 @@ export function App() {
       collisionGeo,
       collisionsBy,
       theftGeo,
+      thefts.by,
       construction,
       comfortPicks,
       roadwork,

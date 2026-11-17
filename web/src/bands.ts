@@ -84,13 +84,16 @@ export function parsePicks<S extends string>(groups: Record<S, readonly string[]
 
 /**
  * The `by:` part of a layer's URL entry: the filter row the map is coloured
- * by, `none` when no row is open; left out when it is the layer's first.
+ * by, `none` when no row is open; left out when it is what the layer starts
+ * with (a row, or none).
  */
-export function formatBy<S extends string>(by: S | null, initial: S): string | null {
-  return by === initial ? null : `by:${by ?? 'none'}`
+export function formatBy<S extends string>(by: S | null | undefined, initial: S | null): string | null {
+  // Filters kept from before rows coloured the map have no `by`: as they started.
+  if (by === undefined || by === initial) return null
+  return `by:${by ?? 'none'}`
 }
 
-export function parseBy<S extends string>(text: string | undefined, sets: readonly S[], initial: S): S | null {
+export function parseBy<S extends string>(text: string | undefined, sets: readonly S[], initial: S | null): S | null {
   const by = (text ?? '')
     .split(';')
     .find((part) => part.startsWith('by:'))

@@ -1,5 +1,7 @@
 import type { FeatureCollection, Point } from 'geojson'
+import { formatBy, parseBy } from './bands'
 import { collisionLocation } from './collisions'
+import { HUES, OTHER, SEASON_HUES } from './layers'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -71,6 +73,8 @@ export interface TheftFilters {
   minValue: number
   /** Only these groups of each set; a set left out keeps them all. */
   groups: Partial<Record<TheftGroupId, readonly string[]>>
+  /** The legend's open row, which colours the spots; none open, as at first, colours them by the value stolen. */
+  by: TheftGroupId | null
 }
 
 export const DEFAULT_THEFT_FILTERS: TheftFilters = {
@@ -79,6 +83,20 @@ export const DEFAULT_THEFT_FILTERS: TheftFilters = {
   minCount: 1,
   minValue: 0,
   groups: {},
+  by: null,
+}
+
+/** Values are ordered, so one purple from light to dark; the other sets take the categorical hues. */
+const VALUE_HUES = ['#D9C3EC', '#B48AD6', '#8A55B8', '#5B2A85']
+
+/** A group's colour, in the legend and on the spots. */
+export function theftGroupColor(id: TheftGroupId, group: string): string {
+  if (group === 'other' || group === 'unknown') return OTHER
+  if (id === 'season') return SEASON_HUES[group] ?? OTHER
+  // Found again green, still missing orange.
+  if (id === 'recovered') return group === 'yes' ? HUES[2] : HUES[1]
+  const index = (THEFT_GROUPS[id] as readonly string[]).indexOf(group)
+  return (id === 'value' ? VALUE_HUES[index] : HUES[index]) ?? OTHER
 }
 
 const yearOf = (p: TheftProps) => Number(p.date.slice(0, 4))
@@ -128,9 +146,10 @@ export function theftsByMonth(all: readonly TheftProps[], f: TheftFilters): Map<
 }
 
 /**
- * In the URL as `thefts=2019-2024;5;where:outdoors.value:1000,2500;5000` (the
- * years, the fewest thefts a spot needs, the groups picked, the least value
- * stolen there), each part left out when it is the default.
+ * In the URL as `thefts=2019-2024;5;where:outdoors.value:1000,2500;5000;by:time`
+ * (the years, the fewest thefts a spot needs, the groups picked, the least
+ * value stolen there, the row the spots are coloured by), each part left out
+ * when it is the default.
  */
 export function formatTheftFilters(f: TheftFilters): string | null {
   const d = DEFAULT_THEFT_FILTERS
@@ -141,6 +160,7 @@ export function formatTheftFilters(f: TheftFilters): string | null {
       .map((id) => `${id}:${f.groups[id]?.join(',')}`)
       .join('.'),
     f.minValue === d.minValue ? '' : String(f.minValue),
+    formatBy(f.by, null) ?? '',
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
@@ -164,6 +184,7 @@ export function parseTheftFilters(text: string | undefined): TheftFilters {
     minCount: Number.isInteger(Number(minText)) && Number(minText) >= 1 ? Number(minText) : d.minCount,
     minValue: (VALUE_STOPS as readonly number[]).includes(Number(valueText)) ? Number(valueText) : d.minValue,
     groups,
+    by: parseBy(text, THEFT_GROUP_IDS, null),
   }
 }
 
@@ -216,15 +237,35 @@ export function theftSpots(all: readonly Theft[], f: TheftFilters): TheftSpot[] 
   return spots
 }
 
-/** Spots for the map: bigger ones first, so smaller ones are drawn on top of them. */
-export function theftSpotsGeoJSON(spots: readonly TheftSpot[]): FeatureCollection<Point> {
+/** The group of a set most of a spot's thefts fall in; on a tie, the one listed first. */
+export function commonTheftGroup(items: readonly TheftProps[], id: TheftGroupId): string {
+  const counts = new Map<string, number>()
+  for (const p of items) counts.set(theftGroupOf(p, id), (counts.get(theftGroupOf(p, id)) ?? 0) + 1)
+  const groups: readonly string[] = THEFT_GROUPS[id]
+  return groups.reduce((best, group) => ((counts.get(group) ?? 0) > (counts.get(best) ?? 0) ? group : best))
+}
+
+/**
+ * Spots for the map: bigger ones first, so smaller ones are drawn on top of
+ * them. Coloured by a set, each carries the group most of its thefts fall in.
+ */
+export function theftSpotsGeoJSON(
+  spots: readonly TheftSpot[],
+  by: TheftGroupId | null = null,
+): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: [...spots]
       .sort((a, b) => b.items.length - a.items.length)
       .map((spot) => ({
         type: 'Feature',
-        properties: { key: spot.key, count: spot.items.length, value: spot.value, valued: spot.valued },
+        properties: {
+          key: spot.key,
+          count: spot.items.length,
+          value: spot.value,
+          valued: spot.valued,
+          ...(by && { group: commonTheftGroup(spot.items, by) }),
+        },
         geometry: { type: 'Point', coordinates: spot.at },
       })),
   }
