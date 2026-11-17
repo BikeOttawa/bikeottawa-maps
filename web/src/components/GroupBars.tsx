@@ -102,7 +102,7 @@ export interface GroupCounts {
 
 /**
  * One set of groups as a thin split bar under its name, opening into a line
- * per group with how many it has. What is picked shows beside the name.
+ * per group with its share, or how many it has. What is picked shows beside the name.
  */
 export function GroupRow({
   name,
@@ -113,6 +113,7 @@ export function GroupRow({
   color,
   label,
   amount,
+  counted,
   onPick,
   open,
   onToggle,
@@ -127,6 +128,8 @@ export function GroupRow({
   label: (group: string) => string
   /** How an amount is written: a count by default. */
   amount?: (n: number) => string
+  /** Whether the lines show how many rather than the share. */
+  counted?: boolean
   onPick: (next: string[]) => void
   open: boolean
   onToggle: () => void
@@ -144,7 +147,7 @@ export function GroupRow({
     color: color(group),
     value: share(group),
     tick: compared ? shareAll(group) : null,
-    figure: (amount ?? number)(counts.shown.get(group) ?? 0),
+    figure: counted ? (amount ?? number)(counts.shown.get(group) ?? 0) : percent(share(group)),
     title: t('crash.groupShare')
       .replace('{count}', (amount ?? number)(counts.shown.get(group) ?? 0))
       .replace('{share}', percent(share(group)))

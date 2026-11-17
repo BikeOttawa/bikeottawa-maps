@@ -53,6 +53,7 @@ function PartyRow({
   return (
     <GroupRow
       name={t('crash.party')}
+      counted
       groups={COLLISION_PARTIES}
       counts={counts}
       picked={picked}
@@ -88,6 +89,7 @@ function InjuryRow({
   return (
     <GroupRow
       name={t('crash.injury')}
+      counted
       groups={SEVERITY_GROUPS}
       counts={counts}
       picked={picked}
