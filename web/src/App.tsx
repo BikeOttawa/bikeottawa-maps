@@ -12,6 +12,7 @@ import { BikeRouteCard } from './components/BikeRouteCard'
 import { CollisionCard } from './components/CollisionCard'
 import { ConstructionCard } from './components/ConstructionCard'
 import { FeatureCard } from './components/FeatureCard'
+import { HowToHelp } from './components/HowToHelp'
 import { LayerPicker } from './components/LayerPicker'
 import { Legend } from './components/Legend'
 import { type Mode, ModeSwitch } from './components/ModeSwitch'
@@ -1171,9 +1172,11 @@ export function App() {
                 {dataDate && (
                   <>
                     {t('updated')} {dataDate}
-                    {phone ? ' · ' : <br />}
+                    {' · '}
                   </>
                 )}
+                <HowToHelp />
+                <br />
                 {!phone && (
                   <>
                     {/* The map moves without re-rendering this, so the link is

@@ -29,11 +29,13 @@ export function withHashParam(hash: string, key: string, value: string | null): 
 
 /**
  * openstreetmap.org at the map's current view, read from the `map=zoom/lat/lng`
- * entry. OSM zooms count 256 px tiles, MapLibre's 512 px ones, hence the +1.
+ * entry; `edit` opens its editor there. OSM zooms count 256 px tiles,
+ * MapLibre's 512 px ones, hence the +1.
  */
-export function osmViewUrl(hash: string): string {
+export function osmViewUrl(hash: string, page: '' | 'edit' = ''): string {
+  const url = `https://www.openstreetmap.org/${page}`
   const [zoom, lat, lng] = (parseHash(hash).map ?? '').split('/').map(Number)
-  if (![zoom, lat, lng].every(Number.isFinite)) return 'https://www.openstreetmap.org/'
+  if (![zoom, lat, lng].every(Number.isFinite)) return url
   const z = Math.min(19, Math.max(0, Math.round(zoom + 1)))
-  return `https://www.openstreetmap.org/#map=${z}/${lat}/${lng}`
+  return `${url}#map=${z}/${lat}/${lng}`
 }

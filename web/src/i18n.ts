@@ -483,6 +483,23 @@ const en = {
   photoEnlarge: 'Show larger',
   photoAlt: 'Street-level photo of this place',
   updated: 'Updated',
+  help: 'How can I help?',
+  'help.intro': 'These maps are only as good as OpenStreetMap, which anyone can edit. Edits show here the next day.',
+  'help.edit': 'Fix the map',
+  'help.edit.text':
+    'Add a missing path, bike rack or water fountain, or fix a mistake, in [OpenStreetMap’s editor](edit). It has a walkthrough for first-timers.',
+  'help.phone': 'Add details on your phone',
+  'help.phone.text':
+    '[StreetComplete](streetcomplete) (Android) asks quick questions as you go: is this path lit, what is its surface, is the rack covered? [Every Door](everydoor) (iPhone, Android) is made for shops and amenities. Soon you’ll be able to add details from the cards here too.',
+  'help.photos': 'Take photos',
+  'help.photos.text':
+    '[Fotoshi](fotoshi) for places and single photos: snap a bike rack or a fountain and pin the photo to it. [Mapillary](mapillary) for whole routes: with your phone on the handlebars, it takes photos as you ride.',
+  'help.ideas': 'Suggest an idea',
+  'help.ideas.text':
+    'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us on GitHub](issue).',
+  'help.join': 'Join Bike Ottawa',
+  'help.join.text':
+    'The volunteer group behind these maps works for better cycling across the city. [Become a member](join), [volunteer](volunteer) or [donate](donate).',
   'mode.explore': 'Explore',
   'mode.route': 'Plan a route',
   'mode.reach': 'How far',
@@ -1062,6 +1079,24 @@ const fr: Record<keyof typeof en, string> = {
   photoEnlarge: 'Agrandir',
   photoAlt: 'Photo de ce lieu prise de la rue',
   updated: 'Mis à jour le',
+  help: 'Comment aider?',
+  'help.intro':
+    'Ces cartes valent ce que vaut OpenStreetMap, que tout le monde peut modifier. Une modification paraît ici le lendemain.',
+  'help.edit': 'Corriger la carte',
+  'help.edit.text':
+    'Ajoutez un sentier, un support à vélos ou une fontaine qui manque, ou corrigez une erreur, dans [l’éditeur d’OpenStreetMap](edit). Un tutoriel guide les débutants.',
+  'help.phone': 'Compléter sur votre téléphone',
+  'help.phone.text':
+    '[StreetComplete](streetcomplete) (Android) pose de petites questions en chemin\u00a0: ce sentier est-il éclairé, quel est son revêtement, le support est-il couvert? [Every Door](everydoor) (iPhone, Android) est fait pour les commerces et services. Bientôt, vous pourrez aussi le faire depuis les fiches de ces cartes.',
+  'help.photos': 'Prendre des photos',
+  'help.photos.text':
+    '[Fotoshi](fotoshi) pour les lieux et les photos seules\u00a0: photographiez un support à vélos ou une fontaine et épinglez-y la photo. [Mapillary](mapillary) pour des trajets entiers\u00a0: téléphone au guidon, il prend des photos en chemin.',
+  'help.ideas': 'Proposer une idée',
+  'help.ideas.text':
+    'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous sur GitHub](issue).',
+  'help.join': 'Se joindre à Bike Ottawa',
+  'help.join.text':
+    'Le groupe de bénévoles derrière ces cartes défend le vélo partout en ville. [Devenez membre](join), [bénévole](volunteer) ou [faites un don](donate).',
   'mode.explore': 'Explorer',
   'mode.route': 'Itinéraire',
   'mode.reach': 'Jusqu’où',

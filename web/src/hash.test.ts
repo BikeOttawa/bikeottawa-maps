@@ -34,4 +34,8 @@ describe('osmViewUrl', () => {
   it('falls back to the home page without a map entry', () => {
     expect(osmViewUrl('#layer=night')).toBe('https://www.openstreetmap.org/')
   })
+  it('opens the editor there', () => {
+    expect(osmViewUrl('#map=15/45.4/-75.7', 'edit')).toBe('https://www.openstreetmap.org/edit#map=16/45.4/-75.7')
+    expect(osmViewUrl('', 'edit')).toBe('https://www.openstreetmap.org/edit')
+  })
 })
