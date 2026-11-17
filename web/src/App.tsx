@@ -1035,7 +1035,12 @@ export function App() {
               label={t('search')}
               marker="search"
               point={found && { lngLat: found.lngLat, label: found.label }}
-              onChange={(point, place) => findPlace(point && place ? place : null)}
+              // Where the device is comes as a point alone: found like a search result.
+              onChange={(point, place) =>
+                findPlace(
+                  point ? (place ?? { label: point.label ?? '', name: point.label, lngLat: point.lngLat }) : null,
+                )
+              }
             />
           )}
           {!routing ? (

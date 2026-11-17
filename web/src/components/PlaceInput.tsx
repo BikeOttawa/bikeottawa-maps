@@ -138,7 +138,7 @@ export function PlaceInput({ id, label, marker, point, onChange }: Props) {
         </button>
       )}
       {/* An empty field offers where the device is, in the place of the clear button. */}
-      {!point && !query && (marker === 'A' || marker === 'B') && (
+      {!point && !query && marker !== 'via' && (
         <button
           type="button"
           className={`icon-button small ${locating ? 'locating' : ''}`}
