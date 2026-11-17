@@ -56,7 +56,8 @@ import {
   pathwayGroupOf,
   UNKNOWN_WIDTH,
 } from '../pathways'
-import { GROUP_COLORS, PLACE_GROUP_IDS, type PlaceKind, placeImageId } from '../places'
+import type { PlacePoints } from '../placePoints'
+import { GROUP_COLORS, PLACE_GROUP_IDS, type PlaceGroupId, type PlaceKind, placeGroup, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
@@ -105,8 +106,8 @@ export interface StyleState {
   layer: LayerId
   /** Place kinds shown on the places layer. */
   placeKinds: readonly PlaceKind[]
-  /** The places of those kinds, merged by the map when zoomed out; null until loaded. */
-  placePoints?: FeatureCollection | null
+  /** The places of those kinds by group, merged by the map when zoomed out; null until loaded. */
+  placePoints?: PlacePoints | null
   selected: Selected | null
   /** Planned route to draw, coloured by what the route card shows (`routeView`). */
   route: Route | null
@@ -162,7 +163,10 @@ export const ROADWORK_LAYERS = ['closures-icon', 'closures-line']
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
-  places: ['places-icon', 'places-merged', 'places-merged-icon'],
+  places: [
+    'places-icon',
+    ...PLACE_GROUP_IDS.flatMap((group) => [mergedPlacesId(group), `${mergedPlacesId(group)}-alone`]),
+  ],
   collisions: ['collisions-point', 'collisions-pie'],
   thefts: ['thefts-point', 'thefts-pie'],
   construction: ['construction-point', 'construction-line'],
@@ -790,8 +794,14 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
 }
 
 export const PLACES_SOURCE = 'places'
-/** The places picked, merged where they would overlap until PLACES_MERGED_UNTIL. */
-const PLACES_MERGED_SOURCE = 'places-merged'
+/** A group's places picked, merged with each other where they would overlap until PLACES_MERGED_UNTIL: source and layer. */
+function mergedPlacesId(group: PlaceGroupId): string {
+  return `places-merged-${group}`
+}
+
+/** The groups with a kind picked. */
+const pickedGroups = (state: StyleState) =>
+  PLACE_GROUP_IDS.filter((group) => state.placeKinds.some((kind) => placeGroup(kind) === group))
 const PLACES_MERGED_UNTIL = 14
 /** Zoom from which every place has its own marker, with its details. */
 export const PLACES_UNMERGED_FROM = PLACES_MERGED_UNTIL + 1
@@ -1325,57 +1335,62 @@ function placeHighlightLayers(state: StyleState, theme: Theme): LayerSpecificati
 const PLACE_ICON_SIZE: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 10, 0.6, 14, 0.85, 17, 1.1]
 
 /**
- * Zoomed out, the places picked are merged where they would overlap: a
- * circle in the colour of the group most of them are in, with how many; the
- * ones left alone keep their marker. A click zooms in.
+ * Zoomed out, the places of each group picked are merged where they would
+ * overlap, groups apart: a circle in the group's colour, as big as how many
+ * it holds, with the number; the ones left alone keep their marker. A click zooms in.
  */
 function mergedPlacesLayers(state: StyleState): LayerSpecification[] {
   const kind = state.placeHighlight?.kind
   const rest: ExpressionSpecification | number = kind ? ['case', ['==', ['get', 'kind'], kind], 1, 0.3] : 1
   const merged: FilterSpecification = ['has', 'point_count']
-  return [
-    {
-      id: 'places-merged',
-      type: 'circle',
-      source: PLACES_MERGED_SOURCE,
-      maxzoom: PLACES_MERGED_UNTIL + 1,
-      filter: merged,
-      paint: {
-        'circle-color': mostCommon(PLACE_GROUP_IDS.map((group) => GROUP_COLORS[group])),
-        'circle-radius': ['min', 22, ['+', 9, ['*', 1.1, ['sqrt', ['get', 'point_count']]]]],
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 1.5,
+  return pickedGroups(state).flatMap((group): LayerSpecification[] => {
+    const id = mergedPlacesId(group)
+    return [
+      {
+        id,
+        type: 'circle',
+        source: id,
+        maxzoom: PLACES_UNMERGED_FROM,
+        filter: merged,
+        // Bigger ones first, so smaller ones are drawn over them.
+        layout: { 'circle-sort-key': ['-', ['get', 'point_count']] },
+        paint: {
+          'circle-color': GROUP_COLORS[group],
+          'circle-radius': ['min', 22, ['+', 9, ['*', 1.1, ['sqrt', ['get', 'point_count']]]]],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1.5,
+        },
       },
-    },
-    {
-      id: 'places-merged-count',
-      type: 'symbol',
-      source: PLACES_MERGED_SOURCE,
-      maxzoom: PLACES_MERGED_UNTIL + 1,
-      filter: merged,
-      layout: {
-        'text-field': ['get', 'point_count_abbreviated'],
-        'text-font': ['Noto Sans Medium'],
-        'text-size': 11,
-        'text-allow-overlap': true,
-        'text-ignore-placement': true,
+      {
+        id: `${id}-count`,
+        type: 'symbol',
+        source: id,
+        maxzoom: PLACES_UNMERGED_FROM,
+        filter: merged,
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['Noto Sans Medium'],
+          'text-size': 11,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: { 'text-color': '#ffffff' },
       },
-      paint: { 'text-color': '#ffffff' },
-    },
-    {
-      id: 'places-merged-icon',
-      type: 'symbol',
-      source: PLACES_MERGED_SOURCE,
-      maxzoom: PLACES_MERGED_UNTIL + 1,
-      filter: ['!', merged],
-      layout: {
-        'icon-image': ['concat', placeImageId(''), ['get', 'kind']],
-        'icon-size': PLACE_ICON_SIZE,
-        'icon-allow-overlap': true,
+      {
+        id: `${id}-alone`,
+        type: 'symbol',
+        source: id,
+        maxzoom: PLACES_UNMERGED_FROM,
+        filter: ['!', merged],
+        layout: {
+          'icon-image': ['concat', placeImageId(''), ['get', 'kind']],
+          'icon-size': PLACE_ICON_SIZE,
+          'icon-allow-overlap': true,
+        },
+        paint: { 'icon-opacity': rest },
       },
-      paint: { 'icon-opacity': rest },
-    },
-  ]
+    ]
+  })
 }
 
 function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
@@ -1462,19 +1477,19 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...(loadsPlaces(state) && {
         [PLACES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/places.pmtiles` },
       }),
-      ...(showsPlaces(state) && {
-        [PLACES_MERGED_SOURCE]: {
-          type: 'geojson',
-          data: state.placePoints ?? { type: 'FeatureCollection', features: [] },
-          cluster: true,
-          clusterRadius: PLACES_MERGE_RADIUS,
-          clusterMaxZoom: PLACES_MERGED_UNTIL,
-          // How many of each group, as `p0`… in PLACE_GROUP_IDS' order.
-          clusterProperties: Object.fromEntries(
-            PLACE_GROUP_IDS.map((_, i) => [`p${i}`, ['+', ['case', ['==', ['get', 'g'], i], 1, 0]]]),
-          ),
-        },
-      }),
+      ...(showsPlaces(state) &&
+        Object.fromEntries(
+          pickedGroups(state).map((group) => [
+            mergedPlacesId(group),
+            {
+              type: 'geojson',
+              data: state.placePoints?.[group] ?? { type: 'FeatureCollection', features: [] },
+              cluster: true,
+              clusterRadius: PLACES_MERGE_RADIUS,
+              clusterMaxZoom: PLACES_MERGED_UNTIL,
+            },
+          ]),
+        )),
       // Loaded only while the street lights overlay is on.
       ...(lights.under.length && {
         night: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/night.pmtiles` },

@@ -1,7 +1,7 @@
 import type { FeatureCollection, Point } from 'geojson'
 import { useEffect, useState } from 'react'
 import { ASSETS_BASE } from './config'
-import { PLACE_GROUP_IDS, type PlaceKind, placeGroup } from './places'
+import { type PlaceGroupId, type PlaceKind, placeGroup } from './places'
 
 /** Each kind's places, as the pipeline writes them: [lon, lat, lon, lat, ...]. Fetched once each. */
 const points = new Map<PlaceKind, Promise<number[]>>()
@@ -21,37 +21,38 @@ export function placePoints(kind: PlaceKind): Promise<number[]> {
   return pending
 }
 
-/**
- * The places of the kinds picked, for the map to merge when zoomed out: each
- * with its kind and its group's place in PLACE_GROUP_IDS (`g`). Null until loaded.
- */
-export function usePlacePoints(kinds: readonly PlaceKind[], enabled: boolean): FeatureCollection<Point> | null {
-  const [geo, setGeo] = useState<FeatureCollection<Point> | null>(null)
+/** The places of the kinds picked, by group, each with its kind: the map merges a group's when zoomed out. */
+export type PlacePoints = Partial<Record<PlaceGroupId, FeatureCollection<Point>>>
+
+/** Null until loaded. */
+export function usePlacePoints(kinds: readonly PlaceKind[], enabled: boolean): PlacePoints | null {
+  const [byGroup, setByGroup] = useState<PlacePoints | null>(null)
   useEffect(() => {
     if (!enabled || !kinds.length) {
-      setGeo(null)
+      setByGroup(null)
       return
     }
     let current = true
     Promise.all(kinds.map(placePoints)).then((lists) => {
       if (!current) return
-      const features: FeatureCollection<Point>['features'] = []
+      const next: PlacePoints = {}
       kinds.forEach((kind, i) => {
-        const g = PLACE_GROUP_IDS.indexOf(placeGroup(kind))
         const list = lists[i]
+        const group = next[placeGroup(kind)] ?? { type: 'FeatureCollection', features: [] }
+        next[placeGroup(kind)] = group
         for (let j = 0; j < list.length; j += 2) {
-          features.push({
+          group.features.push({
             type: 'Feature',
-            properties: { kind, g },
+            properties: { kind },
             geometry: { type: 'Point', coordinates: [list[j], list[j + 1]] },
           })
         }
       })
-      setGeo({ type: 'FeatureCollection', features })
+      setByGroup(next)
     })
     return () => {
       current = false
     }
   }, [kinds, enabled])
-  return geo
+  return byGroup
 }

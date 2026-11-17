@@ -299,7 +299,7 @@ export function MapView({
       const at = feature.geometry.coordinates as [number, number]
       if (feature.properties.cluster) return { source: feature.source, id: Number(feature.properties.cluster_id), at }
       // A place left alone among merged ones has no details: a click zooms in to its marker.
-      if (feature.layer.id === 'places-merged-icon') return { source: feature.source, id: null, at }
+      if (feature.layer.id.startsWith('places-merged-')) return { source: feature.source, id: null, at }
       return null
     }
 
