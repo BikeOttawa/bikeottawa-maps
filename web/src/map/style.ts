@@ -56,7 +56,7 @@ import {
   pathwayGroupOf,
   UNKNOWN_WIDTH,
 } from '../pathways'
-import { type PlaceKind, placeImageId } from '../places'
+import { GROUP_COLORS, PLACE_GROUP_IDS, type PlaceKind, placeImageId } from '../places'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
@@ -105,6 +105,8 @@ export interface StyleState {
   layer: LayerId
   /** Place kinds shown on the places layer. */
   placeKinds: readonly PlaceKind[]
+  /** The places of those kinds, merged by the map when zoomed out; null until loaded. */
+  placePoints?: FeatureCollection | null
   selected: Selected | null
   /** Planned route to draw, coloured by what the route card shows (`routeView`). */
   route: Route | null
@@ -160,7 +162,7 @@ export const ROADWORK_LAYERS = ['closures-icon', 'closures-line']
 export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
-  places: ['places-icon'],
+  places: ['places-icon', 'places-merged', 'places-merged-icon'],
   collisions: ['collisions-point', 'collisions-pie'],
   thefts: ['thefts-point', 'thefts-pie'],
   construction: ['construction-point', 'construction-line'],
@@ -788,6 +790,13 @@ function bikeLaneLayers(state: StyleState): LayerSpecification[] {
 }
 
 export const PLACES_SOURCE = 'places'
+/** The places picked, merged where they would overlap until PLACES_MERGED_UNTIL. */
+const PLACES_MERGED_SOURCE = 'places-merged'
+const PLACES_MERGED_UNTIL = 14
+/** Zoom from which every place has its own marker, with its details. */
+export const PLACES_UNMERGED_FROM = PLACES_MERGED_UNTIL + 1
+/** How close places are merged, in pixels. */
+const PLACES_MERGE_RADIUS = 32
 
 /** Lit streets hand over to the individual lamps between these zooms. */
 const STREETS_UNTIL = 14.5
@@ -1312,6 +1321,63 @@ function placeHighlightLayers(state: StyleState, theme: Theme): LayerSpecificati
   ]
 }
 
+/** A place marker's size, growing with the zoom. */
+const PLACE_ICON_SIZE: ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 10, 0.6, 14, 0.85, 17, 1.1]
+
+/**
+ * Zoomed out, the places picked are merged where they would overlap: a
+ * circle in the colour of the group most of them are in, with how many; the
+ * ones left alone keep their marker. A click zooms in.
+ */
+function mergedPlacesLayers(state: StyleState): LayerSpecification[] {
+  const kind = state.placeHighlight?.kind
+  const rest: ExpressionSpecification | number = kind ? ['case', ['==', ['get', 'kind'], kind], 1, 0.3] : 1
+  const merged: FilterSpecification = ['has', 'point_count']
+  return [
+    {
+      id: 'places-merged',
+      type: 'circle',
+      source: PLACES_MERGED_SOURCE,
+      maxzoom: PLACES_MERGED_UNTIL + 1,
+      filter: merged,
+      paint: {
+        'circle-color': mostCommon(PLACE_GROUP_IDS.map((group) => GROUP_COLORS[group])),
+        'circle-radius': ['min', 22, ['+', 9, ['*', 1.1, ['sqrt', ['get', 'point_count']]]]],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5,
+      },
+    },
+    {
+      id: 'places-merged-count',
+      type: 'symbol',
+      source: PLACES_MERGED_SOURCE,
+      maxzoom: PLACES_MERGED_UNTIL + 1,
+      filter: merged,
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 11,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: { 'text-color': '#ffffff' },
+    },
+    {
+      id: 'places-merged-icon',
+      type: 'symbol',
+      source: PLACES_MERGED_SOURCE,
+      maxzoom: PLACES_MERGED_UNTIL + 1,
+      filter: ['!', merged],
+      layout: {
+        'icon-image': ['concat', placeImageId(''), ['get', 'kind']],
+        'icon-size': PLACE_ICON_SIZE,
+        'icon-allow-overlap': true,
+      },
+      paint: { 'icon-opacity': rest },
+    },
+  ]
+}
+
 function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
   // With a kind picked out, the others step back.
   const kind = state.placeHighlight?.kind
@@ -1321,11 +1387,13 @@ function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
     type: 'symbol',
     source: PLACES_SOURCE,
     'source-layer': 'places',
+    // Further out, the merged places stand in.
+    minzoom: PLACES_MERGED_UNTIL + 1,
     filter: ['in', ['get', 'kind'], ['literal', [...state.placeKinds]]],
     layout: {
       // Drawn on demand by the map view, one image per kind.
       'icon-image': ['concat', placeImageId(''), ['get', 'kind']],
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 14, 0.85, 17, 1.1],
+      'icon-size': PLACE_ICON_SIZE,
       // Every marker shows, and names steer clear of them.
       'icon-allow-overlap': true,
       // Names never push a marker off the map; where they would collide they are left out.
@@ -1393,6 +1461,19 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       }),
       ...(loadsPlaces(state) && {
         [PLACES_SOURCE]: { type: 'vector', url: `pmtiles://${assetsBase}/tiles/places.pmtiles` },
+      }),
+      ...(showsPlaces(state) && {
+        [PLACES_MERGED_SOURCE]: {
+          type: 'geojson',
+          data: state.placePoints ?? { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: PLACES_MERGE_RADIUS,
+          clusterMaxZoom: PLACES_MERGED_UNTIL,
+          // How many of each group, as `p0`… in PLACE_GROUP_IDS' order.
+          clusterProperties: Object.fromEntries(
+            PLACE_GROUP_IDS.map((_, i) => [`p${i}`, ['+', ['case', ['==', ['get', 'g'], i], 1, 0]]]),
+          ),
+        },
       }),
       // Loaded only while the street lights overlay is on.
       ...(lights.under.length && {
@@ -1487,7 +1568,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...reachLabelLayers(state.reach, state.basemap, theme),
       ...routeLabelLayers(state, theme),
       ...wards.labels,
-      ...(showsPlaces(state) ? [placesLayer(state, theme)] : []),
+      ...(showsPlaces(state) ? [...mergedPlacesLayers(state), placesLayer(state, theme)] : []),
       ...placeHighlightLayers(state, theme),
       ...collisions.over,
       ...thefts.over,

@@ -37,7 +37,7 @@ Tiles land in `web/public/tiles` and are not committed. The app only loads the f
 | `places.pmtiles`       | Places                                                                               |
 | `night.pmtiles`        | Lit streets and street lamps, for the street lights overlay                          |
 | `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                            |
-| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, for counting places within reach  |
+| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, to merge places and count them    |
 | `meta.json`            | Date of the OSM data, when the tiles were built, km of Pathways' and Comfort's bands |
 | `construction.geojson` | The City's construction forecast, for Projects                                       |
 
@@ -51,7 +51,7 @@ The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) 
 
 ## Layers
 
-Each layer's legend filters it the same way: rows of bars, a line per group picking those items, one row open at a time. The open row colours the map: Comfort by stress at first, Pathways by surface, Projects by when; on Collisions and Thefts spots big enough to read show each group's share as a pie, smaller ones the group most of their items share, and until a row is opened they show the worst injury and the value stolen. Spots that would overlap merge into one until zoom 15; clicking one zooms in until it splits. The URL keeps the row (`by:` in the layer's entry, e.g. `comfort=by:speed`).
+Each layer's legend filters it the same way: rows of bars, a line per group picking those items, one row open at a time. The open row colours the map: Comfort by stress at first, Pathways by surface, Projects by when; on Collisions and Thefts spots big enough to read show each group's share as a pie, smaller ones the group most of their items share, and until a row is opened they show the worst injury and the value stolen. Spots that would overlap merge into one until zoom 15; clicking one zooms in until it splits. Places merge the same way, from `tiles/places/<kind>.json`, each circle in the colour of the group most of its places are in; from zoom 15 each place has its own marker and card. The URL keeps the row (`by:` in the layer's entry, e.g. `comfort=by:speed`).
 
 **Comfort** colours every street and path bikes may use by its level of traffic stress, from 1 (comfortable for everyone) to 4 (high stress), as Bike Ottawa's [stressmodel](https://github.com/BikeOttawa/stressmodel) rates it from the OSM tags. The legend filters it as on the other layers, a bar of km per group: by stress, type (pathway, residential, service, minor road, tertiary, secondary, primary, trunk, track), speed limit (30 or less, 40, 50, 60, 70 or more, or not tagged), lanes each way (1, 2, or 3 or more: a one-way street's lanes all go one way, a two-way street's are split, rounded up, unless tagged each way; service roads always have one), bike infrastructure (pathway or cycle track, painted lane, paved shoulder, shared lane, or none), surface and lighting. `pipeline/comfort.mjs` writes each way's bands into the tiles, for the map to filter by, and the km of every combination of them into `meta.json`, for the bars; pathways count as 30 km/h or less, and picking lanes leaves them out.
 

@@ -33,6 +33,7 @@ import {
   buildStyle,
   INTERACTIVE_LAYERS,
   PLACES_SOURCE,
+  PLACES_UNMERGED_FROM,
   REACH_SOURCE,
   ROADWORK_LAYERS,
   ROUTE_LAYERS,
@@ -294,18 +295,25 @@ export function MapView({
         [point.x + HIT_RADIUS, point.y + HIT_RADIUS],
       ]
       const [feature] = map.queryRenderedFeatures(box, { layers })
-      if (!feature?.properties.cluster || feature.geometry.type !== 'Point') return null
-      return { source: feature.source, id: Number(feature.properties.cluster_id), at: feature.geometry.coordinates }
+      if (feature?.geometry.type !== 'Point') return null
+      const at = feature.geometry.coordinates as [number, number]
+      if (feature.properties.cluster) return { source: feature.source, id: Number(feature.properties.cluster_id), at }
+      // A place left alone among merged ones has no details: a click zooms in to its marker.
+      if (feature.layer.id === 'places-merged-icon') return { source: feature.source, id: null, at }
+      return null
     }
 
     map.on('click', (e) => {
       const merged = mergedAt(e.point)
       if (merged) {
-        const source = map.getSource<GeoJSONSource>(merged.source)
-        source
-          ?.getClusterExpansionZoom(merged.id)
-          .then((zoom) => map.easeTo({ center: merged.at as [number, number], zoom }))
-          .catch(() => {})
+        const { id, at } = merged
+        if (id === null) map.easeTo({ center: at, zoom: Math.max(map.getZoom() + 1, PLACES_UNMERGED_FROM) })
+        else
+          map
+            .getSource<GeoJSONSource>(merged.source)
+            ?.getClusterExpansionZoom(id)
+            .then((zoom) => map.easeTo({ center: at, zoom }))
+            .catch(() => {})
         return
       }
       const { routing, onSelect } = latest.current

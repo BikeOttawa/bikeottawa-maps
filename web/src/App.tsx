@@ -35,6 +35,7 @@ import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
 import { MapView } from './map/MapView'
 import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
+import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import { isRouteView, type RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight } from './route/brouter'
@@ -483,6 +484,8 @@ export function App() {
     [reach, reachView, minutes, reachStart],
   )
   // The places picked on the Places layer, counted within reach in the layer's order.
+  // The places picked, for the map to merge when zoomed out.
+  const placePoints = usePlacePoints(placeKinds, layer === 'places')
   const pickedKinds = useMemo(() => PLACE_KINDS.filter((kind) => placeKinds.includes(kind)), [placeKinds])
   const reachPlaces = useReachPlaces(reaching ? cover : null, pickedKinds)
   // A kind in that list picked out on the map: pointed at, or kept by a click.
@@ -807,6 +810,7 @@ export function App() {
       basemap,
       layer,
       placeKinds,
+      placePoints,
       selected,
       route,
       routeHighlight,
@@ -833,6 +837,7 @@ export function App() {
       basemap,
       layer,
       placeKinds,
+      placePoints,
       selected,
       route,
       routeHighlight,

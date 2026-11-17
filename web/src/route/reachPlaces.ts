@@ -1,26 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ASSETS_BASE } from '../config'
+import { placePoints } from '../placePoints'
 import type { PlaceKind } from '../places'
 import type { LngLat } from './brouter'
 import { coveredPoints, type ReachCover } from './reach'
-
-/** Each kind's places, as the pipeline writes them: [lon, lat, lon, lat, ...]. Fetched once each. */
-const points = new Map<PlaceKind, Promise<number[]>>()
-
-function placePoints(kind: PlaceKind): Promise<number[]> {
-  let pending = points.get(kind)
-  if (!pending) {
-    pending = fetch(`${ASSETS_BASE}/tiles/places/${kind}.json`)
-      .then((res) => (res.ok ? (res.json() as Promise<number[]>) : Promise.reject(new Error(String(res.status)))))
-      .catch(() => {
-        // Tried again next time.
-        points.delete(kind)
-        return []
-      })
-    points.set(kind, pending)
-  }
-  return pending
-}
 
 export interface PlaceCount {
   kind: PlaceKind
