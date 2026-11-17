@@ -27,10 +27,12 @@ const ONE_WAY = new Set(['yes', 'true', '1', '-1'])
  * Lanes each way: 1, 2, or 3 and up; unknown when not tagged. Per-direction
  * tags (lanes:forward, lanes:backward) say so outright: the busier way counts.
  * Otherwise a one-way street's lanes all go one way, and a two-way street's
- * are split, rounded up (3 lanes in all is 2 one way). Paths have none.
+ * are split, rounded up (3 lanes in all is 2 one way). Service roads (lanes,
+ * driveways, parking aisles) always have one each way; paths have none.
  */
 export function laneBand(props, tags = {}) {
   if (props.kind === 'path') return undefined
+  if (props.highway === 'service') return '1'
   const forward = number(tags['lanes:forward'])
   const backward = number(tags['lanes:backward'])
   let each

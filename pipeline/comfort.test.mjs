@@ -26,6 +26,9 @@ test('bands lanes each way', () => {
   // Tagged each way: the busier way.
   assert.equal(laneBand({ kind: 'street', lanes: '3' }, { 'lanes:forward': '2', 'lanes:backward': '1' }), '2')
   assert.equal(laneBand({ kind: 'street' }, {}), 'unknown')
+  // Service roads: one each way, tagged or not.
+  assert.equal(laneBand({ kind: 'street', highway: 'service' }, {}), '1')
+  assert.equal(laneBand({ kind: 'street', highway: 'service', lanes: '2' }, { oneway: 'yes' }), '1')
   assert.equal(laneBand({ kind: 'path' }, {}), undefined)
 })
 
