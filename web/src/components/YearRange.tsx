@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n'
+import { spotSize } from '../map/pieImage'
 
 /** The years a layer's data covers, and any the source never published. */
 export interface Years {
@@ -148,9 +149,9 @@ export function YearRange({
   )
 }
 
-/** A spot's circle as the map draws it in the middle of its zoom range: area grows with the count. */
-export function SpotDot({ count, color }: { count: number; color: string }) {
-  const r = 4 + 2.2 * Math.sqrt(Math.max(0, count - 1))
+/** A spot's circle at the slider's ends, sized against the busiest as the map does: 8 px for one item to 30 px. */
+function SpotDot({ count, busiest, color }: { count: number; busiest: number; color: string }) {
+  const r = 4 + 11 * spotSize(count, busiest)
   const size = Math.ceil(2 * r + 2)
   return (
     <svg aria-hidden="true" width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="spot-dot">
@@ -179,7 +180,7 @@ export function MinCountSlider({
     <label className="collision-min">
       <span>{label}</span>
       <span className="collision-min-row">
-        <SpotDot count={1} color={color} />
+        <SpotDot count={1} busiest={busiest} color={color} />
         <input
           className="collision-min-range"
           type="range"
@@ -189,7 +190,7 @@ export function MinCountSlider({
           value={Math.min(value, top)}
           onChange={(e) => onChange(Number(e.target.value))}
         />
-        <SpotDot count={busiest} color={color} />
+        <SpotDot count={busiest} busiest={busiest} color={color} />
       </span>
     </label>
   )
