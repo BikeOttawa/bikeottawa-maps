@@ -265,34 +265,37 @@ export const WINTER_COLORS = { yes: '#1B5FAE', no: '#E07B1A', unknown: '#6F7B80'
 /** Bike infrastructure ridden, on the route card and the comfort layer: green to orange, from apart from cars to among them; shoulders, often beside fast traffic, in a sand of their own. */
 export const BIKEWAY_PART_COLORS = { lane: '#F2C200', shoulder: '#BFA05A', traffic: '#E8701A' } as const
 
-/** Speed limits are ordered: one red from light to dark, the slowest lightest. */
-const SPEED_STEPS = ['#F6D5B8', '#EDAF7F', '#E2804A', '#C8502A', '#8E2A12']
+/** Speed limits are ordered: yellow to dark red, the slowest lightest but still plain on the map. */
+const SPEED_STEPS = ['#FDD049', '#FDA33A', '#F2712B', '#D6422A', '#9E1B1B']
+
+/** Road classes, minor to major: one blue from light to dark. */
+const ROAD_STEPS = ['#9DC3E6', '#74A9D8', '#4F8FCB', '#3274B5', '#1F5A9A', '#16427A', '#0C2A52']
 
 /** Lanes each way, ordered too: one blue, a single lane lightest. */
-const LANE_STEPS = ['#A9CBEA', '#4D8FCC', '#1F4E8C']
+const LANE_STEPS = ['#8EC1EA', '#3E7FC4', '#163E7A']
 
 /** Where a set does not apply (a path's lanes), pale and out of the way. */
-export const NOT_APPLICABLE = '#C9CED1'
+export const NOT_APPLICABLE = '#D5D9DC'
 
 /**
- * The comfort layer's colours for each set the map can be coloured by: stress
- * in its own colours, the rest in the colours they have elsewhere in the app.
- * The same on every map style, as the stress colours are.
+ * The comfort layer's colours for each set the map can be coloured by. Ordered
+ * sets run light to dark, their lightest still plain on the map; in the
+ * others, the usual case (riding with cars, paved) is a quiet grey or slate so
+ * the rest stand out. The same on every map style, as the stress colours are.
  */
 export function comfortSetColors(): Record<ComfortSet, Record<string, string>> {
-  const bikeways = bikewayColors('light')
   return {
     stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
-    // Road classes, minor to major: one slate from light to dark; pathways green, tracks brown.
+    // Pathways green and tracks brown, apart from the roads' blues.
     type: {
       path: '#1E7B34',
-      residential: '#C8D3DB',
-      service: '#AFBBC4',
-      minor: '#94A6B6',
-      tertiary: '#7690A8',
-      secondary: '#56748F',
-      primary: '#3A5873',
-      trunk: '#22394F',
+      residential: ROAD_STEPS[0],
+      service: ROAD_STEPS[1],
+      minor: ROAD_STEPS[2],
+      tertiary: ROAD_STEPS[3],
+      secondary: ROAD_STEPS[4],
+      primary: ROAD_STEPS[5],
+      trunk: ROAD_STEPS[6],
       track: '#B39264',
       other: OTHER,
     },
@@ -305,14 +308,8 @@ export function comfortSetColors(): Record<ComfortSet, Record<string, string>> {
       unknown: OTHER,
     },
     lanes: { '1': LANE_STEPS[0], '2': LANE_STEPS[1], '3': LANE_STEPS[2], unknown: OTHER },
-    bikeway: {
-      path: bikeways.dedicated,
-      lane: BIKEWAY_PART_COLORS.lane,
-      shoulder: BIKEWAY_PART_COLORS.shoulder,
-      shared: bikeways.shared,
-      none: BIKEWAY_PART_COLORS.traffic,
-    },
-    surface: { paved: PATHWAYS_ON_PALE.surface.asphalt, unpaved: PATHWAYS_ON_PALE.surface.gravel, unknown: OTHER },
+    bikeway: { path: '#1E7B34', lane: '#F2C200', shoulder: '#C08A2E', shared: '#7B3BA3', none: '#B4BCC1' },
+    surface: { paved: '#56656F', unpaved: '#C47F35', unknown: OTHER },
     lit: { ...LIT_ON_PALE, unknown: OTHER },
   }
 }
