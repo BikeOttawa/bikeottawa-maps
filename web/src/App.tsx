@@ -38,7 +38,7 @@ import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
-import { isRouteView, type RouteView } from './route/breakdown'
+import type { RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
 import { locate } from './route/locate'
@@ -191,7 +191,6 @@ const WARDS_KEY = 'wards'
 const ROADWORK_KEY = 'roadwork'
 const LIGHTS_KEY = 'lights'
 const REACH_VIEW_KEY = 'reach-view'
-const ROUTE_VIEW_KEY = 'route-view'
 
 /** How far as the area covered or the streets reached: the area unless the streets were picked, remembered per browser. */
 function storedReachView(): ReachView {
@@ -206,25 +205,6 @@ function rememberReachView(view: ReachView) {
   try {
     if (view === 'streets') localStorage.setItem(REACH_VIEW_KEY, 'streets')
     else localStorage.removeItem(REACH_VIEW_KEY)
-  } catch {
-    // Not remembered when storage is blocked.
-  }
-}
-
-/** What a route is split by on its card and coloured by on the map: comfort unless another was picked, remembered per browser. */
-function storedRouteView(): RouteView {
-  try {
-    const view = localStorage.getItem(ROUTE_VIEW_KEY)
-    return isRouteView(view) ? view : 'comfort'
-  } catch {
-    return 'comfort'
-  }
-}
-
-function rememberRouteView(view: RouteView) {
-  try {
-    if (view === 'comfort') localStorage.removeItem(ROUTE_VIEW_KEY)
-    else localStorage.setItem(ROUTE_VIEW_KEY, view)
   } catch {
     // Not remembered when storage is blocked.
   }
@@ -430,7 +410,9 @@ export function App() {
   const [roadwork, setRoadwork] = useState(storedRoadwork)
   const [lights, setLights] = useState(storedLights)
   const [reachView, setReachView] = useState(storedReachView)
-  const [routeView, setRouteView] = useState(storedRouteView)
+  // The route card's open row, none at first: the route is coloured by it, or by comfort.
+  const [routeView, setRouteView] = useState<RouteView | null>(null)
+  const routeColoured = routeView ?? 'comfort'
   const [selected, setSelected] = useState<Selected | null>(null)
   // A place picked from the search while exploring.
   const [found, setFound] = useState<Place | null>(null)
@@ -523,7 +505,6 @@ export function App() {
   useEffect(() => rememberRoadwork(roadwork), [roadwork])
   useEffect(() => rememberLights(lights), [lights])
   useEffect(() => rememberReachView(reachView), [reachView])
-  useEffect(() => rememberRouteView(routeView), [routeView])
 
   // Back/forward and pasted links change the hash without going through React.
   useEffect(() => {
@@ -815,7 +796,7 @@ export function App() {
       selected,
       route,
       routeHighlight,
-      routeView,
+      routeView: routeColoured,
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
@@ -842,7 +823,7 @@ export function App() {
       selected,
       route,
       routeHighlight,
-      routeView,
+      routeColoured,
       travel,
       reachStyle,
       collisionGeo,
@@ -918,7 +899,7 @@ export function App() {
     setPinnedPart(null)
   }, [route])
   // The parts of one view are not the parts of another.
-  const changeRouteView = useCallback((view: RouteView) => {
+  const changeRouteView = useCallback((view: RouteView | null) => {
     setRouteView(view)
     setPointedPart(null)
     setPinnedPart(null)
@@ -948,7 +929,7 @@ export function App() {
       constructionFilters={construction}
     />
   ) : route ? (
-    <RoutePeek route={route} travel={travel} view={routeView} />
+    <RoutePeek route={route} travel={travel} view={routeColoured} />
   ) : reach ? (
     <ReachPeek minutes={minutes} basemap={basemap} />
   ) : planning || reaching ? (

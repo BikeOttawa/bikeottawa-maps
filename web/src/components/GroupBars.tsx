@@ -26,6 +26,8 @@ export interface Line {
   color: string
   /** The swatch's colour when it differs from the bar's. */
   swatch?: string
+  /** A swatch drawn as the map draws it, e.g. `dashed`. */
+  pattern?: string
   /** How long the bar is, and where the tick goes (null for none), on one scale. */
   value: number
   tick: number | null
@@ -40,12 +42,16 @@ export function Lines({
   picked,
   onToggle,
   onAll,
+  onPoint,
   dot,
 }: {
   lines: Line[]
   picked: readonly string[]
   onToggle: (key: string) => void
-  onAll: () => void
+  /** Drops every pick; without it there is no "Show all". */
+  onAll?: () => void
+  /** Pointing at a line, and leaving it (null). */
+  onPoint?: (key: string | null) => void
   /** Round swatches, as the map draws points. */
   dot?: boolean
 }) {
@@ -66,8 +72,18 @@ export function Lines({
               aria-pressed={isPicked}
               title={line.title}
               onClick={() => onToggle(line.key)}
+              onPointerEnter={onPoint && (() => onPoint(line.key))}
+              onPointerLeave={onPoint && (() => onPoint(null))}
+              onFocus={onPoint && (() => onPoint(line.key))}
+              onBlur={onPoint && (() => onPoint(null))}
             >
-              <span className={dot ? 'swatch dot' : 'swatch line'} style={{ background: line.swatch ?? line.color }} />
+              <span
+                className={dot ? 'swatch dot' : `swatch line ${line.pattern ?? ''}`}
+                style={{
+                  color: line.swatch ?? line.color,
+                  background: line.pattern ? undefined : (line.swatch ?? line.color),
+                }}
+              />
               <span className="condition-label">{line.label}</span>
               <span className="condition-bar">
                 <span className="condition-fill" style={{ width: along(line.value), background: line.color }} />
@@ -79,17 +95,19 @@ export function Lines({
         )
       })}
       {/* Always there, hidden until something is picked, so picking moves nothing below. */}
-      <li>
-        <button
-          type="button"
-          className="condition-all"
-          onClick={onAll}
-          disabled={!picked.length}
-          style={picked.length ? undefined : { visibility: 'hidden' }}
-        >
-          {t('crash.showAll')}
-        </button>
-      </li>
+      {onAll && (
+        <li>
+          <button
+            type="button"
+            className="condition-all"
+            onClick={onAll}
+            disabled={!picked.length}
+            style={picked.length ? undefined : { visibility: 'hidden' }}
+          >
+            {t('crash.showAll')}
+          </button>
+        </li>
+      )}
     </ul>
   )
 }
@@ -114,7 +132,11 @@ export function GroupRow({
   label,
   amount,
   counted,
+  pattern,
+  title,
+  single,
   onPick,
+  onPoint,
   open,
   onToggle,
 }: {
@@ -130,7 +152,15 @@ export function GroupRow({
   amount?: (n: number) => string
   /** Whether the lines show how many rather than the share. */
   counted?: boolean
+  /** A group's swatch pattern, as the map draws it. */
+  pattern?: (group: string) => string | undefined
+  /** A line's tooltip, in place of its count and share. */
+  title?: (group: string) => string
+  /** One line picked at a time, dropped by picking it again; no "Show all". */
+  single?: boolean
   onPick: (next: string[]) => void
+  /** Pointing at a group, on its line or in the split, and leaving it (null). */
+  onPoint?: (group: string | null) => void
   open: boolean
   onToggle: () => void
 }) {
@@ -145,13 +175,16 @@ export function GroupRow({
     key: group,
     label: label(group),
     color: color(group),
+    pattern: pattern?.(group),
     value: share(group),
     tick: compared ? shareAll(group) : null,
     figure: counted ? (amount ?? number)(counts.shown.get(group) ?? 0) : percent(share(group)),
-    title: t('crash.groupShare')
-      .replace('{count}', (amount ?? number)(counts.shown.get(group) ?? 0))
-      .replace('{share}', percent(share(group)))
-      .replace('{all}', percent(shareAll(group))),
+    title:
+      title?.(group) ??
+      t('crash.groupShare')
+        .replace('{count}', (amount ?? number)(counts.shown.get(group) ?? 0))
+        .replace('{share}', percent(share(group)))
+        .replace('{all}', percent(shareAll(group))),
   }))
 
   return (
@@ -170,6 +203,8 @@ export function GroupRow({
                 key={group}
                 className={picked.length && !picked.includes(group) ? 'faded' : undefined}
                 style={{ flexGrow: counts.shown.get(group), background: color(group) }}
+                onPointerEnter={onPoint && (() => onPoint(group))}
+                onPointerLeave={onPoint && (() => onPoint(null))}
               />
             ))}
         </span>
@@ -181,8 +216,9 @@ export function GroupRow({
         <Lines
           lines={lines}
           picked={picked}
-          onToggle={(key) => onPick(toggled(picked, key))}
-          onAll={() => onPick([])}
+          onToggle={(key) => onPick(single ? (picked.includes(key) ? [] : [key]) : toggled(picked, key))}
+          onAll={single ? undefined : () => onPick([])}
+          onPoint={onPoint}
         />
       )}
     </div>

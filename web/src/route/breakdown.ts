@@ -19,10 +19,6 @@ import { COMFORT_KEYS, comfortKeyOf, type Route, type RouteSegment } from './bro
 export const ROUTE_VIEWS = ['comfort', 'bikeway', 'surface', 'lit', 'winter'] as const
 export type RouteView = (typeof ROUTE_VIEWS)[number]
 
-export function isRouteView(value: unknown): value is RouteView {
-  return ROUTE_VIEWS.includes(value as RouteView)
-}
-
 /** The parts of each view, in the order they are listed. */
 export const ROUTE_PARTS: Record<RouteView, readonly string[]> = {
   comfort: COMFORT_KEYS,
@@ -145,16 +141,16 @@ const pathways = pathwayColors('light')
 
 const LOOKS: Record<RouteView, Record<string, PartLook>> = {
   comfort: {
-    lts1: { color: LTS_COLORS[0], label: 'lts.1' },
-    lts2: { color: LTS_COLORS[1], label: 'lts.2' },
-    lts3: { color: LTS_COLORS[2], label: 'lts.3' },
-    lts4: { color: LTS_COLORS[3], label: 'lts.4' },
+    lts1: { color: LTS_COLORS[0], label: 'comfort.stress.1' },
+    lts2: { color: LTS_COLORS[1], label: 'comfort.stress.2' },
+    lts3: { color: LTS_COLORS[2], label: 'comfort.stress.3' },
+    lts4: { color: LTS_COLORS[3], label: 'comfort.stress.4' },
     sidewalk: { color: NO_BIKES_COLOR, label: 'sidewalk' },
     stairs: { color: NO_BIKES_COLOR, label: 'stairs' },
     other: { color: NO_BIKES_COLOR, label: 'walk' },
   },
   bikeway: {
-    path: { color: bikeways.dedicated, label: 'bikewayPart.path' },
+    path: { color: bikeways.dedicated, label: 'comfort.bikeway.path' },
     lane: { color: BIKEWAY_PART_COLORS.lane, label: 'bikeway.lane', pattern: 'dashed' },
     shoulder: { color: BIKEWAY_PART_COLORS.shoulder, label: 'bikeway.shoulder' },
     traffic: { color: BIKEWAY_PART_COLORS.traffic, label: 'bikewayPart.traffic' },

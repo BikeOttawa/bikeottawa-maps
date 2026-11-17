@@ -83,7 +83,7 @@ Switches in the map style menu draw these over any layer:
 
 The planner asks a BRouter server for routes. Riding styles are sets of weights for the `ottbike` profile in `routing/profiles` (how hard to avoid busy roads, sidewalks, rough surfaces, unplowed paths, unlit sections and stops) plus a riding speed on the flat; they live in `web/src/route/styles.ts`. Travel times also count walking pace where the bike is pushed and the seconds lost at stop signs and signals. Walking uses its own profile, `ottwalk` (sidewalks and paths first, busy roads without a sidewalk avoided; a winter switch avoids unplowed paths and walks them slowly).
 
-A bike route's card splits it by one of these, from the tags BRouter returns for each stretch (`web/src/route/breakdown.ts`), and the route line takes the same colours:
+A bike route's card splits it by each of these, from the tags BRouter returns for each stretch (`web/src/route/breakdown.ts`), a row each as in the legends, all closed at first; the open row colours the route line (comfort with none open), and a part pointed at or clicked is picked out on it:
 
 - **Comfort**: level of traffic stress;
 - **Bikeways**: pathways and cycle tracks, painted lanes, paved shoulders (on the side ridden) or shared with cars;

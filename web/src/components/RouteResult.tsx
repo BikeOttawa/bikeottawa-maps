@@ -11,6 +11,7 @@ import type { Travel } from '../route/styles'
 import type { RouteState } from '../route/useRoute'
 import { visibleRoute } from '../route/useRoute'
 import { ElevationChart } from './ElevationChart'
+import { GroupRow } from './GroupBars'
 
 /** What the legend needs to pick things out on the map: pointing shows them, a click keeps them and zooms there. */
 interface Picking {
@@ -93,9 +94,10 @@ function StopCounts({ route, picking }: { route: Route; picking: Picking }) {
 }
 
 /**
- * How the route splits by comfort, bike infrastructure, surface, lighting or
- * winter maintenance. Pointing at a part picks it out on the map; a click keeps
- * it and zooms there.
+ * How the route splits by comfort, bike infrastructure, surface, lighting and
+ * winter maintenance, a row each as in the legends: the open one colours the
+ * route, comfort with none open. Pointing at a part picks it out on the map; a
+ * click keeps it and zooms there.
  */
 function Breakdown({
   route,
@@ -104,54 +106,41 @@ function Breakdown({
   picking,
 }: {
   route: Route
-  view: RouteView
-  onViewChange: (view: RouteView) => void
+  view: RouteView | null
+  onViewChange: (view: RouteView | null) => void
   picking: Picking
 }) {
-  const { highlight, onPoint } = picking
+  const { pinned, onPoint, onPin } = picking
   const { t } = useI18n()
-  const totals = distanceByPart(route, view)
-  const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1
-  const parts = ROUTE_PARTS[view].filter((key) => (totals.get(key) ?? 0) > 0)
   return (
-    <div className="comfort">
-      <p className="footnote">{t('routeAlong')}</p>
-      <div className="mode-switch route-views">
-        {ROUTE_VIEWS.map((id) => (
-          <button key={id} type="button" aria-pressed={id === view} onClick={() => onViewChange(id)}>
-            {t(`routeView.${id}`)}
-          </button>
-        ))}
-      </div>
-      <div className="comfort-bar" aria-hidden="true">
-        {parts.map((key) => (
-          <span
-            key={key}
-            className={highlight && highlight !== key ? 'comfort-bar-part faded' : 'comfort-bar-part'}
-            style={{ flexGrow: totals.get(key), background: partLook(view, key).color }}
-            onPointerEnter={() => onPoint(key)}
-            onPointerLeave={() => onPoint(null)}
+    // The rows speak for themselves; the name stays for screen readers.
+    <fieldset className="conditions" aria-label={t('routeAlong')}>
+      {ROUTE_VIEWS.map((id) => {
+        const metres = distanceByPart(route, id)
+        const parts = ROUTE_PARTS[id]
+        const open = id === view
+        return (
+          <GroupRow
+            key={id}
+            name={t(`routeView.${id}`)}
+            groups={parts}
+            counts={{ shown: metres, all: metres }}
+            // Views share part names (lighting's and snow's "yes"), so only the open one shows the pin.
+            picked={open && pinned && parts.includes(pinned) ? [pinned] : []}
+            compared={false}
+            color={(part) => partLook(id, part).color}
+            pattern={(part) => partLook(id, part).pattern}
+            label={(part) => t(partLook(id, part).label)}
+            title={() => t('showOnRoute')}
+            single
+            onPick={(next) => onPin(next[0] ?? null)}
+            onPoint={open ? onPoint : undefined}
+            open={open}
+            onToggle={() => onViewChange(open ? null : id)}
           />
-        ))}
-      </div>
-      <ul>
-        {parts.map((key) => {
-          const look = partLook(view, key)
-          return (
-            <li key={key}>
-              <button type="button" className="comfort-part" title={t('showOnRoute')} {...pickingProps(key, picking)}>
-                <span
-                  className={`swatch line ${look.pattern ?? ''}`}
-                  style={{ color: look.color, background: look.pattern ? undefined : look.color }}
-                />
-                <span>{t(look.label)}</span>
-                <span className="share">{Math.max(1, Math.round(((totals.get(key) ?? 0) / sum) * 100))}%</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
+        )
+      })}
+    </fieldset>
   )
 }
 
@@ -159,9 +148,9 @@ interface Props {
   /** On foot, the cycling-only parts (comfort, stress, stops) are left out. */
   travel: Travel
   state: RouteState
-  /** What the route is split by. */
-  view: RouteView
-  onViewChange: (view: RouteView) => void
+  /** The row open on the card, which colours the route; none at first. */
+  view: RouteView | null
+  onViewChange: (view: RouteView | null) => void
   /** Metres along the route being pointed at, on the chart or on the map. */
   hover: number | null
   onHover: (distance: number | null) => void

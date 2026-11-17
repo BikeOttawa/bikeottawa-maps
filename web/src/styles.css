@@ -1092,51 +1092,6 @@ a {
   color: var(--muted);
 }
 
-.comfort {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Five views in a row: each as wide as its name needs, the rest shared out. */
-.route-views {
-  flex: none;
-  gap: 2px;
-}
-
-.mode-switch.route-views button {
-  flex: 1 1 auto;
-  min-height: 36px;
-  padding: 0 4px;
-  font-size: 13px;
-}
-
-.comfort-bar {
-  display: flex;
-  gap: 2px;
-  height: 10px;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.comfort ul {
-  list-style: none;
-  margin: 2px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  font-size: 13px;
-}
-
-.comfort-bar-part {
-  transition: opacity 0.15s;
-}
-
-.comfort-bar-part.faded {
-  opacity: 0.3;
-}
-
 .comfort-part {
   display: flex;
   align-items: center;
@@ -1156,12 +1111,6 @@ a {
 .comfort-part:hover,
 .comfort-part[aria-pressed="true"] {
   background: #fff3b0;
-}
-
-.comfort .share {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
 }
 
 .stop-counts {
