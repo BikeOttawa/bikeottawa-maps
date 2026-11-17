@@ -1,5 +1,7 @@
 import type { FeatureCollection, Point } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
+import { formatBy, parseBy } from './bands'
+import { HUES, OTHER, SEASON_HUES } from './layers'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -49,6 +51,17 @@ const CONDITION_OF: Record<Exclude<ConditionId, 'season'>, Record<string, string
   control: { 'Traffic signal': 'signal', 'Stop sign': 'stop', 'No control': 'none' },
 }
 
+/** The legend's rows: worst injury, then the circumstances. */
+export const COLLISION_SETS = ['severity', ...CONDITION_IDS] as const
+export type CollisionSet = (typeof COLLISION_SETS)[number]
+
+/** A circumstance's groups in the categorical hues, seasons in their own; other grey. */
+export function conditionColor(id: ConditionId, group: string): string {
+  if (group === 'other') return OTHER
+  if (id === 'season') return SEASON_HUES[group] ?? OTHER
+  return HUES[(CONDITIONS[id] as readonly string[]).indexOf(group)] ?? OTHER
+}
+
 /** Which group of a circumstance a collision falls in. */
 export function conditionOf(p: CollisionProps, id: ConditionId): string {
   if (id === 'season') return seasonOf(p.date)
@@ -64,7 +77,12 @@ export interface CollisionFilters {
   minCount: number
   /** Only these groups of each circumstance; a circumstance left out keeps them all. */
   conditions: Partial<Record<ConditionId, readonly string[]>>
+  /** The legend's open row, which the spots are coloured by; none open colours them by worst injury. */
+  by: CollisionSet | null
 }
+
+/** The set the spots are coloured by. */
+export const collisionColorBy = (f: CollisionFilters): CollisionSet => f.by ?? 'severity'
 
 /** Cyclists only, every year, every injury level, in any circumstances. */
 export const DEFAULT_COLLISION_FILTERS: CollisionFilters = {
@@ -74,6 +92,7 @@ export const DEFAULT_COLLISION_FILTERS: CollisionFilters = {
   severities: SEVERITIES,
   minCount: 1,
   conditions: {},
+  by: 'severity',
 }
 
 export interface CollisionProps {
@@ -152,6 +171,22 @@ export function countByMonth(all: readonly CollisionProps[], f: CollisionFilters
 }
 
 /** How many collisions at each injury level pass the filters (ignoring the severity filter). */
+/**
+ * How the collisions split by worst injury, as for a circumstance: `shown`
+ * under every filter but the injuries picked, `all` for the people and years
+ * picked alone.
+ */
+export function severityCounts(
+  all: readonly CollisionProps[],
+  f: CollisionFilters,
+): { shown: Map<string, number>; all: Map<string, number> } {
+  const map = (counts: Record<Severity, number>) => new Map(Object.entries(counts).filter(([, n]) => n > 0))
+  return {
+    shown: map(countBySeverity(all, f)),
+    all: map(countBySeverity(all, { ...f, conditions: {} })),
+  }
+}
+
 export function countBySeverity(all: readonly CollisionProps[], f: CollisionFilters): Record<Severity, number> {
   const counts = { none: 0, minimal: 0, minor: 0, major: 0, fatal: 0 }
   const everySeverity = { ...f, severities: SEVERITIES }
@@ -160,9 +195,9 @@ export function countBySeverity(all: readonly CollisionProps[], f: CollisionFilt
 }
 
 /**
- * In the URL as `collisions=bike,foot;2019-2024;major,fatal;5;light:dark,dusk.impact:angle`
- * (the fewest collisions a spot needs, then the circumstances picked), each
- * part left out when it is the default.
+ * In the URL as `collisions=bike,foot;2019-2024;major,fatal;5;light:dark,dusk.impact:angle;by:weather`
+ * (the fewest collisions a spot needs, the circumstances picked, then the row
+ * the spots are coloured by), each part left out when it is the default.
  */
 export function formatCollisionFilters(f: CollisionFilters): string | null {
   const d = DEFAULT_COLLISION_FILTERS
@@ -175,6 +210,7 @@ export function formatCollisionFilters(f: CollisionFilters): string | null {
     CONDITION_IDS.filter((id) => f.conditions[id]?.length)
       .map((id) => `${id}:${f.conditions[id]?.join(',')}`)
       .join('.'),
+    formatBy(f.by, 'severity') ?? '',
   ]
   return parts.some(Boolean) ? parts.join(';').replace(/;+$/, '') : null
 }
@@ -195,6 +231,7 @@ export function parseCollisionFilters(text: string | undefined): CollisionFilter
     severities: severities.length ? severities : d.severities,
     minCount: Number.isInteger(Number(minText)) && Number(minText) >= 1 ? Number(minText) : d.minCount,
     conditions: parseConditions(conditionText),
+    by: parseBy(text, COLLISION_SETS, 'severity'),
   }
 }
 
@@ -310,15 +347,33 @@ export function collisionSpots(all: readonly Collision[], f: CollisionFilters): 
   })
 }
 
-/** Spots for the map: bigger ones first, so smaller ones are drawn on top of them. */
-export function spotsGeoJSON(spots: readonly CollisionSpot[]): FeatureCollection<Point> {
+/** The group of a circumstance most of a spot's collisions fall in; on a tie, the one listed first. */
+export function commonGroup(items: readonly CollisionProps[], id: ConditionId): string {
+  const counts = new Map<string, number>()
+  for (const p of items) counts.set(conditionOf(p, id), (counts.get(conditionOf(p, id)) ?? 0) + 1)
+  const groups: readonly string[] = CONDITIONS[id]
+  return groups.reduce((best, group) => ((counts.get(group) ?? 0) > (counts.get(best) ?? 0) ? group : best))
+}
+
+/**
+ * Spots for the map: bigger ones first, so smaller ones are drawn on top of
+ * them. Coloured by a circumstance, each carries the group most of its
+ * collisions fall in.
+ */
+export function spotsGeoJSON(spots: readonly CollisionSpot[], by: CollisionSet = 'severity'): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: [...spots]
       .sort((a, b) => b.items.length - a.items.length)
       .map((spot) => ({
         type: 'Feature',
-        properties: { key: spot.key, count: spot.items.length, worst: spot.worst, weight: spot.weight },
+        properties: {
+          key: spot.key,
+          count: spot.items.length,
+          worst: spot.worst,
+          weight: spot.weight,
+          ...(by !== 'severity' && { group: commonGroup(spot.items, by) }),
+        },
         geometry: { type: 'Point', coordinates: spot.at },
       })),
   }

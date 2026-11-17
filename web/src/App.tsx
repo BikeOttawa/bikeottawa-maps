@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import bikeOttawaLogo from './assets/bike-ottawa.png'
 import {
   type CollisionFilters,
+  collisionColorBy,
   collisionSpots,
   formatCollisionFilters,
   parseCollisionFilters,
@@ -773,7 +774,8 @@ export function App() {
     () => allSpots?.filter((s) => s.items.length >= collisions.minCount) ?? null,
     [allSpots, collisions.minCount],
   )
-  const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots) : null), [spots])
+  const collisionsBy = collisionColorBy(collisions)
+  const collisionGeo = useMemo(() => (spots ? spotsGeoJSON(spots, collisionsBy) : null), [spots, collisionsBy])
   const spotByKey = useMemo(() => new Map((spots ?? []).map((spot) => [spot.key, spot])), [spots])
   // Thefts, the same way: loaded with their layer, gathered at intersections.
   // Projects: the map fetches the file itself; the legend counts them.
@@ -810,6 +812,7 @@ export function App() {
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
       collisions: layer === 'collisions' ? collisionGeo : null,
+      collisionsBy,
       thefts: layer === 'thefts' ? theftGeo : null,
       construction,
       comfort: comfortPicks,
@@ -834,6 +837,7 @@ export function App() {
       travel,
       reachStyle,
       collisionGeo,
+      collisionsBy,
       theftGeo,
       construction,
       comfortPicks,

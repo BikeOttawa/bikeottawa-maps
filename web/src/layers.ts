@@ -15,6 +15,9 @@ export const INK = '#16242B'
 export const HUES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'] as const
 export const OTHER = '#9AA1A6'
 
+/** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
+export const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }
+
 /** Level of traffic stress 1 to 4. */
 export const LTS_COLORS = ['#1B5FAE', '#62B0E8', '#F2A33A', '#B5341F'] as const
 

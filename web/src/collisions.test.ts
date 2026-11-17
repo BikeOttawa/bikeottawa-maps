@@ -3,6 +3,7 @@ import {
   type CollisionProps,
   collisionLocation,
   collisionSpots,
+  commonGroup,
   conditionCounts,
   conditionOf,
   countByMonth,
@@ -57,14 +58,20 @@ describe('collision filters in the URL', () => {
       severities: ['major', 'fatal'] as const,
       minCount: 5,
       conditions: { light: ['dark', 'dusk'], season: ['winter'], impact: ['angle'] },
+      by: 'weather' as const,
     }
     const text = formatCollisionFilters(f)
-    expect(text).toBe('bike,foot;2019-2024;major,fatal;5;light:dark,dusk.season:winter.impact:angle')
+    expect(text).toBe('bike,foot;2019-2024;major,fatal;5;light:dark,dusk.season:winter.impact:angle;by:weather')
     expect(parseCollisionFilters(text ?? undefined)).toEqual(f)
   })
   it('ignores junk', () => {
     expect(parseCollisionFilters('cars;1990-3000;bad;-2;mood:grim.light:noon')).toEqual(DEFAULT_COLLISION_FILTERS)
     expect(parseCollisionFilters(';;;3').minCount).toBe(3)
+  })
+  it('colours a spot by the group most of its collisions fall in, the first listed on a tie', () => {
+    const at = (weather: string) => ({ weather }) as unknown as CollisionProps
+    expect(commonGroup([at('Rain'), at('Clear'), at('Rain')], 'weather')).toBe('rain')
+    expect(commonGroup([at('Snow'), at('Clear')], 'weather')).toBe('clear')
   })
 })
 

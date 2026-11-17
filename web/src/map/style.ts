@@ -1,7 +1,7 @@
 import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/basemaps'
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
-import { SEVERITIES } from '../collisions'
+import { CONDITIONS, type CollisionSet, conditionColor, SEVERITIES } from '../collisions'
 import {
   type ComfortFilters,
   comfortColorBy,
@@ -104,6 +104,8 @@ export interface StyleState {
   reach: { minutes: number; area: boolean } | null
   /** The collisions layer's spots, built from the filters; null until loaded. */
   collisions: FeatureCollection | null
+  /** The legend's open row the spots are coloured by (their `group`); worst injury when left out. */
+  collisionsBy?: CollisionSet
   /** The thefts layer's spots, built from the filters; null until loaded. */
   thefts?: FeatureCollection | null
   /** What the construction layer shows. */
@@ -949,12 +951,16 @@ const COLLISION_POINTS_FROM = 12.5
 function collisionLayers(state: StyleState): { under: LayerSpecification[]; over: LayerSpecification[] } {
   if (state.layer !== 'collisions' || state.reach) return { under: [], over: [] }
   const colors = collisionColors(state.basemap)
-  const byWorst = [
-    'match',
-    ['get', 'worst'],
-    ...SEVERITIES.flatMap((s) => [s, colors[s]]),
-    colors.none,
-  ] as unknown as ExpressionSpecification
+  // Coloured by the legend's open row: worst injury at first, or the circumstance most of a spot's collisions share.
+  const by = state.collisionsBy ?? 'severity'
+  const byWorst = (by === 'severity'
+    ? ['match', ['get', 'worst'], ...SEVERITIES.flatMap((s) => [s, colors[s]]), colors.none]
+    : [
+        'match',
+        ['get', 'group'],
+        ...CONDITIONS[by].flatMap((group) => [group, conditionColor(by, group)]),
+        OTHER,
+      ]) as unknown as ExpressionSpecification
   // Area grows with the number of collisions: radius with its square root.
   const radius = (one: number, step: number): ExpressionSpecification => [
     '+',

@@ -1,7 +1,6 @@
 import { useI18n } from '../i18n'
-import { HUES } from '../layers'
 
-export { HUES, OTHER } from '../layers'
+export { HUES, OTHER, SEASON_HUES } from '../layers'
 
 /**
  * Filters drawn as bars: a line per group with a bar, a line picks those
@@ -9,9 +8,6 @@ export { HUES, OTHER } from '../layers'
  * pick shows how the items picked differ. Shared by the collisions and thefts
  * legends.
  */
-
-/** Seasons take the hue that suits them: winter blue, spring green, summer amber, fall orange. */
-export const SEASON_HUES: Record<string, string> = { winter: HUES[0], spring: HUES[2], summer: HUES[3], fall: HUES[1] }
 
 export const sum = (counts: { values(): Iterable<number> }) => [...counts.values()].reduce((a, b) => a + b, 0)
 
