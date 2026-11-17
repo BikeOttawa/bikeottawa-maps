@@ -20,6 +20,13 @@ export const ASSETS_BASE: string = new URL(
  */
 export const MAPILLARY_TOKEN: string | null = import.meta.env.VITE_MAPILLARY_TOKEN || null
 
+/**
+ * Fotoshi browser key, approved by Fotoshi for this site's address, to show
+ * the Fotoshi photos of what a card is about. Without one, cards show only
+ * those a place's `image:fotoshi` tag names.
+ */
+export const FOTOSHI_KEY: string | null = import.meta.env.VITE_FOTOSHI_KEY || null
+
 /** Where the app's own data files (public/data) are served: always next to the app. */
 export const DATA_BASE: string = new URL(import.meta.env.BASE_URL, window.location.href).href.replace(/\/$/, '')
 

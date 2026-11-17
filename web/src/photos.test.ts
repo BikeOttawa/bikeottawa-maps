@@ -3,11 +3,14 @@ import {
   commonsLink,
   directImage,
   fotoshiIds,
+  fotoshiOsmId,
   fotoshiPhoto,
+  fotoshiSearchUrl,
   imageLink,
   mapillaryId,
   mapillaryViewerUrl,
   nearbyImages,
+  parseFotoshiPhotos,
   streetViewUrl,
 } from './photos'
 
@@ -101,5 +104,70 @@ describe('nearbyImages', () => {
     // A panorama 5 m away comes after a flat photo 11 m away.
     expect(nearbyImages([image('pano', 0.000045, 'p', true), image('flat', 0.0001, 'f')], at)[0].id).toBe('flat')
     expect(nearbyImages([], at)).toEqual([])
+  })
+})
+
+describe('fotoshi search', () => {
+  it('takes a place by its OSM object, typed', () => {
+    expect(fotoshiOsmId('way/204781910')).toBe('w204781910')
+    expect(fotoshiOsmId('node/1')).toBe('n1')
+    for (const bad of ['', 'way/0', 'way/-1', '123', 'way/1&radius=5', undefined]) expect(fotoshiOsmId(bad)).toBeNull()
+    expect(fotoshiSearchUrl({ osmId: 'n42' })).toBe(
+      'https://api.fotoshi.com/v1/data/photos?osm_id=n42&limit=10&photo_size=thumbnail%2C1280',
+    )
+  })
+
+  it('takes anything else by a circle around where it is', () => {
+    expect(fotoshiSearchUrl({ at: [-75.69809, 45.42359] })).toBe(
+      'https://api.fotoshi.com/v1/data/photos?lon=-75.698090&lat=45.423590&radius=30&limit=10&photo_size=thumbnail%2C1280',
+    )
+  })
+
+  const shot = (id: string, extra: Record<string, unknown> = {}, where: [number, number] = [-75.7, 45.4]) => ({
+    id,
+    geometry: { type: 'Point', coordinates: where },
+    properties: {
+      username: 'mapper',
+      creator_name: 'Photo author',
+      image_license: 'CC-BY-4.0',
+      captured_at: '2026-07-29',
+      assets: {
+        thumbnail: { href: 'https://cdn.example/t.jpeg' },
+        'image-1280': { href: 'https://cdn.example/l.jpeg' },
+      },
+      ...extra,
+    },
+  })
+  const answer = (...features: unknown[]) => ({ type: 'FeatureCollection', features })
+
+  it('credits each photo and links its page', () => {
+    const [found] = parseFotoshiPhotos(answer(shot('abc123')))
+    expect(found.photo).toEqual({
+      url: 'https://cdn.example/l.jpeg',
+      largeUrl: 'https://cdn.example/l.jpeg',
+      credit: '© Photo author · Fotoshi · CC BY 4.0',
+      link: 'https://fotoshi.com/photo/abc123',
+      takenAt: Date.parse('2026-07-29T12:00:00'),
+    })
+    expect(found.distance).toBeUndefined()
+  })
+
+  it('orders photos around a point closest first, once each', () => {
+    const near = parseFotoshiPhotos(
+      answer(shot('far', {}, [-75.7, 45.4002]), shot('close', {}, [-75.7, 45.40001]), shot('close')),
+      [-75.7, 45.4],
+    )
+    expect(near.map((n) => n.photo.link.split('/').pop())).toEqual(['close', 'far'])
+    expect(near[1].distance).toBeCloseTo(22, 0)
+  })
+
+  it('leaves out photos without an https image, a licence or a credit', () => {
+    const http = shot('a', { assets: { 'image-1280': { href: 'http://cdn.example/l.jpeg' } } })
+    const unlicensed = shot('b', { image_license: null })
+    const anonymous = shot('c', { creator_name: null, username: null })
+    const odd = shot('../d')
+    expect(parseFotoshiPhotos(answer(http, unlicensed, anonymous, odd))).toEqual([])
+    expect(parseFotoshiPhotos({ error: 'quota' })).toEqual([])
+    expect(parseFotoshiPhotos(null)).toEqual([])
   })
 })

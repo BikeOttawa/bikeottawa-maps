@@ -25,6 +25,96 @@ export function fotoshiPhoto(id: string): Photo {
   }
 }
 
+/** Fotoshi's photo search: the photos of an OSM object, or those taken around a point. */
+const FOTOSHI_PHOTOS = 'https://api.fotoshi.com/v1/data/photos'
+
+/** How far from a point Fotoshi photos are looked for, in metres. */
+const FOTOSHI_RADIUS_M = 30
+
+/** A place's OSM identity as Fotoshi takes it: `node/123` is `n123`. */
+export function fotoshiOsmId(osm: unknown): string | null {
+  const match = /^(node|way|relation)\/([1-9]\d*)$/.exec(String(osm ?? ''))
+  return match ? `${match[1][0]}${match[2]}` : null
+}
+
+/** What to ask Fotoshi for: the photos linked to an OSM object, or those taken around a point. */
+export type FotoshiQuery = { osmId: string } | { at: readonly [number, number] }
+
+export function fotoshiSearchUrl(query: FotoshiQuery): string {
+  const params = new URLSearchParams(
+    'osmId' in query
+      ? { osm_id: query.osmId }
+      : { lon: query.at[0].toFixed(6), lat: query.at[1].toFixed(6), radius: String(FOTOSHI_RADIUS_M) },
+  )
+  params.set('limit', '10')
+  params.set('photo_size', 'thumbnail,1280')
+  return `${FOTOSHI_PHOTOS}?${params}`
+}
+
+/** A Fotoshi photo, and how far from the point asked about it was taken. */
+export interface FotoshiShot {
+  photo: Photo
+  distance?: number
+}
+
+/**
+ * Fotoshi's answer as photos, closest first around a point. A photo needs an
+ * https image, its licence and someone to credit, or it is left out.
+ */
+export function parseFotoshiPhotos(json: unknown, at?: readonly [number, number]): FotoshiShot[] {
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
+  const features = (json as { type?: unknown; features?: unknown } | null)?.features
+  if (!Array.isArray(features)) return []
+  const seen = new Set<string>()
+  const shots: FotoshiShot[] = []
+  for (const feature of features as { id?: unknown; geometry?: unknown; properties?: Record<string, unknown> }[]) {
+    const id = text(feature?.id)
+    const p = feature?.properties
+    if (!id || !/^[A-Za-z0-9_-]+$/.test(id) || !p || seen.has(id)) continue
+    const assets = (p.assets ?? {}) as Record<string, { href?: unknown } | undefined>
+    const href = (name: string) => {
+      const url = text(assets[name]?.href)
+      return url?.startsWith('https://') ? url : null
+    }
+    const large = href('image-1280')
+    const licence = text(p.image_license)?.replace(/-/g, ' ')
+    const names = [text(p.creator_name) ?? text(p.username), text(p.source_organization)].filter(
+      (name, i, all): name is string => name !== null && all.indexOf(name) === i,
+    )
+    if (!large || !licence || !names.length) continue
+    seen.add(id)
+    const day = text(p.captured_at)
+    const geometry = feature.geometry as { type?: string; coordinates?: [number, number] } | null
+    const where = geometry?.type === 'Point' ? geometry.coordinates : null
+    shots.push({
+      photo: {
+        url: large,
+        largeUrl: large,
+        credit: `© ${names.join(' · ')} · Fotoshi · ${licence}`,
+        link: `https://fotoshi.com/photo/${id}`,
+        // A day only: noon keeps it on that day in any time zone.
+        ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) && { takenAt: Date.parse(`${day}T12:00:00`) }),
+      },
+      ...(at && where && { distance: metres(at, where) }),
+    })
+  }
+  return at ? shots.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)) : shots
+}
+
+/** The Fotoshi photos of an OSM object, or around a point; none when the service is down or says no. */
+export async function fetchFotoshiPhotos(
+  query: FotoshiQuery,
+  key: string,
+  signal?: AbortSignal,
+): Promise<FotoshiShot[]> {
+  const res = await fetch(fotoshiSearchUrl(query), {
+    headers: { Authorization: `Bearer ${key}`, Accept: 'application/geo+json, application/json' },
+    signal,
+  })
+  if (!res.ok) return []
+  return parseFotoshiPhotos(await res.json(), 'at' in query ? query.at : undefined)
+}
+
 /** The first Mapillary image id in a place's `mapillary` tag. */
 export function mapillaryId(value: unknown): string | null {
   const first = String(value ?? '')

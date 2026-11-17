@@ -123,7 +123,7 @@ Elevation comes from NRCan's [MRDEM-30](https://datacube.services.geo.ca/stac/ap
 
 ## Photos
 
-Cards for places and streets show street-level photos from [Mapillary](https://www.mapillary.com): a place's own photo when its OSM `mapillary` tag names one, then the photos taken nearby (the closest of each capture run), which the larger view steps through. They need a Mapillary client token in `VITE_MAPILLARY_TOKEN` (for local work, in `web/.env.development.local`, which git ignores); without one, cards link to the photo instead. Places also show the Fotoshi photos their `image:fotoshi` tag names (no key needed), and their `image` tag when it is a picture. Photos are only requested once a card is open.
+Cards for places and streets show street-level photos from [Mapillary](https://www.mapillary.com): a place's own photo when its OSM `mapillary` tag names one, then the photos taken nearby (the closest of each capture run), which the larger view steps through. They need a Mapillary client token in `VITE_MAPILLARY_TOKEN` (for local work, in `web/.env.development.local`, which git ignores); without one, cards link to the photo instead. Places also show the Fotoshi photos their `image:fotoshi` tag names (no key needed), and their `image` tag when it is a picture. With a [Fotoshi](https://fotoshi.com/developers) browser key in `VITE_FOTOSHI_KEY`, cards also ask Fotoshi for photos, shown first: a place's by its OSM object, anything else's (a street, a barrier, a spot) taken within 30 m. Photos are only requested once a card is open.
 
 ## Deployment
 
@@ -135,7 +135,7 @@ The `Deploy` workflow runs on every push to `main`, on `v*` tags and nightly. Ea
 - `router`, alongside it, pushes the router image, `ghcr.io/yaroshkvorets/bikeottawa-maps-router`, with fresh routing data.
 - `deploy` publishes the site to GitHub Pages once `site` has passed, a few minutes after a push.
 
-Images are tagged `main`, or the version and `latest` for a `v*` tag. Repository variables set what the site connects to: `ROUTER_URL` (the planner works once it points at a running router) and `MAPILLARY_TOKEN` (photos).
+Images are tagged `main`, or the version and `latest` for a `v*` tag. Repository variables set what the site connects to: `ROUTER_URL` (the planner works once it points at a running router), `MAPILLARY_TOKEN` and `FOTOSHI_KEY` (photos).
 
 `compose.yml` runs both images on one machine, with the site proxying `/brouter` to the router:
 

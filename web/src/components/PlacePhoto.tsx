@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MAPILLARY_TOKEN } from '../config'
+import { FOTOSHI_KEY, MAPILLARY_TOKEN } from '../config'
 import { type Lang, useI18n } from '../i18n'
 import {
   directImage,
   directPhoto,
+  type FotoshiShot,
+  fetchFotoshiPhotos,
   fetchMapillaryPhoto,
   findNearbyMapillary,
   fotoshiIds,
+  fotoshiOsmId,
   fotoshiPhoto,
   mapillaryId,
   type NearbyImage,
@@ -37,48 +40,36 @@ interface Extra {
   distance?: number
 }
 
-/** Photos the larger view can step to after the card's own, and a line about each. */
-interface More {
-  items: readonly Extra[]
-  noteFor: (item: Extra) => string
-}
-
-const NOTHING_MORE: More = { items: [], noteFor: () => '' }
-
 /**
- * A photo in the card (a grey box while it loads), larger over the map on a
- * click. With more photos the larger view steps through them with ‹ › or the
- * arrow keys; the ones either side of the photo shown are loaded ahead.
+ * The card's photos, in order (the first is the card's), and a line about
+ * each. Photos come in as their sources answer, so the list can grow and its
+ * first change.
  */
 function PhotoFigure({
-  photo,
-  note,
-  more = NOTHING_MORE,
+  items,
+  noteFor,
   onBroken,
 }: {
-  photo: Photo | null
-  note?: string
-  more?: More
+  items: readonly Extra[]
+  noteFor: (item: Extra) => string
   onBroken: () => void
 }) {
   const { t, lang } = useI18n()
-  const count = 1 + more.items.length
-  // Which photo the larger view shows (0 is the card's); null when it is closed.
-  const [index, setIndex] = useState<number | null>(null)
+  const photo = items[0]?.photo ?? null
+  const count = items.length
+  // The photo the larger view shows, by id, so a photo coming in ahead of it
+  // does not move it; null when the view is closed.
+  const [viewing, setViewing] = useState<string | null>(null)
+  const found = viewing === null ? -1 : items.findIndex((item) => item.id === viewing)
+  const index = found < 0 ? null : found
   const [shown, setShown] = useState<Photo | null>(null)
   const loads = useRef(new Map<string, Promise<Photo | null>>())
-
-  // A new card photo closes the larger view and forgets what was loaded for it.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: resets when the photo changes
-  useEffect(() => {
-    setIndex(null)
-    loads.current = new Map()
-  }, [photo])
+  const latest = useRef({ items, index })
+  latest.current = { items, index }
 
   // The photo at a position, loaded once and kept.
   const load = (at: number): Promise<Photo | null> => {
-    if (at === 0) return Promise.resolve(photo)
-    const item = more.items[at - 1]
+    const item = latest.current.items[at]
     if (item?.photo) return Promise.resolve(item.photo)
     if (!item || !MAPILLARY_TOKEN) return Promise.resolve(null)
     let pending = loads.current.get(item.id)
@@ -89,47 +80,57 @@ function PhotoFigure({
     return pending
   }
 
+  // Shown when the view opens or steps; photos coming in meanwhile leave it be.
   // biome-ignore lint/correctness/useExhaustiveDependencies: load reads the current photos
   useEffect(() => {
-    if (index === null) return
+    const at = latest.current.index
+    if (at === null) return
     let current = true
-    setShown(index === 0 ? photo : null)
-    load(index).then((found) => {
+    setShown(latest.current.items[at]?.photo ?? null)
+    load(at).then((found) => {
       if (current) setShown(found)
     })
     // Get the neighbours ready, so stepping either way is instant.
-    if (count > 1) {
-      for (const next of [(index + 1) % count, (index - 1 + count) % count]) load(next).then(preload)
-    }
+    const n = latest.current.items.length
+    if (n > 1) for (const next of [(at + 1) % n, (at - 1 + n) % n]) load(next).then(preload)
     return () => {
       current = false
     }
-  }, [index, photo, more.items])
+  }, [viewing])
 
-  const step = (by: number) => setIndex((i) => (i === null ? i : (i + by + count) % count))
+  const step = (by: number) => {
+    const { items: now, index: at } = latest.current
+    if (at !== null && now.length > 1) setViewing(now[(at + by + now.length) % now.length].id)
+  }
 
   // Esc closes the larger view; the arrow keys step through the photos.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: step reads only the count
+  // biome-ignore lint/correctness/useExhaustiveDependencies: step reads the current photos
   useEffect(() => {
-    if (index === null) return
+    if (viewing === null) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIndex(null)
-      if (e.key === 'ArrowRight' && count > 1) step(1)
-      if (e.key === 'ArrowLeft' && count > 1) step(-1)
+      if (e.key === 'Escape') setViewing(null)
+      if (e.key === 'ArrowRight') step(1)
+      if (e.key === 'ArrowLeft') step(-1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [index === null, count])
+  }, [viewing === null])
 
   // How far away, when it was taken, then the credit: short enough for one line in a card.
   const captionOf = (p: Photo | null, line?: string) =>
     [line, p && takenOn(p, lang), p?.credit].filter(Boolean).join(' · ')
-  const viewerNote = index ? more.noteFor(more.items[index - 1]) : note
+  const note = items[0] ? noteFor(items[0]) : undefined
+  const viewerNote = index === null ? note : noteFor(items[index])
 
   return (
     <figure className="place-photo">
       {photo ? (
-        <button type="button" className="place-photo-open" title={t('photoEnlarge')} onClick={() => setIndex(0)}>
+        <button
+          type="button"
+          className="place-photo-open"
+          title={t('photoEnlarge')}
+          onClick={() => setViewing(items[0].id)}
+        >
           {/* A broken link hides the photo rather than showing a broken image. */}
           <img src={photo.url} alt={t('photoAlt')} onError={onBroken} />
           {count > 1 && (
@@ -146,7 +147,7 @@ function PhotoFigure({
         index !== null &&
         createPortal(
           // biome-ignore lint/a11y/useKeyWithClickEvents: Esc closes it, handled above
-          <div className="photo-viewer" role="dialog" aria-label={t('photoAlt')} onClick={() => setIndex(null)}>
+          <div className="photo-viewer" role="dialog" aria-label={t('photoAlt')} onClick={() => setViewing(null)}>
             {shown ? <img src={shown.largeUrl} alt={t('photoAlt')} /> : <span className="photo-viewer-loading" />}
             <p>
               {count > 1 && `${index + 1} / ${count} · `}
@@ -196,19 +197,53 @@ function PhotoFigure({
   )
 }
 
-interface Found {
-  photo: Photo
-  /** Set when the card's photo is not the place's own but one taken nearby. */
-  distance?: number
-  more: Extra[]
+/** What a card's sources have answered so far; a source not yet in is undefined. */
+interface Answers {
+  fotoshi?: FotoshiShot[]
+  /** The place's own Mapillary photo, from its tag. */
+  tagged?: Photo | null
+  near?: NearbyImage[]
+  /** Photos fetched for nearby Mapillary images, by id. */
+  nearPhotos: Map<string, Photo>
 }
 
 /**
- * Photos for a card. A place's own photos come first: Fotoshi's (taken of the
- * place itself), then its mapillary and image tags. Then, or for a street or a
- * place without one, the Mapillary photos taken nearby: the closest of each
- * capture run, leaving out near-copies of the place's own. They are only
- * looked up once the card is open, and nothing shows when there are none.
+ * A card's photos in order, from what has answered so far: Fotoshi's (a
+ * place's linked and tagged photos, or those taken around a point), the
+ * place's Mapillary tag and image tag, then Mapillary's nearby, leaving out
+ * the place's own and near-copies of it.
+ */
+function arrange(
+  got: Answers,
+  own: { named: Photo[]; direct: Photo | null },
+  place: boolean,
+  tagged: string | null,
+): Extra[] {
+  const items: Extra[] = []
+  // A photo both linked and tagged shows once, with the credit Fotoshi gives it.
+  const add = (item: Extra) => {
+    if (!items.some((other) => other.id === item.id)) items.push(item)
+  }
+  for (const { photo, distance } of got.fotoshi ?? []) add({ id: photo.link, photo, ...(!place && { distance }) })
+  for (const photo of own.named) add({ id: photo.link, photo })
+  if (got.tagged) add({ id: got.tagged.link, photo: got.tagged })
+  if (own.direct) add({ id: own.direct.link, photo: own.direct })
+  const run = got.tagged?.sequence
+  for (const near of got.near ?? []) {
+    if (near.id === tagged || (run && near.sequence === run)) continue
+    const photo = got.nearPhotos.get(near.id)
+    add({ id: near.id, distance: near.distance, ...(photo && { photo }) })
+  }
+  return items
+}
+
+/**
+ * Photos for a card, in order: Fotoshi's, then the place's own (its Mapillary
+ * and image tags), then the Mapillary photos taken nearby. A place asks
+ * Fotoshi by its OSM object; anything else, a street, a barrier, a spot, by
+ * where it is (within 30 m). The sources are asked at once and each shows as it
+ * answers: one ahead of the photo shown takes its place. They are only looked
+ * up once the card is open, and nothing shows when there are none.
  */
 export function CardPhoto({ at, props }: { at: readonly [number, number]; props?: Record<string, unknown> }) {
   const { t } = useI18n()
@@ -217,61 +252,76 @@ export function CardPhoto({ at, props }: { at: readonly [number, number]; props?
   const direct = props ? directImage(props.image) : null
   // Joined, so the effect below sees a change only when the ids change.
   const fotoshi = props ? fotoshiIds(props['image:fotoshi']).join(';') : ''
-  const [found, setFound] = useState<Found | null>(null)
+  const osmId = props ? fotoshiOsmId(props.osm) : null
+  const [items, setItems] = useState<Extra[]>(NO_PHOTOS)
   const [state, setState] = useState<'loading' | 'shown' | 'none'>('loading')
 
   useEffect(() => {
-    setFound(null)
-    setState('loading')
     const token = MAPILLARY_TOKEN
+    const key = FOTOSHI_KEY
     const controller = new AbortController()
     const { signal } = controller
-    const own: Promise<Photo | null> =
-      tagged && token ? fetchMapillaryPhoto(tagged, token, signal).catch(() => null) : Promise.resolve(null)
-    const nearby: Promise<NearbyImage[]> = token
-      ? findNearbyMapillary([lon, lat], token, signal).catch(() => [])
-      : Promise.resolve([])
-    Promise.all([own, nearby])
-      .then(async ([ownPhoto, near]) => {
-        const own = [...fotoshiIds(fotoshi).map(fotoshiPhoto), ownPhoto, direct ? directPhoto(direct) : null].filter(
-          (p): p is Photo => p !== null,
-        )
-        let result: Found | null = null
-        if (own[0]) {
-          const run = ownPhoto?.sequence
-          const others = near.filter((n) => n.id !== tagged && !(run && n.sequence === run))
-          const rest = own.slice(1).map((photo) => ({ id: photo.link, photo }))
-          result = { photo: own[0], more: [...rest, ...others] }
-        } else if (near[0] && token) {
-          const closest = await fetchMapillaryPhoto(near[0].id, token, signal)
-          if (closest) result = { photo: closest, distance: near[0].distance, more: near.slice(1) }
+    const got: Answers = { nearPhotos: new Map() }
+    const own = { named: fotoshiIds(fotoshi).map(fotoshiPhoto), direct: direct ? directPhoto(direct) : null }
+    let pending = 0
+    const update = () => {
+      if (signal.aborted) return
+      const list = arrange(got, own, osmId !== null, tagged)
+      // The first needs its photo to show; until then, the grey box.
+      const ready = list[0]?.photo !== undefined
+      setItems(ready ? list : NO_PHOTOS)
+      setState(ready ? 'shown' : pending ? 'loading' : 'none')
+    }
+    // Each answer goes in as it comes, and the photos are arranged again; one that fails adds nothing.
+    const ask = <T,>(request: Promise<T>, keep: (value: T) => void) => {
+      pending++
+      request
+        .then(keep, () => {})
+        .finally(() => {
+          pending--
+          update()
+        })
+    }
+    if (key) {
+      ask(fetchFotoshiPhotos(osmId ? { osmId } : { at: [lon, lat] }, key, signal), (shots) => {
+        got.fotoshi = shots
+      })
+    }
+    if (tagged && token) {
+      ask(fetchMapillaryPhoto(tagged, token, signal), (photo) => {
+        got.tagged = photo
+      })
+    }
+    if (token) {
+      ask(findNearbyMapillary([lon, lat], token, signal), (near) => {
+        got.near = near
+        // The closest is the card's photo unless one ahead of it has come: fetch it now.
+        const closest = near.find((n) => n.id !== tagged)
+        const ahead = own.named.length > 0 || own.direct || got.fotoshi?.length || got.tagged
+        if (closest && !ahead) {
+          ask(fetchMapillaryPhoto(closest.id, token, signal), (photo) => {
+            if (photo) got.nearPhotos.set(closest.id, photo)
+          })
         }
-        if (signal.aborted) return
-        setFound(result)
-        setState(result ? 'shown' : 'none')
       })
-      .catch(() => {
-        if (!signal.aborted) setState('none')
-      })
+    }
+    update()
     return () => controller.abort()
-  }, [lon, lat, tagged, direct, fotoshi])
+  }, [lon, lat, tagged, direct, fotoshi, osmId])
 
-  if (state === 'none' || (!MAPILLARY_TOKEN && !direct && !fotoshi)) return null
+  if (state === 'none' || (!MAPILLARY_TOKEN && !FOTOSHI_KEY && !direct && !fotoshi)) return null
   const metres = (distance: number) => String(Math.max(1, Math.round(distance)))
-  const note =
-    found?.distance !== undefined ? t('photoDistance').replace('{distance}', metres(found.distance)) : undefined
   return (
+    // A new place starts the larger view and what it loaded afresh.
     <PhotoFigure
-      photo={found?.photo ?? null}
-      note={note}
-      more={{
-        items: found?.more ?? NO_NEARBY,
-        noteFor: (item) =>
-          item.distance === undefined ? '' : t('photoDistance').replace('{distance}', metres(item.distance)),
-      }}
+      key={`${lon},${lat}`}
+      items={items}
+      noteFor={(item) =>
+        item.distance === undefined ? '' : t('photoDistance').replace('{distance}', metres(item.distance))
+      }
       onBroken={() => setState('none')}
     />
   )
 }
 
-const NO_NEARBY: Extra[] = []
+const NO_PHOTOS: Extra[] = []

@@ -37,6 +37,7 @@ What the code does not tell you. See README.md for what the project is and how i
 - The Roadwork overlay reads the City's traffic map (`traffic.ottawa.ca/map/service/events`) and Quebec's roadwork service (`ws.mapserver.transports.gouv.qc.ca`, asked for the map's box only: the whole province is about 700 KB) from the browser, once per language while it is on or a bike route is planned (the route card counts the roadwork on the route); the Projects data comes from `maps.ottawa.ca` at build time only.
 - Cards fetch a feature's current tags from the OSM API only when "All OSM tags" is opened (`web/src/components/OsmTags.tsx`): one request per feature, never in bulk. A route's barrier card is the exception: on opening it asks the OSM API for the few metres around the barrier (`map.json`, one request) to find its node.
 - The Mapillary token comes from `VITE_MAPILLARY_TOKEN`: `web/.env.development.local` locally (git ignores it), the `MAPILLARY_TOKEN` repository variable when deployed. Never put it in code.
+- The Fotoshi key works the same way (`VITE_FOTOSHI_KEY`, the `FOTOSHI_KEY` variable). Fotoshi's terms keep ordinary developer keys on a server: the live site needs a browser key Fotoshi approved for its addresses. Cards ask for one search when opened (`web/src/photos.ts`).
 
 ## Map style
 
