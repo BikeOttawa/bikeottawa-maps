@@ -2,7 +2,7 @@ import type { FeatureCollection, Point } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
 import { formatBy, parseBy } from './bands'
 import { HUES, OTHER, SEASON_HUES } from './layers'
-import { spotSize } from './map/pieImage'
+import { spotScale } from './map/pieImage'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -361,16 +361,11 @@ export function spotGroupCounts(items: readonly CollisionProps[], set: Collision
   return counts
 }
 
-/** The group of a legend row most of a spot's collisions fall in; on a tie, the one listed first. */
-export function commonGroup(items: readonly CollisionProps[], set: CollisionSet): string {
-  const counts = spotGroupCounts(items, set)
-  return collisionGroups(set)[counts.indexOf(Math.max(...counts))]
-}
-
 /**
- * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them, sized against the busiest. Coloured by a legend row, each carries
- * the group most of its collisions fall in, and how many fall in each (`pie`, for big spots).
+ * Spots for the map, sized against the busiest (`scale`), with their worst
+ * injury as a rank (`worst`, as in SEVERITIES) and, coloured by a legend row,
+ * how many collisions fall in each of its groups (`p0`, `p1`…): numbers, so
+ * merged spots add them up.
  */
 export function spotsGeoJSON(
   spots: readonly CollisionSpot[],
@@ -386,13 +381,10 @@ export function spotsGeoJSON(
         properties: {
           key: spot.key,
           count: spot.items.length,
-          size: spotSize(spot.items.length, busiest),
-          worst: spot.worst,
+          scale: spotScale(busiest),
+          worst: SEVERITIES.indexOf(spot.worst),
           weight: spot.weight,
-          ...(by && {
-            group: commonGroup(spot.items, by),
-            pie: spotGroupCounts(spot.items, by).join(','),
-          }),
+          ...(by && Object.fromEntries(spotGroupCounts(spot.items, by).map((n, i) => [`p${i}`, n]))),
         },
         geometry: { type: 'Point', coordinates: spot.at },
       })),

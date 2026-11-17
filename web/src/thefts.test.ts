@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  commonTheftGroup,
   DEFAULT_THEFT_FILTERS,
   formatTheftFilters,
   matchesTheft,
@@ -86,11 +85,8 @@ describe('thefts', () => {
     expect(parseTheftFilters(undefined).by).toBeNull()
   })
 
-  it('colours a spot by the group most of its thefts fall in, the first listed on a tie', () => {
+  it("counts a spot's thefts in each group of a set, in its order", () => {
     const at = (time: string) => ({ time }) as unknown as TheftProps
-    expect(commonTheftGroup([at('night'), at('morning'), at('night')], 'time')).toBe('night')
-    expect(commonTheftGroup([at('evening'), at('morning')], 'time')).toBe('morning')
-    // And carries how many fall in each, in the groups' order, for its pie.
     expect(spotTheftCounts([at('night'), at('morning'), at('night')], 'time')).toEqual([1, 0, 0, 2])
   })
 

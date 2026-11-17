@@ -54,7 +54,17 @@ import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
 import { CLOSURE_IMAGE, CONSTRUCTION_ORANGE } from './closureImage'
-import { isPie, pieImage, pieSize, SPOTS_FROM, spotRadius } from './pieImage'
+import {
+  isPie,
+  MERGE_RADIUS,
+  MERGED_UNTIL,
+  mergedProperties,
+  mostCommon,
+  pieImage,
+  pieSize,
+  SPOTS_FROM,
+  spotRadius,
+} from './pieImage'
 
 /** What was clicked on the map; `at` is where its details are anchored. */
 export type Selected =
@@ -928,6 +938,9 @@ function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecificatio
 }
 
 export const COLLISIONS_SOURCE = 'collisions'
+/** The same spots, merged where they would overlap; the heat maps use them each alone. */
+export const COLLISION_SPOTS_SOURCE = 'collision-spots'
+export const THEFT_SPOTS_SOURCE = 'theft-spots'
 const COLLISIONS_ATTRIBUTION =
   'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
 export const CONSTRUCTION_SOURCE = 'construction'
@@ -946,10 +959,11 @@ const ELEVATION_ATTRIBUTION =
 const COLLISION_POINTS_FROM = SPOTS_FROM
 
 /**
- * Collision or theft spots, sized by their count. Coloured by a group, the
- * ones big enough show their split as a pie (`pie` counts, in the groups'
- * order); smaller ones keep the colour most of their items share and are
- * drawn over the pies, as smaller spots are drawn over bigger ones.
+ * Collision or theft spots, sized by their count, merged where they would
+ * overlap until MERGED_UNTIL. Coloured by a group, the ones big enough show
+ * their split as a pie (the `p0`… counts, in the groups' order); smaller ones
+ * take the colour most of their items share and are drawn over the pies, as
+ * smaller spots are drawn over bigger ones.
  */
 function spotLayers(
   layer: 'collisions' | 'thefts',
@@ -967,13 +981,16 @@ function spotLayers(
     COLLISION_POINTS_FROM + 0.7,
     1,
   ]
-  const source = layer === 'collisions' ? COLLISIONS_SOURCE : THEFTS_SOURCE
+  const source = layer === 'collisions' ? COLLISION_SPOTS_SOURCE : THEFT_SPOTS_SOURCE
+  // Bigger spots first, so smaller ones are drawn over them.
+  const sortKey: ExpressionSpecification = ['-', ['get', 'count']]
   const points: LayerSpecification = {
     id: `${layer}-point`,
     type: 'circle',
     source,
     minzoom: COLLISION_POINTS_FROM,
     ...(pies && { filter: ['!', isPie] as unknown as FilterSpecification }),
+    layout: { 'circle-sort-key': sortKey },
     paint: {
       'circle-color': color,
       'circle-radius': spotRadius,
@@ -996,7 +1013,7 @@ function spotLayers(
         'icon-size': pieSize,
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
-        'symbol-z-order': 'source',
+        'symbol-sort-key': sortKey,
       },
       paint: { 'icon-opacity': fadeIn },
     },
@@ -1017,14 +1034,14 @@ function collisionLayers(state: StyleState): { under: LayerSpecification[]; over
   const pies = by
     ? collisionGroups(by).map((group) => (by === 'severity' ? colors[group as Severity] : conditionColor(by, group)))
     : null
-  const byWorst = (by && pies
-    ? ['match', ['get', 'group'], ...collisionGroups(by).flatMap((group, i) => [group, pies[i]]), OTHER]
-    : [
+  const byWorst = pies
+    ? mostCommon(pies)
+    : ([
         'match',
         ['get', 'worst'],
-        ...SEVERITIES.flatMap((s) => [s, colors[s]]),
+        ...SEVERITIES.flatMap((s, i) => [i, colors[s]]),
         colors.none,
-      ]) as unknown as ExpressionSpecification
+      ] as unknown as ExpressionSpecification)
   const pale = state.basemap === 'light' || state.basemap === 'grey'
   return {
     under: [
@@ -1079,16 +1096,16 @@ function theftLayers(state: StyleState): { under: LayerSpecification[]; over: La
   // Coloured by the dollars stolen there, a step per band, grey where none was
   // given; or, with a row open in the legend, by what most of its thefts share.
   const by = state.theftsBy
-  const byValue = (by
-    ? ['match', ['get', 'group'], ...THEFT_GROUPS[by].flatMap((group) => [group, theftGroupColor(by, group)]), OTHER]
-    : [
+  const pies = by ? THEFT_GROUPS[by].map((group) => theftGroupColor(by, group)) : null
+  const byValue = pies
+    ? mostCommon(pies)
+    : ([
         'case',
         ['==', ['get', 'valued'], 0],
         noValue,
         ['step', ['get', 'value'], values[0], ...VALUE_STEPS.flatMap((step, i) => [step, values[i + 1]])],
-      ]) as unknown as ExpressionSpecification
+      ] as unknown as ExpressionSpecification)
   const pale = state.basemap === 'light' || state.basemap === 'grey'
-  const pies = by ? THEFT_GROUPS[by].map((group) => theftGroupColor(by, group)) : null
   return {
     under: [
       {
@@ -1399,6 +1416,14 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           data: state.collisions ?? { type: 'FeatureCollection', features: [] },
           attribution: COLLISIONS_ATTRIBUTION,
         },
+        [COLLISION_SPOTS_SOURCE]: {
+          type: 'geojson',
+          data: state.collisions ?? { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: MERGE_RADIUS,
+          clusterMaxZoom: MERGED_UNTIL,
+          clusterProperties: mergedProperties({ worst: ['max', ['get', 'worst']] }),
+        },
       }),
       // Fetched by the map from its URL while the projects layer is on.
       ...(construction.under.length && {
@@ -1422,6 +1447,17 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           type: 'geojson',
           data: state.thefts ?? { type: 'FeatureCollection', features: [] },
           attribution: THEFTS_ATTRIBUTION,
+        },
+        [THEFT_SPOTS_SOURCE]: {
+          type: 'geojson',
+          data: state.thefts ?? { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: MERGE_RADIUS,
+          clusterMaxZoom: MERGED_UNTIL,
+          clusterProperties: mergedProperties({
+            value: ['+', ['get', 'value']],
+            valued: ['+', ['get', 'valued']],
+          }),
         },
       }),
     },

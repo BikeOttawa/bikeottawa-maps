@@ -30,7 +30,9 @@ describe('buildStyle', () => {
     const spots: FeatureCollection = { type: 'FeatureCollection', features: [] }
     const style = build({ layer: 'collisions', collisions: spots })
     expect(style.sources.collisions).toMatchObject({ data: spots })
-    expect(JSON.stringify((layer(style, 'collisions-point') as { paint?: unknown }).paint)).toContain('size')
+    expect(JSON.stringify((layer(style, 'collisions-point') as { paint?: unknown }).paint)).toContain('scale')
+    // The heat map has each spot alone; the spots merge where they would overlap.
+    expect(style.sources['collision-spots']).toMatchObject({ data: spots, cluster: true })
   })
 
   it('shows the split of big spots as pies, under the small ones, while a row colours them', () => {

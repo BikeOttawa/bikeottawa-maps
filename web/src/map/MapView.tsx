@@ -232,6 +232,8 @@ export function MapView({
       )
       const [feature] = hits
       if (!feature) return null
+      // Merged spots open nothing: a click zooms in until they split.
+      if (feature.properties.cluster) return null
       if (feature.layer.id === 'closures-icon' && feature.geometry.type === 'Point') {
         const [x, y] = feature.geometry.coordinates
         return { kind: 'closure', id: String(feature.properties.id), at: [x, y] }
@@ -283,7 +285,29 @@ export function MapView({
       }
       return { kind: 'way', id: Number(feature.id), props: feature.properties, at: [lngLat.lng, lngLat.lat] }
     }
+    // A merged spot of collisions or thefts under the pointer, as its source and id.
+    const mergedAt = (point: { x: number; y: number }) => {
+      const layers = INTERACTIVE_LAYERS[latest.current.state.layer].filter((id) => map.getLayer(id))
+      if (latest.current.routing || !layers.length) return null
+      const box: [[number, number], [number, number]] = [
+        [point.x - HIT_RADIUS, point.y - HIT_RADIUS],
+        [point.x + HIT_RADIUS, point.y + HIT_RADIUS],
+      ]
+      const [feature] = map.queryRenderedFeatures(box, { layers })
+      if (!feature?.properties.cluster || feature.geometry.type !== 'Point') return null
+      return { source: feature.source, id: Number(feature.properties.cluster_id), at: feature.geometry.coordinates }
+    }
+
     map.on('click', (e) => {
+      const merged = mergedAt(e.point)
+      if (merged) {
+        const source = map.getSource<GeoJSONSource>(merged.source)
+        source
+          ?.getClusterExpansionZoom(merged.id)
+          .then((zoom) => map.easeTo({ center: merged.at as [number, number], zoom }))
+          .catch(() => {})
+        return
+      }
       const { routing, onSelect } = latest.current
       const feature = featureAt(e.point, e.lngLat)
       onSelect(feature)
@@ -291,7 +315,7 @@ export function MapView({
     })
     map.on('mousemove', (e) => {
       const { routing, profile } = latest.current
-      const overFeature = featureAt(e.point, e.lngLat) !== null
+      const overFeature = featureAt(e.point, e.lngLat) !== null || mergedAt(e.point) !== null
       if (!routing) {
         map.getCanvas().style.cursor = overFeature ? 'pointer' : ''
         return

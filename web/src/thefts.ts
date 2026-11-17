@@ -2,7 +2,7 @@ import type { FeatureCollection, Point } from 'geojson'
 import { formatBy, parseBy } from './bands'
 import { collisionLocation } from './collisions'
 import { HUES, OTHER, SEASON_HUES } from './layers'
-import { spotSize } from './map/pieImage'
+import { spotScale } from './map/pieImage'
 import { SEASONS, seasonOf } from './seasons'
 
 /**
@@ -246,16 +246,10 @@ export function spotTheftCounts(items: readonly TheftProps[], id: TheftGroupId):
   return counts
 }
 
-/** The group of a set most of a spot's thefts fall in; on a tie, the one listed first. */
-export function commonTheftGroup(items: readonly TheftProps[], id: TheftGroupId): string {
-  const counts = spotTheftCounts(items, id)
-  return THEFT_GROUPS[id][counts.indexOf(Math.max(...counts))]
-}
-
 /**
- * Spots for the map: bigger ones first, so smaller ones are drawn on top of
- * them, sized against the busiest. Coloured by a set, each carries the group
- * most of its thefts fall in, and how many fall in each (`pie`, for big spots).
+ * Spots for the map, sized against the busiest (`scale`) and, coloured by a
+ * set, with how many thefts fall in each of its groups (`p0`, `p1`…): numbers,
+ * so merged spots add them up.
  */
 export function theftSpotsGeoJSON(
   spots: readonly TheftSpot[],
@@ -271,10 +265,10 @@ export function theftSpotsGeoJSON(
         properties: {
           key: spot.key,
           count: spot.items.length,
-          size: spotSize(spot.items.length, busiest),
+          scale: spotScale(busiest),
           value: spot.value,
           valued: spot.valued,
-          ...(by && { group: commonTheftGroup(spot.items, by), pie: spotTheftCounts(spot.items, by).join(',') }),
+          ...(by && Object.fromEntries(spotTheftCounts(spot.items, by).map((n, i) => [`p${i}`, n]))),
         },
         geometry: { type: 'Point', coordinates: spot.at },
       })),

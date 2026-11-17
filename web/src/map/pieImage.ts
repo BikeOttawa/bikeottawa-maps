@@ -16,12 +16,61 @@ type Radius = (typeof RADIUS)[keyof typeof RADIUS]
 /** Spots are sized against the busiest, taken as at least this many items, so a handful never makes a big spot. */
 const BUSIEST_AT_LEAST = 10
 
+/** Merged spots can hold more than the busiest; they grow past it up to this. */
+const MERGED_AT_MOST = 1.5
+
+/** Zoom up to which spots that would overlap are merged into one. */
+export const MERGED_UNTIL = 14
+
+/** How close spots are merged, in pixels. */
+export const MERGE_RADIUS = 24
+
+/** How many groups a legend row has at most: a spot carries its counts as `p0` to `p5`. */
+export const MAX_GROUPS = 6
+
+/** A spot's `scale`, for the busiest: its count less one times this is its size squared. */
+export function spotScale(busiest: number): number {
+  return 1 / (Math.max(busiest, BUSIEST_AT_LEAST) - 1)
+}
+
 /**
- * How big a spot is, from one item (0) to the busiest (1), as its `size`:
- * the square root of its count, so area follows the count.
+ * How big a spot is, from one item (0) to the busiest (1): the square root
+ * of its count, so area follows the count.
  */
 export function spotSize(count: number, busiest: number): number {
-  return Math.sqrt(Math.max(0, count - 1) / (Math.max(busiest, BUSIEST_AT_LEAST) - 1))
+  return Math.sqrt(Math.max(0, count - 1) * spotScale(busiest))
+}
+
+/** The same on the map, where merged spots add up their counts. */
+const size: ExpressionSpecification = [
+  'min',
+  MERGED_AT_MOST,
+  ['sqrt', ['*', ['max', 0, ['-', ['get', 'count'], 1]], ['get', 'scale']]],
+]
+
+/**
+ * What merged spots add up: their counts, each group's, and whatever else
+ * the layer colours them by; the scale they share.
+ */
+export function mergedProperties(extra: Record<string, ExpressionSpecification> = {}): Record<string, unknown> {
+  return {
+    count: ['+', ['get', 'count']],
+    scale: ['max', ['get', 'scale']],
+    ...Object.fromEntries(
+      Array.from({ length: MAX_GROUPS }, (_, i) => [`p${i}`, ['+', ['coalesce', ['get', `p${i}`], 0]]]),
+    ),
+    ...extra,
+  }
+}
+
+/** A row's colour for the group most of a spot's items fall in; on a tie, the one listed first. */
+export function mostCommon(colors: readonly string[]): ExpressionSpecification {
+  const p = (i: number): ExpressionSpecification => ['get', `p${i}`]
+  const branches = colors.flatMap((color, i) => [
+    ['all', ...colors.flatMap((_, j) => (j === i ? [] : [[j < i ? '>' : '>=', p(i), p(j)]]))],
+    color,
+  ])
+  return ['case', ...branches, colors[0]] as unknown as ExpressionSpecification
 }
 
 /** The smallest radius at which a spot shows its split as a pie: slices of smaller ones would not read. */
@@ -37,7 +86,7 @@ const PIXEL_RATIO = 2
 export const PIE_PREFIX = 'pie:'
 
 function radiusExpression({ one, most }: Radius): ExpressionSpecification {
-  return ['+', one, ['*', most - one, ['get', 'size']]]
+  return ['+', one, ['*', most - one, size]]
 }
 
 /** A pie's radius at full size, in whole pixels: it is drawn that big. */
@@ -81,7 +130,7 @@ export const isPie: ExpressionSpecification = [
   ['>', ['get', 'count'], 1],
   [
     '>=',
-    ['get', 'size'],
+    size,
     [
       'step',
       ['zoom'],
@@ -94,9 +143,16 @@ export const isPie: ExpressionSpecification = [
   ],
 ]
 
-/** The image of a spot's pie: its ring, its groups' colours in order, its `pie` counts in the same order, and its radius. */
+/** The image of a spot's pie: its ring, its groups' colours in order, their counts in the same order, and its radius. */
 export function pieImage(colors: readonly string[], ring: string): ExpressionSpecification {
-  return ['concat', `${PIE_PREFIX}${ring}:${colors.join(',')}:`, ['get', 'pie'], ':', ['to-string', pieRadius]]
+  const counts = colors.flatMap((_, i) => [...(i ? [','] : []), ['to-string', ['get', `p${i}`]]])
+  return [
+    'concat',
+    `${PIE_PREFIX}${ring}:${colors.join(',')}:`,
+    ...counts,
+    ':',
+    ['to-string', pieRadius],
+  ] as unknown as ExpressionSpecification
 }
 
 /** A spot's pie for the map, at its full size: a slice per group from the top, clockwise, ringed to stand apart. */
