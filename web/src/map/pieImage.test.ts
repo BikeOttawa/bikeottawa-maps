@@ -9,7 +9,7 @@ describe('spots', () => {
     expect(spotSize(3, 3)).toBeCloseTo(Math.sqrt(2 / 9))
   })
   it('show their split as a pie once big enough for the slices to read, smaller ones as the map zooms in', () => {
-    expect(pieMinSize(12)).toBeCloseTo(1 / 7)
+    expect(pieMinSize(12)).toBeCloseTo(9 / 35)
     expect(pieMinSize(17)).toBe(0)
     expect(pieMinSize(14)).toBeLessThan(pieMinSize(13))
   })
