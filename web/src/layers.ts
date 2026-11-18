@@ -268,9 +268,6 @@ export const BIKEWAY_PART_COLORS = { lane: '#F2C200', shoulder: '#BFA05A', traff
 /** Speed limits are ordered: yellow to dark red, the slowest lightest but still plain on the map. */
 const SPEED_STEPS = ['#FDD049', '#FDA33A', '#F2712B', '#D6422A', '#9E1B1B']
 
-/** Road classes, minor to major: one blue from light to dark. */
-const ROAD_STEPS = ['#9DC3E6', '#74A9D8', '#4F8FCB', '#3274B5', '#1F5A9A', '#16427A', '#0C2A52']
-
 /** Lanes each way, ordered too: one blue, a single lane lightest. */
 const LANE_STEPS = ['#8EC1EA', '#3E7FC4', '#163E7A']
 
@@ -286,18 +283,19 @@ export const NOT_APPLICABLE = '#D5D9DC'
 export function comfortSetColors(): Record<ComfortSet, Record<string, string>> {
   return {
     stress: { '1': LTS_COLORS[0], '2': LTS_COLORS[1], '3': LTS_COLORS[2], '4': LTS_COLORS[3] },
-    // Pathways green and tracks brown, apart from the roads' blues.
+    // Pathways green; quiet streets blue, service roads grey; from tertiary up,
+    // yellow, orange, red and wine as traffic grows. Tracks sand, the rest pale grey.
     type: {
       path: '#1E7B34',
-      residential: ROAD_STEPS[0],
-      service: ROAD_STEPS[1],
-      minor: ROAD_STEPS[2],
-      tertiary: ROAD_STEPS[3],
-      secondary: ROAD_STEPS[4],
-      primary: ROAD_STEPS[5],
-      trunk: ROAD_STEPS[6],
-      track: '#B39264',
-      other: OTHER,
+      residential: '#2A78D6',
+      service: '#7D878E',
+      minor: '#3FB8CC',
+      tertiary: '#F5C800',
+      secondary: '#F28C28',
+      primary: '#E8384F',
+      trunk: '#8E1B5C',
+      track: '#C9B183',
+      other: '#D3D7DA',
     },
     speed: {
       '30': SPEED_STEPS[0],

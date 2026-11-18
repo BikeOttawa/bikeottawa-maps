@@ -1,7 +1,16 @@
 import { MAPILLARY_TOKEN, REGION } from '../config'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
-import { bikewayColors, isBikewayId, LTS_COLORS, pathwayColors, WIDTH_COLORS, WINTER_COLORS } from '../layers'
+import {
+  bikewayColors,
+  comfortSetColors,
+  isBikewayId,
+  LTS_COLORS,
+  pathwayColors,
+  pathwaySetColors,
+  WIDTH_COLORS,
+  WINTER_COLORS,
+} from '../layers'
 import type { Selected } from '../map/style'
 import { formatLength, type KnownSurfaceId, widthBand } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
@@ -60,6 +69,8 @@ function formatMonth(date: string, locale: string): string {
 
 /** The card is pale, so the colours drawn on pale ground. */
 const PATHWAY_COLORS = pathwayColors('light')
+const PATHWAY_TYPE_COLORS: Record<string, string> = pathwaySetColors('light').type
+const TYPE_COLORS = comfortSetColors().type
 
 function osmPath(selected: Props['selected']): string {
   return selected.kind === 'way' ? `way/${selected.id}` : selected.osm
@@ -86,11 +97,17 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
   const kindLabel = (selected.kind === 'way' && wayType(props, t)) || (isMessageKey(kindKey) ? t(kindKey) : '')
   const name = typeof props.name === 'string' ? props.name : null
   // A place found by a search but not on the map's layers has no kind: its address says where it is.
-  const subtitle = kindLabel || (typeof props.address === 'string' ? props.address : '')
+  // A named way's kind is a fact of its own instead.
+  const subtitle = selected.kind === 'way' ? '' : kindLabel || (typeof props.address === 'string' ? props.address : '')
   const [type, id] = osmPath(selected).split('/')
 
   const facts: { label: string; value: string; color?: string; tone?: 'open' | 'closed'; note?: string }[] = []
   if (selected.kind === 'way') {
+    // In the type legend's colours: the pathways legend's for a pathway, as its other facts are.
+    const pathType = props.pathway === true ? PATHWAY_TYPE_COLORS[String(props.path_type)] : undefined
+    if (name && kindLabel) {
+      facts.push({ label: t('fact.type'), value: kindLabel, color: pathType ?? TYPE_COLORS[String(props.type_band)] })
+    }
     const lts = Number(props.lts)
     facts.push({
       label: t('fact.comfort'),
