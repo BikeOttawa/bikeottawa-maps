@@ -159,11 +159,42 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - uses: docker/build-push-action@v7
+        id: router-build
         with:
           context: routing
           push: true
           tags: ${{ steps.router-image.outputs.tags }}
           labels: ${{ steps.router-image.outputs.labels }}
+
+      # Cloud Run, from main, once it is set up (docs/deployment.md). The new
+      # revision takes traffic only after it plans a route by bike and on foot.
+      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        uses: google-github-actions/setup-gcloud@v3
+      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        name: Deploy the router to Cloud Run
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT }}
+          REGION: ${{ vars.GCP_REGION }}
+          SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+          DIGEST: ${{ steps.router-build.outputs.digest }}
+        run: |
+          # Through the project's mirror of ghcr.io, by digest: the mirror can keep serving an older `main`.
+          image="$REGION-docker.pkg.dev/$PROJECT/ghcr/${GITHUB_REPOSITORY,,}-router@$DIGEST"
+          where=(--project "$PROJECT" --region "$REGION")
+          gcloud run services update "$SERVICE" "${where[@]}" --image "$image" --no-traffic --tag next
+          url=$(gcloud run services describe "$SERVICE" "${where[@]}" --format=json \
+            | jq -r '.status.traffic[] | select(.tag == "next") | .url')
+          for profile in ottbike ottwalk; do
+            curl -fsS --retry 3 --max-time 60 \
+              "$url/brouter?lonlats=-75.6972,45.4215|-75.6900,45.4200&profile=$profile&alternativeidx=0&format=geojson" \
+              | grep -q LineString || { echo "The new router did not plan a route with $profile" >&2; exit 1; }
+          done
+          gcloud run services update-traffic "$SERVICE" "${where[@]}" --to-latest
 
   deploy:
     if: github.ref == 'refs/heads/main'

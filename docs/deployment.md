@@ -12,7 +12,7 @@ Both are built by the same workflow every night, so either way the data stays fr
 The `Deploy` workflow (`.github/workflows/deploy.yml`) runs on every push to `main`, on `v*` tags and every night at about 08:20 UTC:
 
 - `site` checks the code, rebuilds the tiles from fresh OSM data, builds the app and pushes the site image;
-- `router` builds the router image with fresh routing data, alongside it;
+- `router` builds the router image with fresh routing data, alongside it, and deploys it to Cloud Run once that is set up (B, Deploying from the workflow);
 - `deploy` publishes the site to GitHub Pages once `site` has passed.
 
 The images are `ghcr.io/<owner>/bikeottawa-maps` (site) and `ghcr.io/<owner>/bikeottawa-maps-router` (router), where `<owner>` is the repository's owner in lower case. They are tagged `main`, or the version and `latest` for a `v*` tag. A run takes about 5 minutes. If `site` fails, Pages keeps the last good version and nothing else shows it, so check the run after a push: `gh run list`, or the Actions tab.
@@ -171,9 +171,52 @@ Cloud Run's free tier should cover the router at Bike Ottawa's traffic. With the
 | 2 million requests         | Far more than the CPU allows.                                                                                                                                                                       |
 | 1 GiB out to North America | Likely the first limit. A route is about 10 KB, but How far is about 200 KB at 10 minutes and 1.25 MB at 30: about 5,000 How far at 10 minutes, or 800 at 30. More is billed, around $0.12 per GiB. |
 
-Only time spent on requests counts, so a quiet service costs nothing. `--min-instances 1` is billed all the time, well past the free tier. The mirror keeps every image it has fetched, about 140 MB each; Artifact Registry stores 0.5 GB free, so delete old ones in the console now and then.
+Only time spent on requests counts, so a quiet service costs nothing. `--min-instances 1` is billed all the time, well past the free tier. The mirror keeps every image it has fetched, about 140 MB each, and Artifact Registry stores 0.5 GB free: deploying from the workflow, set it to keep only the newest (below).
 
-The routing data is baked into the image, so the planner only gets fresh OSM data, and profile changes, when steps 5 and 6 are run again. Repeat them every so often, by hand or from a scheduled job.
+#### Deploying from the workflow
+
+The routing data is baked into the image, so the planner gets fresh OSM data, and profile changes, only when a new image is deployed. The `Deploy` workflow does that on every run from `main` once it is set up: it deploys the image it just built as a revision with no traffic, plans a route by bike and on foot on it, and only then sends traffic to it. If either fails, the run fails and the router already running keeps serving. Without the setup it skips this, and steps 5 and 6 deploy by hand.
+
+It signs in to Google Cloud with Workload Identity Federation, so no key is kept in GitHub. Set it up once, from the clone, in the same shell as above, with `SERVICE` the service's name (`router` in step 6):
+
+```sh
+SERVICE=router
+NUMBER=$(gcloud projects describe $PROJECT --format='value(projectNumber)')
+REPO_ID=$(gh api repos/$OWNER/bikeottawa-maps --jq .id)   # the same after a transfer
+RUNTIME=$(gcloud run services describe $SERVICE --region $REGION --format='value(spec.template.spec.serviceAccountName)')
+DEPLOYER=router-deployer@$PROJECT.iam.gserviceaccount.com
+
+gcloud services enable iamcredentials.googleapis.com sts.googleapis.com
+gcloud iam workload-identity-pools create github --location global --display-name GitHub
+gcloud iam workload-identity-pools providers create-oidc bikeottawa-maps --location global \
+  --workload-identity-pool github --issuer-uri https://token.actions.githubusercontent.com \
+  --attribute-mapping google.subject=assertion.sub,attribute.repository_id=assertion.repository_id \
+  --attribute-condition "assertion.repository_id == '$REPO_ID' && assertion.ref == 'refs/heads/main'"
+gcloud iam service-accounts create router-deployer --display-name "Deploys the router from GitHub Actions"
+gcloud projects add-iam-policy-binding $PROJECT --member serviceAccount:$DEPLOYER --role roles/run.developer --condition None
+gcloud iam service-accounts add-iam-policy-binding $RUNTIME --member serviceAccount:$DEPLOYER --role roles/iam.serviceAccountUser
+gcloud iam service-accounts add-iam-policy-binding $DEPLOYER --role roles/iam.workloadIdentityUser \
+  --member principalSet://iam.googleapis.com/projects/$NUMBER/locations/global/workloadIdentityPools/github/attribute.repository_id/$REPO_ID
+
+gh variable set GCP_PROJECT --body $PROJECT
+gh variable set GCP_REGION --body $REGION
+gh variable set CLOUD_RUN_SERVICE --body $SERVICE
+gh variable set GCP_SERVICE_ACCOUNT --body $DEPLOYER
+gh variable set GCP_WORKLOAD_IDENTITY_PROVIDER \
+  --body projects/$NUMBER/locations/global/workloadIdentityPools/github/providers/bikeottawa-maps
+```
+
+Only runs from `main` of this repository can sign in, by its id rather than its name, so a transfer to another owner keeps working.
+
+A new image every night fills the mirror by about 140 MB a day. Keep the three newest:
+
+```sh
+echo '[{"name": "newest", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 3}},
+  {"name": "older", "action": {"type": "Delete"}, "condition": {"olderThan": "3d"}}]' > cleanup.json
+gcloud artifacts repositories set-cleanup-policies ghcr --location $REGION --policy cleanup.json --no-dry-run
+```
+
+Then run the workflow (`gh workflow run Deploy`) and check its router job deployed.
 
 ### Or the router on any machine
 
@@ -192,7 +235,7 @@ Do the transfer and the domain switch together: the domain and DNS point at the 
 A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so the switch and a rollback take effect quickly. Note its current value, an A record to `3.139.119.96` (the old site on EC2). Pick a quiet time: the site can show a certificate warning for up to an hour.
 
 1. Transfer the repository: Settings → General → Danger Zone → **Transfer ownership**, to `BikeOttawa`. yaroshkvorets.github.io/bikeottawa-maps stops working. Update your clone: `git remote set-url origin git@github.com:BikeOttawa/bikeottawa-maps.git`.
-2. Check the settings came across: Pages source **GitHub Actions**, and the `ROUTER_URL` and `MAPILLARY_TOKEN` variables. If the organization limits which actions can run (its Settings → Actions → General), allow `actions/*` and `docker/*`.
+2. Check the settings came across: Pages source **GitHub Actions**, and the variables (`ROUTER_URL`, `MAPILLARY_TOKEN`, and the Cloud Run ones if set). If the organization limits which actions can run (its Settings → Actions → General), allow `actions/*`, `docker/*` and `google-github-actions/*`.
 3. Set up the domain as in B, the site on GitHub Pages, with `<owner>` as `bikeottawa`: verify it under the organization's settings, set it on the repository, run the workflow, switch the Route 53 record to a CNAME → `bikeottawa.github.io`, then enforce HTTPS.
 4. The new images are `ghcr.io/bikeottawa/...`; make them public. Change the image names in `compose.yml` and `README.md` to match, then commit and push. Leave `routing/Dockerfile` alone: it names the BRouter fork, which stays where it is.
 5. Move the router to the new image. The current one is the `bikeottawa-backend` service, in the `bikeottawa-backend` project; it pulls `yaroshkvorets/bikeottawa-maps-router` by digest through a `ghcr` mirror there, set up as in B. See what it runs:
@@ -202,7 +245,9 @@ A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so
      --format='value(spec.template.spec.containers[0].image)'
    ```
 
-   Deploy the new image with B, the router on Cloud Run, steps 5 and 6, using `PROJECT=bikeottawa-backend`, `OWNER=bikeottawa` and the service name `bikeottawa-backend` in place of `router`. The address does not change, so `ROUTER_URL` stays. Or set up a new project from step 1 and point `ROUTER_URL` at it.
+   With the workflow deploying it (B, Deploying from the workflow), it moves on its own: the workflow signs in by the repository's id, which the transfer keeps, and deploys `bikeottawa/bikeottawa-maps-router`. Until that image is public (step 4) the mirror cannot fetch it, so the router job fails and the old router keeps serving: run the workflow again after step 4, then check the image above.
+
+   By hand, deploy the new image with B, the router on Cloud Run, steps 5 and 6, using `PROJECT=bikeottawa-backend`, `OWNER=bikeottawa` and the service name `bikeottawa-backend` in place of `router`. The address does not change, so `ROUTER_URL` stays. Or set up a new project from step 1 and point `ROUTER_URL` at it.
 6. Open https://maps.bikeottawa.ca and check: each layer loads, a route can be planned, How far works, and a place card shows photos.
 7. After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
 
