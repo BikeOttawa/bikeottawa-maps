@@ -5,6 +5,7 @@
 // Data: Open Government Licence – Ottawa.
 
 import { writeFile } from 'node:fs/promises'
+import { withoutCopies } from './collisions.mjs'
 
 const SERVICE =
   'https://services.arcgis.com/G6F8XLCl5KtAlZ2G/arcgis/rest/services/Traffic_Collisions_by_Location_2017-2024_(excluding_2023)/FeatureServer/0'
@@ -46,8 +47,9 @@ for (let offset = 0; ; offset += PAGE) {
   if (batch.length < PAGE) break
 }
 
-const features = rows
-  .filter((r) => Number.isFinite(r.Lat) && Number.isFinite(r.Long))
+const placed = rows.filter((r) => Number.isFinite(r.Lat) && Number.isFinite(r.Long))
+const unique = withoutCopies(placed)
+const features = unique
   .map((r) => {
     const properties = {
       id: r.ID,
@@ -92,4 +94,6 @@ const collection = {
 }
 await writeFile(OUT, `${JSON.stringify(collection)}\n`)
 const cyclists = features.filter((f) => f.properties.bicycles > 0).length
-console.log(`collisions: ${features.length} (cyclists ${cyclists}), years ${years.join(', ')}`)
+console.log(
+  `collisions: ${features.length} (cyclists ${cyclists}, ${placed.length - unique.length} copies left out), years ${years.join(', ')}`,
+)
