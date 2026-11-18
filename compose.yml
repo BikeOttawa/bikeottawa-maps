@@ -3,10 +3,10 @@
 #   docker compose pull && docker compose up -d   to pick up the nightly data refresh
 services:
   web:
-    image: ghcr.io/yaroshkvorets/bikeottawa-maps:main
+    image: ghcr.io/bikeottawa/bikeottawa-maps:main
     ports:
       - "8080:80"
     restart: unless-stopped
   router:
-    image: ghcr.io/yaroshkvorets/bikeottawa-maps-router:main
+    image: ghcr.io/bikeottawa/bikeottawa-maps-router:main
     restart: unless-stopped

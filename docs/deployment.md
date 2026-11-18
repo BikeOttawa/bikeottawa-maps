@@ -228,28 +228,40 @@ docker run -d --name router --restart unless-stopped -p 17777:17777 ghcr.io/<own
 
 Put HTTPS in front of it as in A, step 3, with `router.bikeottawa.ca { reverse_proxy localhost:17777 }`. Then set `ROUTER_URL` to `https://router.bikeottawa.ca/brouter` and run the workflow. To pick up the nightly data, pull the image and recreate the container from cron, as in A, step 5.
 
-## Moving to the BikeOttawa organization and maps.bikeottawa.ca
+## Moving to the BikeOttawa organization
 
-Do the transfer and the domain switch together: the domain and DNS point at the repository's owner, so doing them apart means doing them twice. You need admin on `YaroShkvorets/bikeottawa-maps`, the right to create repositories in BikeOttawa, and access to the `bikeottawa.ca` hosted zone in AWS Route 53.
+You need admin on `YaroShkvorets/bikeottawa-maps` and the right to create repositories in BikeOttawa; an owner of the organization has both. The app's links and the image names in `compose.yml` and `README.md` already name BikeOttawa. The site moves to bikeottawa.github.io/bikeottawa-maps, and yaroshkvorets.github.io/bikeottawa-maps stops working.
 
-A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so the switch and a rollback take effect quickly. Note its current value, an A record to `3.139.119.96` (the old site on EC2). Pick a quiet time: the site can show a certificate warning for up to an hour.
+1. Transfer the repository: Settings → General → Danger Zone → **Transfer ownership**, to `BikeOttawa`. Update your clone and push: `git remote set-url origin git@github.com:BikeOttawa/bikeottawa-maps.git`.
+2. Check the settings came across: Pages source **GitHub Actions**, and the `ROUTER_URL` and `MAPILLARY_TOKEN` variables. If the organization limits which actions can run (its Settings → Actions → General), allow `actions/*`, `docker/*` and `google-github-actions/*`.
+3. Run the workflow, `gh workflow run Deploy`, and check it passed. It publishes the site at its new address and pushes the images as `ghcr.io/bikeottawa/bikeottawa-maps` and `ghcr.io/bikeottawa/bikeottawa-maps-router`. Make both public (the organization's Packages → the package → Package settings → **Change visibility**): the router's mirror can only fetch public images. The router keeps running meanwhile, on the image under `yaroshkvorets`, which stays.
+4. Move the router to the new image: set up deploying from the workflow (B, Deploying from the workflow) with
 
-1. Transfer the repository: Settings → General → Danger Zone → **Transfer ownership**, to `BikeOttawa`. yaroshkvorets.github.io/bikeottawa-maps stops working. Update your clone: `git remote set-url origin git@github.com:BikeOttawa/bikeottawa-maps.git`.
-2. Check the settings came across: Pages source **GitHub Actions**, and the variables (`ROUTER_URL`, `MAPILLARY_TOKEN`, and the Cloud Run ones if set). If the organization limits which actions can run (its Settings → Actions → General), allow `actions/*`, `docker/*` and `google-github-actions/*`.
-3. Set up the domain as in B, the site on GitHub Pages, with `<owner>` as `bikeottawa`: verify it under the organization's settings, set it on the repository, run the workflow, switch the Route 53 record to a CNAME → `bikeottawa.github.io`, then enforce HTTPS.
-4. The new images are `ghcr.io/bikeottawa/...`; make them public. Change the image names in `compose.yml` and `README.md` to match, then commit and push. Leave `routing/Dockerfile` alone: it names the BRouter fork, which stays where it is.
-5. Move the router to the new image. The current one is the `bikeottawa-backend` service, in the `bikeottawa-backend` project; it pulls `yaroshkvorets/bikeottawa-maps-router` by digest through a `ghcr` mirror there, set up as in B. See what it runs:
+   ```sh
+   PROJECT=bikeottawa-backend
+   REGION=northamerica-northeast1
+   OWNER=bikeottawa
+   SERVICE=bikeottawa-backend
+   ```
+
+   and run the workflow again. Its router job deploys the new image to the same service, so the address and `ROUTER_URL` stay. Check the service now runs `bikeottawa/bikeottawa-maps-router`:
 
    ```sh
    gcloud run services describe bikeottawa-backend --project bikeottawa-backend --region northamerica-northeast1 \
      --format='value(spec.template.spec.containers[0].image)'
    ```
 
-   With the workflow deploying it (B, Deploying from the workflow), it moves on its own: the workflow signs in by the repository's id, which the transfer keeps, and deploys `bikeottawa/bikeottawa-maps-router`. Until that image is public (step 4) the mirror cannot fetch it, so the router job fails and the old router keeps serving: run the workflow again after step 4, then check the image above.
+5. Open bikeottawa.github.io/bikeottawa-maps and check: each layer loads, a route can be planned, How far works, and a place card shows photos.
 
-   By hand, deploy the new image with B, the router on Cloud Run, steps 5 and 6, using `PROJECT=bikeottawa-backend`, `OWNER=bikeottawa` and the service name `bikeottawa-backend` in place of `router`. The address does not change, so `ROUTER_URL` stays. Or set up a new project from step 1 and point `ROUTER_URL` at it.
-6. Open https://maps.bikeottawa.ca and check: each layer loads, a route can be planned, How far works, and a place card shows photos.
-7. After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
+## Switching maps.bikeottawa.ca
+
+After the move, whenever suits. You need access to the `bikeottawa.ca` hosted zone in AWS Route 53.
+
+A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so the switch and a rollback take effect quickly. Note its current value, an A record to `3.139.119.96` (the old site on EC2). Pick a quiet time: the site can show a certificate warning for up to an hour.
+
+1. Set up the domain as in B, the site on GitHub Pages, with `<owner>` as `bikeottawa`: verify it under the organization's settings, set it on the repository, run the workflow, switch the Route 53 record to a CNAME → `bikeottawa.github.io`, then enforce HTTPS.
+2. Open https://maps.bikeottawa.ca and check it as in step 5 of the move.
+3. After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
 
 Links to the old site's pages keep working after the switch. The build writes a small page at each old path (`/lts/`, `/winter/`, `/pathways/`, `/collisions/`, `/amenities/`, `/routing/`, `/isochrones/`, `/desire/`, `/thefts/`) that sends visitors to the matching map, at the place the old link showed (`web/src/oldSite.ts`).
 

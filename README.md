@@ -133,8 +133,8 @@ Cards for places and streets show street-level photos from [Mapillary](https://w
 
 The `Deploy` workflow runs on every push to `main`, on `v*` tags and nightly. Each job brings the OSM data up to date (the file is carried between runs in the Actions cache).
 
-- `site` runs lint and tests, rebuilds the tiles and the app, and pushes the site image, `ghcr.io/yaroshkvorets/bikeottawa-maps`, with the tiles baked in.
-- `router`, alongside it, pushes the router image, `ghcr.io/yaroshkvorets/bikeottawa-maps-router`, with fresh routing data.
+- `site` runs lint and tests, rebuilds the tiles and the app, and pushes the site image, `ghcr.io/bikeottawa/bikeottawa-maps`, with the tiles baked in.
+- `router`, alongside it, pushes the router image, `ghcr.io/bikeottawa/bikeottawa-maps-router`, with fresh routing data.
 - `deploy` publishes the site to GitHub Pages once `site` has passed, a few minutes after a push.
 
 Images are tagged `main`, or the version and `latest` for a `v*` tag. Repository variables set what the site connects to: `ROUTER_URL` (the planner works once it points at a running router), `MAPILLARY_TOKEN` and `FOTOSHI_KEY` (photos).

@@ -1231,7 +1231,7 @@ export function App() {
                   Bike Ottawa
                 </a>
                 {' · '}
-                <a href="https://github.com/YaroShkvorets/bikeottawa-maps" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/BikeOttawa/bikeottawa-maps" target="_blank" rel="noopener noreferrer">
                   GitHub
                 </a>
               </p>

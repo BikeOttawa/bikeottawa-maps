@@ -10,7 +10,7 @@ const LINKS: Record<string, string> = {
   everydoor: 'https://every-door.app/',
   fotoshi: 'https://fotoshi.com/',
   mapillary: 'https://www.mapillary.com/mobile-apps',
-  issue: 'https://github.com/YaroShkvorets/bikeottawa-maps/issues/new',
+  issue: 'https://github.com/BikeOttawa/bikeottawa-maps/issues/new',
   join: 'https://bikeottawa.ca/join-bike-ottawa/',
   volunteer: 'https://bikeottawa.ca/volunteer-signup/',
   donate: 'https://bikeottawa.ca/donate-to-bike-ottawa/',
