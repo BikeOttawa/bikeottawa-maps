@@ -12,10 +12,10 @@ Both are built by the same workflow every night, so either way the data stays fr
 The `Deploy` workflow (`.github/workflows/deploy.yml`) runs on every push to `main`, on `v*` tags and every night at about 08:20 UTC:
 
 - `site` checks the code, rebuilds the tiles from fresh OSM data, builds the app and pushes the site image;
-- `router` builds the router image with fresh routing data, alongside it, and deploys it to Cloud Run once that is set up (B, Deploying from the workflow);
-- `deploy` publishes the site to GitHub Pages once `site` has passed.
+- `router`, alongside it, builds and pushes the router image with fresh routing data;
+- `deploy-site` publishes the site to GitHub Pages once `site` has passed, and `deploy-router` the router to Cloud Run once `router` has passed, if that is set up (B, Deploying from the workflow).
 
-The images are `ghcr.io/<owner>/bikeottawa-maps` (site) and `ghcr.io/<owner>/bikeottawa-maps-router` (router), where `<owner>` is the repository's owner in lower case. They are tagged `main`, or the version and `latest` for a `v*` tag. A run takes about 5 minutes. If `site` fails, Pages keeps the last good version and nothing else shows it, so check the run after a push: `gh run list`, or the Actions tab.
+The images are `ghcr.io/<owner>/bikeottawa-maps` (site) and `ghcr.io/<owner>/bikeottawa-maps-router` (router), where `<owner>` is the repository's owner in lower case. They are tagged `main`, or the version and `latest` for a `v*` tag. A run takes about 5 minutes. If a build fails, its deploy is skipped and the last good version stays and nothing else shows it, so check the run after a push: `gh run list`, or the Actions tab.
 
 Repository variables (Settings → Secrets and variables → Actions → Variables) go into the GitHub Pages build:
 
@@ -219,7 +219,7 @@ echo '[{"name": "newest", "action": {"type": "Keep"}, "mostRecentVersions": {"ke
 gcloud artifacts repositories set-cleanup-policies ghcr --location $REGION --policy cleanup.json --no-dry-run
 ```
 
-Then run the workflow (`gh workflow run Deploy`) and check its router job deployed.
+Then run the workflow (`gh workflow run Deploy`) and check its `deploy-router` job passed.
 
 ### Or the router on any machine
 

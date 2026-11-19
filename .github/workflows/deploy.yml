@@ -19,8 +19,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-# Three jobs: site (checks, tiles, Pages build, site image), router (the router
-# image) in parallel with it, and deploy (Pages), which waits only for site.
+# Two builds side by side, each deployed only if it passes: site (checks,
+# tiles, Pages build, site image) then deploy-site (Pages); router (the router
+# image) then deploy-router (Cloud Run).
 jobs:
   site:
     runs-on: ubuntu-latest
@@ -114,6 +115,8 @@ jobs:
 
   router:
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.router-build.outputs.digest }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -166,22 +169,35 @@ jobs:
           tags: ${{ steps.router-image.outputs.tags }}
           labels: ${{ steps.router-image.outputs.labels }}
 
-      # Cloud Run, from main, once it is set up (docs/deployment.md). The new
-      # revision takes traffic only after it plans a route by bike and on foot.
-      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
-        uses: google-github-actions/auth@v3
+  deploy-site:
+    if: github.ref == 'refs/heads/main'
+    needs: site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment
+
+  # Cloud Run, once it is set up (docs/deployment.md). The new revision takes
+  # traffic only after it plans a route by bike and on foot.
+  deploy-router:
+    if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+    needs: router
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
-        uses: google-github-actions/setup-gcloud@v3
-      - if: github.ref == 'refs/heads/main' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
-        name: Deploy the router to Cloud Run
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Deploy to Cloud Run
         env:
           PROJECT: ${{ vars.GCP_PROJECT }}
           REGION: ${{ vars.GCP_REGION }}
           SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
-          DIGEST: ${{ steps.router-build.outputs.digest }}
+          DIGEST: ${{ needs.router.outputs.digest }}
         run: |
           # Through the project's mirror of ghcr.io, by digest: the mirror can keep serving an older `main`.
           image="$REGION-docker.pkg.dev/$PROJECT/ghcr/${GITHUB_REPOSITORY,,}-router@$DIGEST"
@@ -195,14 +211,3 @@ jobs:
               | grep -q LineString || { echo "The new router did not plan a route with $profile" >&2; exit 1; }
           done
           gcloud run services update-traffic "$SERVICE" "${where[@]}" --to-latest
-
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: site
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/deploy-pages@v5
-        id: deployment
