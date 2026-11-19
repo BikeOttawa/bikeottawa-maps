@@ -211,3 +211,15 @@ jobs:
               | grep -q LineString || { echo "The new router did not plan a route with $profile" >&2; exit 1; }
           done
           gcloud run services update-traffic "$SERVICE" "${where[@]}" --to-latest
+
+  # GitHub turns off scheduled workflows after 60 days without commits.
+  # Enabling this one again from each nightly run keeps it on.
+  keepalive:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
