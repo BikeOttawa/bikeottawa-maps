@@ -5,7 +5,7 @@ The site is static files: the app and its tiles. The route planner and How far a
 - **A. One machine** runs both, from the two Docker images, with `docker compose`.
 - **B. Separately**: the site on GitHub Pages, and the router on Google Cloud Run or any machine with Docker.
 
-Both are built by the same workflow every night, so either way the data stays fresh. Today the project uses B: the site at bikeottawa.github.io/bikeottawa-maps and the router on Cloud Run, deployed by the workflow, while maps.bikeottawa.ca still serves the old site from an EC2 machine.
+Both are built by the same workflow every night, so either way the data stays fresh. Today the project uses B: the site on GitHub Pages at [maps.bikeottawa.ca](#mapsbikeottawaca) and the router on Cloud Run, both deployed by the workflow.
 
 ## What the workflow builds
 
@@ -232,17 +232,15 @@ docker run -d --name router --restart unless-stopped -p 17777:17777 ghcr.io/<own
 
 Put HTTPS in front of it as in A, step 3, with `router.bikeottawa.ca { reverse_proxy localhost:17777 }`. Then set `ROUTER_URL` to `https://router.bikeottawa.ca/brouter` and run the workflow. To pick up the nightly data, pull the image and recreate the container from cron, as in A, step 5.
 
-## Switching maps.bikeottawa.ca
+## maps.bikeottawa.ca
 
-You need access to the `bikeottawa.ca` hosted zone in AWS Route 53.
+Since 2026-11-19 the domain points at GitHub Pages, set up as in B with `<owner>` as `bikeottawa`. DNS is the `bikeottawa.ca` hosted zone in AWS Route 53: a CNAME `maps.bikeottawa.ca` → `bikeottawa.github.io`, and the TXT record `_github-pages-challenge-BikeOttawa.maps` that verifies the domain for the organization. Keep the TXT record: GitHub checks it again from time to time. Before, `maps.bikeottawa.ca` was an A record to `3.139.119.96`, the old site on EC2.
 
-A day ahead, lower the TTL of the `maps.bikeottawa.ca` record to 300 seconds, so the switch and a rollback take effect quickly. Note its current value, an A record to `3.139.119.96` (the old site on EC2). Pick a quiet time: the site can show a certificate warning for up to an hour.
+Links to the old site's pages keep working. The build writes a small page at each old path (`/lts/`, `/winter/`, `/pathways/`, `/collisions/`, `/amenities/`, `/routing/`, `/isochrones/`, `/desire/`, `/thefts/`) that sends visitors to the matching map, at the place the old link showed (`web/src/oldSite.ts`).
 
-1. Set up the domain as in B, the site on GitHub Pages, with `<owner>` as `bikeottawa`: verify it under the organization's settings, set it on the repository, run the workflow, switch the Route 53 record to a CNAME → `bikeottawa.github.io`, then enforce HTTPS.
-2. Open https://maps.bikeottawa.ca and check: each layer loads, a route can be planned, How far works, and a place card shows photos.
-3. After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
+### Retiring the old site
 
-Links to the old site's pages keep working after the switch. The build writes a small page at each old path (`/lts/`, `/winter/`, `/pathways/`, `/collisions/`, `/amenities/`, `/routing/`, `/isochrones/`, `/desire/`, `/thefts/`) that sends visitors to the matching map, at the place the old link showed (`web/src/oldSite.ts`).
+After a few days, once cached DNS has expired, retire the old site's two EC2 machines (AWS us-east-2): maps.bikeottawa.ca's (`3.139.119.96`), which serves the old site and its OSRM routing, and backend.bikeottawa.ca's (`18.220.244.35`), which built the old site's data (Mapbox tilesets and OSRM routing data, see github.com/BikeOttawa/backend.bikeottawa.ca). The `Deploy` workflow does that work now. Check nothing else runs on them first, take snapshots, then stop them. The old site's Mapbox tilesets and token can go too.
 
 ### Rolling back
 

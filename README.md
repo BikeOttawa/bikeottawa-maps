@@ -2,7 +2,7 @@
 
 Cycling maps for Ottawa–Gatineau, built on OpenStreetMap by [Bike Ottawa](https://bikeottawa.ca) volunteers.
 
-**[Open the map](https://bikeottawa.github.io/bikeottawa-maps/)** · English and French · installs as an app on your phone or desktop
+**[Open the map](https://maps.bikeottawa.ca)** · English and French · installs as an app on your phone or desktop
 
 ## Features
 
