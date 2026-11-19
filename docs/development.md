@@ -4,29 +4,29 @@ Setup and checks are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Layout
 
-| Path          | What                                                                     |
-| ------------- | ------------------------------------------------------------------------ |
-| `web/`        | The app: React, TypeScript, Vite, MapLibre                               |
-| `pipeline/`   | Builds the tiles from OSM and fetches the city and police data           |
-| `routing/`    | The router: BRouter with the `ottbike` and `ottwalk` profiles            |
-| `docker/`     | nginx config for the site image                                          |
+| Path          | What                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| `web/`        | The app: React, TypeScript, Vite, MapLibre                              |
+| `pipeline/`   | Builds the tiles from OSM and fetches the city and police data          |
+| `routing/`    | The router: BRouter with the `ottbike` and `ottwalk` profiles           |
+| `docker/`     | nginx config for the site image                                         |
 | `docs/`       | [How it works](how-it-works.md), this page, [deployment](deployment.md) |
-| `region.json` | The map's area, the wider routing area, and the OSM extracts             |
+| `region.json` | The map's area, the wider routing area, and the OSM extracts            |
 
 ## Tiles
 
 Built into `web/public/tiles`, not committed. The app loads only what the current layer draws.
 
-| File                   | What                                                 |
-| ---------------------- | ---------------------------------------------------- |
-| `basemap.pmtiles`      | Protomaps basemap (`npm run basemap`)                |
-| `overlays.pmtiles`     | Streets and paths: Comfort, Pathways, bike lanes     |
-| `places.pmtiles`       | Places                                               |
-| `places/<kind>.json`   | Each kind of place as `[lon, lat, …]`, for merging   |
-| `night.pmtiles`        | Lit ways and street lamps                            |
-| `routes.pmtiles`       | Bike routes, with `routes.json` listing them         |
-| `meta.json`            | OSM data date, build time, km per band for legends   |
-| `construction.geojson` | The City's construction forecast                     |
+| File                   | What                                               |
+| ---------------------- | -------------------------------------------------- |
+| `basemap.pmtiles`      | Protomaps basemap (`npm run basemap`)              |
+| `overlays.pmtiles`     | Streets and paths: Comfort, Pathways, bike lanes   |
+| `places.pmtiles`       | Places                                             |
+| `places/<kind>.json`   | Each kind of place as `[lon, lat, …]`, for merging |
+| `night.pmtiles`        | Lit ways and street lamps                          |
+| `routes.pmtiles`       | Bike routes, with `routes.json` listing them       |
+| `meta.json`            | OSM data date, build time, km per band for legends |
+| `construction.geojson` | The City's construction forecast                   |
 
 ## OSM data
 
@@ -48,14 +48,14 @@ npm run dev            # .env.development points the app at it
 
 ## Scripts
 
-| Script                                           | What                                    |
-| ------------------------------------------------ | --------------------------------------- |
-| `dev`, `build`                                   | Run or build the app                    |
-| `test`                                           | Vitest (app) and `node --test` (pipeline) |
-| `lint`, `format`, `typecheck`                    | Biome and TypeScript                    |
-| `tiles`, `basemap`                               | Rebuild the tiles                       |
-| `osm`                                            | Update the OSM data only                |
-| `collisions`, `thefts`, `wards`, `construction`  | Fetch the city and police data again    |
-| `router:build`, `router`                         | Build and run the local router          |
+| Script                                          | What                                      |
+| ----------------------------------------------- | ----------------------------------------- |
+| `dev`, `build`                                  | Run or build the app                      |
+| `test`                                          | Vitest (app) and `node --test` (pipeline) |
+| `lint`, `format`, `typecheck`                   | Biome and TypeScript                      |
+| `tiles`, `basemap`                              | Rebuild the tiles                         |
+| `osm`                                           | Update the OSM data only                  |
+| `collisions`, `thefts`, `wards`, `construction` | Fetch the city and police data again      |
+| `router:build`, `router`                        | Build and run the local router            |
 
 Every push to `main` deploys the site and the router; see [deployment.md](deployment.md).
