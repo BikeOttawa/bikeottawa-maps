@@ -1,6 +1,6 @@
 # Notes for coding agents
 
-What the code does not tell you. See README.md for what the project is and how it fits together.
+What the code does not tell you. See README.md for what the project is, and docs/ for how it fits together: how-it-works.md, development.md, deployment.md.
 
 ## Before committing
 

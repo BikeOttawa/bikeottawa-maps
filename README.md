@@ -1,165 +1,33 @@
 # Bike Ottawa Maps
 
-Cycling maps for Ottawa–Gatineau built on OpenStreetMap: places such as bike parking, repair stations and water, pathways by surface, width, snow clearing, smoothness and lighting, street comfort (level of traffic stress), collisions involving cyclists and pedestrians, bike thefts, and the City's construction projects. Over any of them go bike lanes, signed bike routes, wards, today's road closures and street lights. A route planner rides or walks between places, and "How far" shows where you get in 5 to 30 minutes. Successor to [maps.bikeottawa.ca](https://maps.bikeottawa.ca).
+Cycling maps for Ottawa–Gatineau, built on OpenStreetMap by [Bike Ottawa](https://bikeottawa.ca) volunteers.
 
-No map vendor or API keys: the basemap and data layers are static [PMTiles](https://docs.protomaps.com/pmtiles/) files rendered with [MapLibre](https://maplibre.org). The light, grey and dark map styles are the same basemap tiles restyled in the browser; only the satellite style loads from elsewhere (Esri World Imagery, no key).
+**[Open the map](https://bikeottawa.github.io/bikeottawa-maps/)** · English and French · installs as an app on your phone or desktop
 
-The site installs as an app on phones and desktops (`vite-plugin-pwa` in `web/vite.config.ts`). Its service worker keeps the app's own files, so it opens offline; tiles, routing and search always need the network. A new version takes over once the app has been closed.
+## Features
 
-## Layout
+- **Places** for cyclists: parking, repairs, air, water, toilets, cafés
+- **Pathways** by surface, width, snow clearing, smoothness and lighting
+- **Comfort**: streets by level of traffic stress
+- **Collisions** (City of Ottawa) and **bike thefts** (Ottawa Police)
+- **Projects**: the City's construction forecast
+- **Overlays**: bike lanes, bike routes, wards, roadwork, street lights
+- **Route planner** by bike or on foot
+- **How far** you get by bike or foot in 5 to 30 minutes
 
-| Path          | What                                                                                                                                                           |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `web/`        | The app: React, TypeScript, Vite, MapLibre                                                                                                                     |
-| `pipeline/`   | Builds the map tiles from OSM extracts (osmium, [stressmodel](https://github.com/BikeOttawa/stressmodel), tippecanoe) and fetches collisions, thefts and wards |
-| `routing/`    | The route planner's backend: [BRouter](https://github.com/abrensch/brouter) with the `ottbike` and `ottwalk` profiles and routing data for the region          |
-| `docker/`     | nginx config for the site image                                                                                                                                |
-| `docs/`       | Longer guides: [deployment](docs/deployment.md)                                                                                                                |
-| `region.json` | Area covered and the OSM extracts to use                                                                                                                       |
+## Docs
 
-## Getting started
+- [How the map works](docs/how-it-works.md)
+- [Development](docs/development.md)
+- [Deployment](docs/deployment.md)
+- [Contributing](CONTRIBUTING.md)
 
-```sh
-brew install osmium-tool tippecanoe pmtiles
-pipx install osmium   # pyosmium-up-to-date
-npm install
-npm run basemap   # once: basemap extract, fonts and icons
-npm run tiles     # data layers from current OSM data
-npm run dev
-```
+## Licence
 
-Tiles land in `web/public/tiles` and are not committed. The app only loads the files the current layer draws, so the first visit fetches the basemap alone.
+Code: [MIT](LICENSE). Data keeps its own licence:
 
-| File                   | What                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------ |
-| `basemap.pmtiles`      | Protomaps basemap                                                                    |
-| `overlays.pmtiles`     | Streets and paths, for Comfort, Pathways and the bike lanes                          |
-| `places.pmtiles`       | Places                                                                               |
-| `night.pmtiles`        | Lit streets and street lamps, for the street lights overlay                          |
-| `routes.pmtiles`       | Signed bike routes, with `routes.json` listing the routes                            |
-| `places/<kind>.json`   | Each kind of place as flat `[lon, lat, …]` arrays, to merge places and count them    |
-| `meta.json`            | Date of the OSM data, when the tiles were built, km of Pathways' and Comfort's bands |
-| `construction.geojson` | The City's construction forecast, for Projects                                       |
-
-## OSM data
-
-`pipeline/update-osm.sh` (`npm run osm`, also run by `npm run tiles`) keeps one file, `.cache/osm/region.osm.pbf`, with all OSM data for the routing area in `region.json`. The map tiles and the router are both built from it.
-
-The first run downloads the Ontario and Quebec extracts from Geofabrik (2.2 GB) and cuts the area out. After that it only fetches OpenStreetMap's hourly change files, applies them and trims the result back to the area, so the data is about an hour behind OSM and a day's update is around 100 MB.
-
-`region.json` has two boxes: `bbox` is what the map shows, `routingBbox` is the wider area routes can cross.
-
-## Layers
-
-Each layer's legend filters it the same way: rows of bars, a line per group picking those items, one row open at a time. The open row colours the map: Comfort by stress at first, Pathways by surface, Projects by when; on Collisions and Thefts spots big enough to read show each group's share as a pie, smaller ones the group most of their items share, and until a row is opened they show the worst injury and the value stolen. Spots that would overlap merge into one until zoom 15; clicking one zooms in until it splits. Places merge the same way, from `tiles/places/<kind>.json`, each group only with its own: a circle in the group's colour, as big as how many it holds; from zoom 15 each place has its own marker and card. The URL keeps the row (`by:` in the layer's entry, e.g. `comfort=by:speed`).
-
-**Comfort** colours every street and path bikes may use by its level of traffic stress, from 1 (comfortable for everyone) to 4 (high stress), as Bike Ottawa's [stressmodel](https://github.com/BikeOttawa/stressmodel) rates it from the OSM tags. The legend filters it as on the other layers, a bar of km per group: by stress, type (pathway, residential, service, minor road, tertiary, secondary, primary, trunk, track), speed limit (30 or less, 40, 50, 60, 70 or more, or not tagged), lanes each way (1, 2, or 3 or more: a one-way street's lanes all go one way, a two-way street's are split, rounded up, unless tagged each way; service roads always have one), bike infrastructure (pathway or cycle track, painted lane, paved shoulder, shared lane, or none), surface and lighting. `pipeline/comfort.mjs` writes each way's bands into the tiles, for the map to filter by, and the km of every combination of them into `meta.json`, for the bars; pathways count as 30 km/h or less, and picking lanes leaves them out.
-
-**Pathways** shows every path bikes are not kept off (cycleways, paths unless `bicycle=no`, footways and sidewalks with `bicycle=yes`), drawn as wide as `cycleway:width` or `width` says (1.5 m without either). The legend filters it as Comfort's does, a bar of km per group: by surface (OSM's types: asphalt, concrete, paving stones, fine gravel, gravel, ground, and other for wood, grass, sand and the like), type (cycle path, path, footpath or sidewalk), width (under 1.5 m, 1.5 to 2.5, 2.5 to 3.5, 3.5 m or more), snow clearing (`winter_service`; unpaved paths count as not plowed), smoothness (excellent, good, fair, bad or worse) and lighting (lit as on the street lights overlay: the `lit` tag, else street lamps along at least half the way; not lit only where tagged `lit=no`), each also "not tagged" where it can be. The open row colours the map, surface at first, with "not tagged" in yellow, so the layer doubles as a list of what is left to map; the URL keeps the row (`pathways=by:snow`), and links to the old Winter layer open it that way. `pipeline/pathway-bands.mjs` writes the bands into the tiles and the km of every combination into `meta.json`. A slider sets a least length. The length is that of the island a way is part of: every pathway joined to it at a shared node or through a crossing (`pipeline/islands.mjs`), so short stubs can be hidden; 300 m by default. Cards show the way's current tags from the OSM API and link to the editor. The bike lanes overlay starts off on this layer each time it is picked, and can be turned back on.
-
-**Collisions** shows the City of Ottawa's reported traffic collisions that involve a cyclist or a pedestrian, 2017 to 2024, grouped by spot ([open data](https://open.ottawa.ca/), Open Government Licence – Ottawa). 2023 is missing from the city's data. The legend filters them:
-
-- years, on a slider with a month-by-month timeline above it (clicking a year shows that year alone);
-- who was involved (cyclists at first, or pedestrians; the handful with both count as cyclists'), severity (the worst injury) and circumstances (light, time of year, weather, road, impact, traffic control), as bars of shares (counts for who and severity) that each pick their group. Once something else is picked, a tick on each bar marks the group as it was before, so the pick shows how those collisions differ;
-- the fewest collisions a spot needs to stay on the map.
-
-The data is kept in the repository as `web/public/data/collisions.geojson`, about 3,500 points. The city publishes a new year each summer; `npm run collisions` downloads it again.
-
-**Projects** shows the City of Ottawa's construction forecast: about 2,100 capital works on streets and paths, under way or planned in the next three years, lines along streets and paths and points for the rest, coloured by when they happen (under way, this year, in one to two or two to three years). The legend filters them as on the other layers, a bar per group by when and by kind of work (cycling and walking, roads, sewers and water, bridges and culverts, transit, other); buildings and parks are left out. A card gives the project's type, the street it is on, its length, its traffic impacts and, for the few that have one, its page. `pipeline/fetch-construction.mjs` (`npm run construction`, also run by `npm run tiles`) fetches it into `tiles/construction.geojson`, so it is as fresh as the tiles.
-
-**Thefts** shows the bikes reported stolen to the Ottawa Police Service, 2018 to 2025 ([open data](https://open.ottawa.ca/), Open Government Licence – Ottawa Police Service), at the intersection the police place each one: a heat map zoomed out; zoomed in, intersections sized by the number of thefts and coloured by the value stolen there as reported (grey where none was given). The legend filters them by year, on the same slider and timeline as collisions, and by where the bike was taken from (outdoors, a home break-in, another building), the time of day, the season, the kind of bike, its value and whether it was recovered, and by the fewest thefts or the least value stolen at an intersection, the value slider painted in the map's colours; a card steps through the thefts at an intersection, with each bike's make, model and colour, since one report often lists several bikes. The police data also lists bikes found, seized or disposed of; `npm run thefts` (`pipeline/fetch-thefts.mjs`) keeps only those stolen, recovered or not, leaves out e-scooters and records listed twice, and writes `web/public/data/thefts.geojson`, about 10,000 points, which is committed.
-
-## Overlays
-
-Switches in the map style menu draw these over any layer:
-
-- **Bike lanes** (on by default), as Google Maps does: segregated cycleways and pathways dark green, painted lanes (`cycleway*=lane`) a lighter green in dashes, shared lanes that green in dots, paved shoulders meant for riding (`cycleway*=shoulder`) yellow. Streets get a line down each side that has a lane. Lines are as wide as the bikeway (`cycleway:width`, else `width`; without a tag 3 m for a two-way path, 1.5 m for a one-way one, a lane or a shoulder).
-- **Bike routes** (off by default): signed routes from OSM route relations (`route=bicycle` and `route=mtb`) as wide soft bands under the bike lanes, coloured by rank: national (`ncn`: Trans Canada Trail, Route Verte), regional (`rcn`: Capital Pathway, Ottawa Valley Recreation Trail), local (`lcn`: Crosstown Bikeways and named pathways) and mountain-bike trails. Routes nest, so a way takes the rank of the most important route it is part of. Clicking one lists its routes with their length here and the routes they are part of, and picks out the one chosen.
-- **Wards** (off by default): Ottawa's 24 wards in plum and Gatineau's 19 districts in teal, each named with its councillor. `npm run wards` (`pipeline/fetch-wards.mjs`) fetches them from the City of Ottawa (Wards 2026-2030 and Elected Officials, Open Government Licence – Ottawa) and the Ville de Gatineau (Districts électoraux, CC BY 4.0) and writes `web/public/data/wards.geojson`, which is committed.
-- **Roadwork** (off by default): the closures right now, fetched live in the language shown (`web/src/useClosures.ts`): a cone at each one on the City of Ottawa's [traffic map](https://traffic.ottawa.ca/map/), and Quebec's roadwork on the roads the province runs (autoroutes, numbered routes, the Macdonald-Cartier bridge), from its [Travaux routiers](https://www.donneesquebec.ca/recherche/fr/dataset/travaux-routiers) data (Québec 511, CC BY 4.0), drawn along the stretch in orange stripes with a cone halfway. Only the map's area is asked for. A card gives what is closed, from when to when, the detour where given, and the source. Gatineau's own streets are not covered: the city publishes no roadwork data.
-- **Street lights** (off by default): streets and paths lit by their `lit` tag or by street lamps along at least half their length (`pipeline/lamps.mjs`), as a warm glow under the data layer's lines, so a lit way shows as a halo around its colour; zoomed in, the lamps themselves, as pools of light and then dots. On the dark map style the ground turns near black so the lights carry the picture. Links to the old Night layer turn it on.
-
-## Route planner
-
-The planner asks a BRouter server for routes. Riding styles are sets of weights for the `ottbike` profile in `routing/profiles` (how hard to avoid busy roads, sidewalks, rough surfaces, unplowed paths, unlit sections and stops) plus a riding speed on the flat; they live in `web/src/route/styles.ts`. Travel times also count walking pace where the bike is pushed and the seconds lost at stop signs and signals. Walking uses its own profile, `ottwalk` (sidewalks and paths first, busy roads without a sidewalk avoided; a winter switch avoids unplowed paths and walks them slowly).
-
-A trip offers up to three routes, as Google Maps does: the router's best, then its next two (BRouter's `alternativeidx` 1 and 2, each kept off the routes before it), asked for once the points have stayed put a moment after the best came (`web/src/route/useRoute.ts`). One much slower than the best, or mostly on the same streets as one already offered, is left out (`web/src/route/alternatives.ts`). The others are drawn grey with their time in a bubble; a click on one, or on its button on the card, picks it, and the URL keeps the pick (`alt=1`) until the trip changes. Each next route costs the router another search for every one before it, so three routes are about six searches.
-
-A bike route's card splits it by each of these, from the tags BRouter returns for each stretch (`web/src/route/breakdown.ts`), a row each as in the legends, all closed at first; the open row colours the route line (comfort with none open), and a part pointed at or clicked is picked out on it:
-
-- **Comfort**: level of traffic stress;
-- **Bikeways**: pathways and cycle tracks, painted lanes, paved shoulders (on the side ridden) or shared with cars;
-- **Surface**: grouped as on the Pathways layer (`pipeline/surface-groups.json`); streets without a tag count as paved;
-- **Lighting**: `lit`;
-- **Snow**: `winter_service` where tagged; otherwise paved streets and sidewalks count as plowed, unpaved streets as unknown and unpaved paths as not plowed, as on the Pathways layer.
-
-The card also counts the stop signs, traffic lights, barriers and roadwork on the route (only those it has), and each shows on the map. Roadwork is a closure from the Roadwork overlay within 10 m of the route (`web/src/route/roadwork.ts`), so the closures are fetched while a bike route is planned, with the overlay on or not. Barriers and roadwork picked out on the map say what they are in a bubble (the barrier's kind; the street, what is closed and until when), and open a card when clicked: a closure's card, or a barrier's, which finds the barrier's node in OSM and shows what its tags say (bikes allowed, the gap, fixed or retractable, locked), photos taken nearby and a link to edit it. Barriers are nodes tagged `barrier` that a bike cannot simply ride through (bollards, gates, cycle barriers, blocks, stiles and the like) and raised kerbs (`kerb=raised`): worth knowing with a cargo bike or a trailer.
-
-Place search (on the map and in the planner) and the addresses shown for points picked on the map come from [Photon](https://photon.komoot.io); set `VITE_GEOCODER_URL` to use another Photon server. Without `VITE_ROUTER_URL` the "Plan a route" page says that no routing server is connected.
-
-### How far
-
-"How far" uses the same router and riding styles. BRouter has no isochrones of its own, so the router image starts from our fork's image, `ghcr.io/yaroshkvorets/brouter:bikeottawa`, built from the `bikeottawa` branch of [the fork](https://github.com/YaroShkvorets/brouter/tree/bikeottawa). It adds three things to upstream BRouter:
-
-- `engineMode=5` with `isochroneTime=<seconds>` (up to 1800), which spreads out from one point along the cheapest paths of the profile and returns every way reached as GeoJSON, one MultiLineString per minute;
-- the profiles' `stopdelay` (seconds lost at stop signs and signals) added to travel times;
-- per-way speed limits (`maxspeed`) applied to walking as well as riding.
-
-Every push to that branch publishes a new image. To move to a newer BRouter, rebase the branch onto upstream, push, and pin the new image digest as `BROUTER_IMAGE` in `routing/Dockerfile`.
-
-The app works out the area reached on a 25 m grid: the cells the ways pass through plus those they close off from the outside. It counts the places picked on the Places layer that fall within 50 m of that area, from `tiles/places/<kind>.json`.
-
-### Running the router
-
-The router image builds its own routing data from the same OSM file, because it needs tags that stock BRouter data leaves out (`winter_service`, `width`, lane counts, `crossing:signals`). To run it locally:
-
-```sh
-npm run router:build   # elevation tiles and the image, with routing data built inside it
-npm run router         # BRouter on localhost:17777, using the profiles from the checkout
-npm run dev            # .env.development points the app at it
-```
-
-`npm run router` mounts the two profiles in `routing/profiles` into the container, so profile edits take effect on the next route request; rebuild the image only for fresh OSM data or new lookup tags.
-
-Elevation comes from NRCan's [MRDEM-30](https://datacube.services.geo.ca/stac/api/collections/mrdem-30) terrain model (bare ground, lidar-based around Ottawa–Gatineau; Open Government Licence – Canada), resampled to 1-arcsecond tiles with GDAL; SRTM fills in outside Canada.
-
-## Photos
-
-Cards for places and streets show street-level photos from [Mapillary](https://www.mapillary.com): a place's own photo when its OSM `mapillary` tag names one, then the photos taken nearby (the closest of each capture run), which the larger view steps through. They need a Mapillary client token in `VITE_MAPILLARY_TOKEN` (for local work, in `web/.env.development.local`, which git ignores); without one, cards link to the photo instead. Places also show the Fotoshi photos their `image:fotoshi` tag names (no key needed), and their `image` tag when it is a picture. With a [Fotoshi](https://fotoshi.com/developers) browser key in `VITE_FOTOSHI_KEY`, cards also ask Fotoshi for photos, shown first: a place's by its OSM object, anything else's (a street, a barrier, a spot) taken within 30 m. Photos are only requested once a card is open.
-
-## Deployment
-
-[docs/deployment.md](docs/deployment.md) explains step by step how to run it on one machine, or the site on GitHub Pages and the router on Google Cloud Run, and how to move it to maps.bikeottawa.ca.
-
-The `Deploy` workflow runs on every push to `main`, on `v*` tags and nightly. Each job brings the OSM data up to date (the file is carried between runs in the Actions cache).
-
-- `site` runs lint and tests, rebuilds the tiles and the app, and pushes the site image, `ghcr.io/bikeottawa/bikeottawa-maps`, with the tiles baked in.
-- `router`, alongside it, pushes the router image, `ghcr.io/bikeottawa/bikeottawa-maps-router`, with fresh routing data.
-- `deploy` publishes the site to GitHub Pages once `site` has passed, a few minutes after a push.
-
-Images are tagged `main`, or the version and `latest` for a `v*` tag. Repository variables set what the site connects to: `ROUTER_URL` (the planner works once it points at a running router), `MAPILLARY_TOKEN` and `FOTOSHI_KEY` (photos).
-
-`compose.yml` runs both images on one machine, with the site proxying `/brouter` to the router:
-
-```sh
-docker compose up -d                          # http://localhost:8080
-docker compose pull && docker compose up -d   # pick up the nightly data
-```
-
-## Scripts
-
-- `npm run dev` / `npm run build`: run or build the app
-- `npm test`: unit tests for the app (Vitest) and the pipeline (`node --test`)
-- `npm run lint` / `npm run format`: check or fix with Biome
-- `npm run typecheck`: TypeScript check of the app
-- `npm run tiles` / `npm run basemap`: rebuild the tiles
-- `npm run osm`: bring the OSM data up to date without rebuilding anything
-- `npm run collisions` / `npm run thefts` / `npm run wards`: download the city and police data again
-- `npm run construction`: fetch the City's construction forecast for the Projects layer
-- `npm run router:build` / `npm run router`: build and run the local router
-
-## Roadmap
-
-1. Editing from the map (plowed or not, parking details) saved to OpenStreetMap
-2. Planner: turn-by-turn, a gravel style, via points on touch screens
-3. Collisions in Gatineau (no open data yet), offline use
+- OpenStreetMap: [ODbL](https://www.openstreetmap.org/copyright)
+- City of Ottawa (collisions, projects, wards): Open Government Licence – Ottawa
+- Ottawa Police (thefts): Open Government Licence – Ottawa Police Service
+- Ville de Gatineau (districts) and Québec 511 (roadwork): CC BY 4.0
+- NRCan MRDEM-30 (elevation): Open Government Licence – Canada
