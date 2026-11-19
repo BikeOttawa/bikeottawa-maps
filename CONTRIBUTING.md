@@ -43,7 +43,7 @@ For the route planner, run the [local router](docs/development.md#the-router). F
    npm run format && npm run lint && npm run typecheck && npm test
    ```
 
-3. Open a pull request against `main`, with a screenshot for anything visible.
+3. Open a pull request against `main`, with a screenshot for anything visible. It needs CI to pass and one approval.
 
 A merge to `main` goes live within minutes. For bigger changes, open an issue first.
 
