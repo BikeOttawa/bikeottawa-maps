@@ -1395,11 +1395,11 @@ a {
     gap: 0;
   }
 
+  /* Against the top edge, across the screen, like the bottom sheet. */
   .topbar {
     gap: 8px;
-    margin: max(10px, env(safe-area-inset-top)) 10px 0;
-    padding: 6px;
-    border-radius: 14px;
+    padding: max(6px, env(safe-area-inset-top)) 6px 6px;
+    border-radius: 0 0 14px 14px;
     max-height: 55vh;
     overflow-y: auto;
   }

@@ -83,6 +83,16 @@ const DEFAULT_LAYER: LayerId = 'places'
 const PHONE_LAYOUT = '(max-width: 720px)'
 const ignore = () => {}
 
+/** Hash entries that belong to the Explore mode: a link with one opens there. */
+const EXPLORE_KEYS = ['layer', 'places', 'collisions', 'thefts', 'construction', 'comfort', 'pathways']
+
+/** The link's mode. Without one, phones open the route planner, unless the link shows a layer. */
+function readMode(hash: Record<string, string>): Mode {
+  if (hash.mode === 'explore' || hash.mode === 'route' || hash.mode === 'reach') return hash.mode
+  const phone = window.matchMedia(PHONE_LAYOUT).matches
+  return phone && !EXPLORE_KEYS.some((key) => key in hash) ? 'route' : 'explore'
+}
+
 function followMap(event: { currentTarget: HTMLAnchorElement }) {
   event.currentTarget.href = osmViewUrl(window.location.hash)
 }
@@ -129,7 +139,7 @@ function readUrl(): UrlState {
     construction: parseConstructionFilters(hash.construction),
     comfortPicks: parseComfortFilters(hash.comfort),
     pathways: winter ? { ...parsePathwayFilters(hash.pathways), by: 'snow' } : parsePathwayFilters(hash.pathways),
-    mode: hash.mode === 'route' || hash.mode === 'reach' ? hash.mode : 'explore',
+    mode: readMode(hash),
     points: parsePoints(hash.route),
     vias: parseVias(hash.via),
     travel: isTravel(hash.travel) ? hash.travel : 'bike',
@@ -153,7 +163,8 @@ function writeUrl(state: UrlState): void {
     ['construction', state.layer === 'construction' ? formatConstructionFilters(state.construction) : null],
     ['comfort', state.layer === 'comfort' ? formatComfortFilters(state.comfortPicks) : null],
     ['pathways', state.layer === 'pathways' ? formatPathwayFilters(state.pathways) : null],
-    ['mode', riding ? state.mode : null],
+    // Phones keep Explore in the link too, so a reload stays there.
+    ['mode', riding || window.matchMedia(PHONE_LAYOUT).matches ? state.mode : null],
     // How far starts from the route's start, so the two modes share it.
     ['route', routing ? formatPoints(state.points) : reaching ? formatPoints([state.points[0], null]) : null],
     ['via', routing ? formatVias(state.vias) : null],
