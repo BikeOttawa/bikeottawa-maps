@@ -45,7 +45,7 @@ export function StylePicker({
           {TRAVEL_MODES.map((id) => (
             <button key={id} type="button" aria-pressed={id === travel} onClick={() => onTravelChange(id)}>
               {id === 'bike' ? <BikeIcon /> : <WalkIcon />}
-              {t(`travel.${id}`)}
+              <span className="travel-label">{t(`travel.${id}`)}</span>
             </button>
           ))}
         </div>

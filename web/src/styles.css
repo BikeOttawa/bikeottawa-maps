@@ -1423,7 +1423,42 @@ a {
     display: none;
   }
 
+  /* Bike or on foot as two icons, at the start of the styles' row. */
+  .style-picker {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .travel-switch {
+    flex: none;
+    margin-bottom: 0;
+  }
+
+  .travel-switch button {
+    flex: none;
+    width: 40px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .travel-switch .icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+  }
+
+  .travel-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .style-buttons {
+    flex: 1;
+    min-width: 0;
     display: flex;
     overflow-x: auto;
     scrollbar-width: none;
@@ -1509,8 +1544,35 @@ a {
     background: #c9d0d3;
   }
 
-  .topbar.folded > :not(.topbar-row, .topbar-toggle) {
+  .topbar.folded > :not(.topbar-row, .topbar-toggle, .route-summary) {
     display: none;
+  }
+
+  /* The trip on one line while the panel is folded. */
+  .route-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .route-summary-name {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .route-summary-name.unset {
+    color: var(--muted);
   }
 
   .sheet.collapsed .sheet-body {

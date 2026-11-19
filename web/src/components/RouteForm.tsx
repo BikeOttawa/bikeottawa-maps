@@ -72,3 +72,28 @@ export function RouteForm({ points, vias, picker, onPointChange, onReverse, onVi
     </div>
   )
 }
+
+/** The trip on one line, for the folded panel on phones; a tap opens the form again. */
+export function RouteSummary({ points, onOpen }: { points: RoutePoints; onOpen: () => void }) {
+  const { t } = useI18n()
+  const end = (point: RoutePoint | null, label: string, marker: 'A' | 'B') => (
+    <>
+      <span className={`route-marker inline ${marker === 'A' ? 'start' : 'end'}`} aria-hidden="true">
+        {marker}
+      </span>
+      <span className={`route-summary-name ${point ? '' : 'unset'}`}>
+        <span className="visually-hidden">
+          {label}
+          {t('colon')}
+        </span>
+        {point ? (point.label ?? t('pin')) : label}
+      </span>
+    </>
+  )
+  return (
+    <button type="button" className="route-summary" aria-expanded={false} onClick={onOpen}>
+      {end(points[0], t('from'), 'A')}
+      {end(points[1], t('to'), 'B')}
+    </button>
+  )
+}

@@ -20,7 +20,7 @@ import { type Mode, ModeSwitch } from './components/ModeSwitch'
 import { PlaceInput } from './components/PlaceInput'
 import { ReachForm } from './components/ReachForm'
 import { formatArea, ReachResult } from './components/ReachResult'
-import { RouteForm } from './components/RouteForm'
+import { RouteForm, RouteSummary } from './components/RouteForm'
 import { RouteResult } from './components/RouteResult'
 import { LayerPeek, ReachPeek, RoutePeek } from './components/SheetPeek'
 import { TheftCard } from './components/TheftCard'
@@ -472,6 +472,14 @@ export function App() {
   // Both need a router; without one their page only says so.
   const planning = mode === 'route' && ROUTER_URL !== null
   const reaching = mode === 'reach' && ROUTER_URL !== null
+  // On phones the panel folds once both ends are set, to leave the route the screen.
+  // Only new ends fold it: changing the style keeps it open.
+  const ends = JSON.stringify([points[0]?.lngLat, points[1]?.lngLat, vias])
+  const bothEnds = planning && points[0] !== null && points[1] !== null
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only new ends fold it
+  useEffect(() => {
+    if (phone && bothEnds) setTopOpen(false)
+  }, [ends])
   const routeHighlight = planning ? (pointedPart ?? pinnedPart) : null
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
@@ -1109,6 +1117,7 @@ export function App() {
               onReverse={() => update({ points: [points[1], points[0]], vias: [...vias].reverse() })}
             />
           )}
+          {phone && planning && !topOpen && <RouteSummary points={points} onOpen={() => setTopOpen(true)} />}
           {/* On phones the panel folds down to the mode switch, to leave the map room. */}
           {phone && (
             <button
