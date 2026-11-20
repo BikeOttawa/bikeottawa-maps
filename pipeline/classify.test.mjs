@@ -187,6 +187,23 @@ test('beaches need a name; swimming spots count as beaches', () => {
   assert.equal(classifyPlace({ leisure: 'swimming_area' }).props.kind, 'beach')
 })
 
+test('artwork takes in statues, war memorials and named monuments, not plaques or ghost bikes', () => {
+  const art = (tags) => classifyPlace(tags)?.props
+  assert.equal(art({ tourism: 'artwork', artwork_type: 'mural', artist_name: 'X' }).art, 'mural')
+  assert.equal(art({ tourism: 'artwork', artist_name: 'X' }).artist_name, 'X')
+  assert.equal('art' in art({ tourism: 'artwork' }), false)
+  assert.equal(art({ historic: 'memorial', memorial: 'war_memorial' }).art, 'war_memorial')
+  assert.equal(art({ historic: 'memorial', memorial: 'statue', tourism: 'artwork' }).art, 'statue')
+  assert.equal(art({ historic: 'memorial', name: 'Stittsville Cenotaph' }).art, 'memorial')
+  assert.equal(art({ historic: 'memorial' }), undefined)
+  assert.equal(art({ historic: 'memorial', memorial: 'plaque', name: 'Roy Brown' }), undefined)
+  assert.equal(art({ historic: 'memorial', memorial: 'ghost_bike' }), undefined)
+  assert.equal(art({ historic: 'monument', name: 'National War Memorial' }).art, 'monument')
+  assert.equal(art({ historic: 'monument', 'building:part': 'yes' }), undefined)
+  // A bench in memory of someone is a bench.
+  assert.equal(art({ amenity: 'bench', historic: 'memorial', memorial: 'bench' }).kind, 'bench')
+})
+
 test('stations say what runs through them and whether they are still being built', () => {
   const light = { railway: 'station', station: 'light_rail', light_rail: 'yes', wheelchair: 'yes' }
   assert.deepEqual(classifyPlace(light).props, { kind: 'station', wheelchair: 'yes', station: 'light_rail' })

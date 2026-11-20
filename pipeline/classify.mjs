@@ -226,6 +226,11 @@ export function classifyWay(tags) {
 }
 
 const hasName = (tags) => Boolean(tags.name)
+// Memorials nobody stops to look at: plaques, benches, trees. A ghost bike
+// marks where a cyclist was killed: it is no artwork.
+const UNSEEN_MEMORIALS = new Set(['plaque', 'blue_plaque', 'bench', 'tree', 'stolperstein', 'ghost_bike'])
+/** Statues, busts, cenotaphs and the like; a memorial of no stated type when it has a name. */
+const isSight = (tags) => (tags.memorial ? !UNSEEN_MEMORIALS.has(tags.memorial) : hasName(tags))
 const USEFUL_DEPARTMENT_STORES = /canadian tire|giant tiger|tigre géant|walmart/i
 
 /**
@@ -249,6 +254,10 @@ const PLACE_KINDS = [
   ['leisure', 'picnic_table', 'picnic', 12],
   ['amenity', 'bbq', 'bbq', 9],
   ['tourism', 'viewpoint', 'viewpoint', 9],
+  ['tourism', 'artwork', 'artwork', 9],
+  ['historic', 'memorial', 'artwork', 9, isSight],
+  // Unnamed monuments are mostly the parts of one, mapped for 3D.
+  ['historic', 'monument', 'artwork', 9, hasName],
   ['playground', 'splash_pad', 'splash', 9],
   ['leisure', 'splash_pad', 'splash', 9],
   // Unnamed beaches are strips of sand, not places to stop.
@@ -309,6 +318,7 @@ const PLACE_TAGS = [
   'phone',
   'website',
   'operator',
+  'artist_name',
   'wheelchair',
   'barrier',
   'maxwidth:physical',
@@ -330,7 +340,19 @@ export function classifyPlace(tags) {
   const [, , kind, minzoom] = match
   const props = pick(tags, PLACE_TAGS, { kind })
   if (kind === 'station') Object.assign(props, stationProps(tags))
+  if (kind === 'artwork') {
+    const art = artType(tags)
+    if (art) props.art = art
+  }
   return { props, minzoom, line: LINE_KINDS.has(kind) }
+}
+
+/** What an artwork is: a sculpture, a mural, a war memorial, a monument. */
+function artType(tags) {
+  if (tags.artwork_type) return tags.artwork_type
+  if (tags.historic === 'memorial') return tags.memorial ?? 'memorial'
+  if (tags.historic === 'monument') return 'monument'
+  return undefined
 }
 
 const STATION_TYPES = ['light_rail', 'subway', 'tram', 'train']

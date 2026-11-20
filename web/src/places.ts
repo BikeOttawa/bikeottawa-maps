@@ -29,6 +29,7 @@ import bench from '@rapideditor/temaki/icons/bench.svg?raw'
 import bicycleParked from '@rapideditor/temaki/icons/bicycle_parked.svg?raw'
 import bicycleRepair from '@rapideditor/temaki/icons/bicycle_repair.svg?raw'
 import splashPad from '@rapideditor/temaki/icons/splash_pad.svg?raw'
+import statue from '@rapideditor/temaki/icons/statue.svg?raw'
 import tire from '@rapideditor/temaki/icons/tire.svg?raw'
 
 export const PLACE_GROUP_IDS = ['cycling', 'facilities', 'rest', 'food', 'shops', 'connections'] as const
@@ -62,6 +63,7 @@ const DEFS = {
   picnic: { group: 'rest', svg: picnicSite },
   bbq: { group: 'rest', svg: bbq },
   viewpoint: { group: 'rest', svg: viewpoint },
+  artwork: { group: 'rest', svg: statue },
   splash: { group: 'rest', svg: splashPad },
   beach: { group: 'rest', svg: beach },
   camping: { group: 'rest', svg: campsite },

@@ -12,6 +12,7 @@
 ### Places
 
 - Kinds and groups in `web/src/places.ts`, loaded from `tiles/places/<kind>.json`.
+- Artwork: `tourism=artwork`, `historic=memorial` but for plaques, benches, trees and ghost bikes, and named `historic=monument`.
 - Merged per group into circles sized by count; from zoom 15 each place has its own marker and card.
 
 ### Pathways

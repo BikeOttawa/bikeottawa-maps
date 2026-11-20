@@ -25,6 +25,7 @@ import { CardPhoto } from './PlacePhoto'
 const WAY_FACTS = ['surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'] as const
 const PLACE_FACTS = [
   'description',
+  'artist_name',
   'bicycle_parking',
   'capacity',
   'covered',
@@ -88,11 +89,11 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
   const { t, lang } = useI18n()
   const { props } = selected
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
-  // Stations say what runs through them; the legend keeps the one word for all.
-  const stationKey = `station.${props.station}`
+  // Stations say what runs through them, artworks what they are; the legend keeps the one word for all.
+  const typeKey = props.kind === 'artwork' ? `art.${props.art}` : `station.${props.station}`
   const kindKey =
-    selected.kind === 'place' && isMessageKey(stationKey)
-      ? stationKey
+    selected.kind === 'place' && isMessageKey(typeKey)
+      ? typeKey
       : `${selected.kind === 'way' ? 'kind' : 'place'}.${props.kind}`
   const kindLabel = (selected.kind === 'way' && wayType(props, t)) || (isMessageKey(kindKey) ? t(kindKey) : '')
   const name = typeof props.name === 'string' ? props.name : null
