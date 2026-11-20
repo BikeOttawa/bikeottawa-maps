@@ -7,7 +7,7 @@
     "pipeline"
   ],
   "scripts": {
-    "dev": "npm run dev -w web",
+    "dev": "npm run dev -w web --",
     "build": "npm run build -w web",
     "test": "npm test --workspaces",
     "typecheck": "npm run typecheck -w web",

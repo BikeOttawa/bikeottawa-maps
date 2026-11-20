@@ -23,6 +23,7 @@ Repository variables (Settings → Secrets and variables → Actions → Variabl
 - `ROUTER_URL`: the router's address, ending in `/brouter`. Without it the planner says no routing server is connected.
 - `MAPILLARY_TOKEN`: a Mapillary client token, for street-level photos. Without it cards link to the photos instead.
 - `FOTOSHI_KEY`: a Fotoshi browser key, approved by Fotoshi for the site's address, for more photos on cards. Without it cards show only the Fotoshi photos tagged in OSM.
+- `OSM_CLIENT_ID`: the client ID of an OAuth 2 app on openstreetmap.org, for editing from cards. Without it cards offer notes only. Any maintainer's account can own it: it only manages the app, and edits are each person's own. Register it in My Settings → OAuth 2 applications: name "BikeOttawa Maps", redirect URI `https://maps.bikeottawa.ca/land.html`, not confidential, permissions "Read user preferences", "Modify the map" and "Modify notes".
 
 The site image does not use them: it reaches its router at `/brouter` on its own address, and has no Mapillary token, so its cards link to the photos.
 

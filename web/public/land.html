@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Ottawa Maps</title>
+<script>
+  // Back from OpenStreetMap's sign-in (src/osmAuth.ts). The map went there in
+  // this window, or opened this one as a popup: hand it the answer. OSM cuts a
+  // popup off from the map, so it closes itself.
+  try {
+    var answer = new URLSearchParams(location.search)
+    var pending = JSON.parse(sessionStorage.getItem('osm-auth-pending') || 'null')
+    if (pending && pending.state === answer.get('state')) {
+      sessionStorage.setItem('osm-auth-answer', location.search)
+      location.replace(pending.back)
+    } else {
+      new BroadcastChannel('osm-auth').postMessage(location.search)
+      setTimeout(function () { window.close() }, 200)
+    }
+  } catch (e) {}
+</script>
+<p style="margin: 2em; font: 16px system-ui, sans-serif">You can close this window. · Vous pouvez fermer cette fenêtre.</p>
+</html>

@@ -34,3 +34,10 @@ export const DATA_BASE: string = new URL(import.meta.env.BASE_URL, window.locati
 export const ROUTER_URL: string | null = import.meta.env.VITE_ROUTER_URL
   ? new URL(import.meta.env.VITE_ROUTER_URL, window.location.href).href
   : null
+
+/** OpenStreetMap, which cards edit and leave notes on: the real map, there is no other. */
+export const OSM_URL = 'https://www.openstreetmap.org'
+export const OSM_API = 'https://api.openstreetmap.org/api/0.6'
+
+/** The OAuth 2 app registered on openstreetmap.org for this site. Cards offer no editing without one; notes need none. */
+export const OSM_CLIENT_ID: string | null = import.meta.env.VITE_OSM_CLIENT_ID || null

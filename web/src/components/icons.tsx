@@ -20,6 +20,19 @@ function Icon({ children }: { children: ReactNode }) {
   )
 }
 
+export const EditIcon = () => (
+  <Icon>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="m13 7 4 4" />
+  </Icon>
+)
+
+export const NoteIcon = () => (
+  <Icon>
+    <path d="M5 21V4h12l-2.5 4.5L17 13H5" />
+  </Icon>
+)
+
 export const ExploreIcon = () => (
   <Icon>
     <circle cx="12" cy="12" r="9" />

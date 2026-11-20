@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { MAPILLARY_TOKEN, REGION } from '../config'
+import { editKind } from '../editFields'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
 import {
@@ -16,6 +18,7 @@ import { formatLength, type KnownSurfaceId, widthBand } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
 import { isPlaceKind } from '../places'
 import { wayType } from '../wayType'
+import { CardEdits } from './CardEdits'
 import { OTHER } from './GroupBars'
 import { DirectionsIcon } from './icons'
 import { OsmTags } from './OsmTags'
@@ -55,6 +58,9 @@ function formatValue(key: string, value: unknown, t: Translate): string {
   if (text === 'yes' || text === 'no' || text === 'limited') return t(text)
   if (key === 'width' && /^[\d.]+$/.test(text)) return `${text} m`
   if (key === 'maxspeed' && /^\d+$/.test(text)) return `${text} km/h`
+  // Named as the edit form names it (see editFields.ts).
+  const name = `tag.${key}.${text}`
+  if (isMessageKey(name)) return t(name)
   return text.replaceAll('_', ' ').replaceAll(';', ', ')
 }
 
@@ -88,6 +94,8 @@ interface Props {
 export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
   const { t, lang } = useI18n()
   const { props } = selected
+  // Each save fetches the live tags again.
+  const [saves, setSaves] = useState(0)
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
   // Stations say what runs through them, artworks what they are; the legend keeps the one word for all.
   const typeKey = props.kind === 'artwork' ? `art.${props.art}` : `station.${props.station}`
@@ -270,6 +278,15 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
           )}
         </dl>
       )}
+      {id && (
+        <CardEdits
+          key={`${type}/${id}`}
+          path={`${type}/${id}`}
+          at={selected.at}
+          edit={editKind(selected.kind, props)}
+          onSaved={() => setSaves((n) => n + 1)}
+        />
+      )}
       <p className="feature-links">
         <span>
           {t('viewIn')}{' '}
@@ -296,7 +313,7 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
           </a>
         )}
       </p>
-      {id && <OsmTags key={`${type}/${id}`} path={`${type}/${id}`} />}
+      {id && <OsmTags key={`${type}/${id}/${saves}`} path={`${type}/${id}`} />}
     </section>
   )
 }

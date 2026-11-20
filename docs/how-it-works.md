@@ -70,6 +70,14 @@
   - speed limits for walking too.
 - The area reached is a 25 m grid: cells the ways pass through plus those they enclose. Places picked on the Places layer within 50 m are counted.
 
+## Editing
+
+- Cards of paths, streets and most places set a few common tags in OSM, as the person signed in: for pathways surface, width, smoothness, lighting and snow clearing; for streets speed limit, lanes, surface, smoothness and lighting (`web/src/editFields.ts`). A tag is never removed.
+- Sign-in is OAuth 2 with PKCE, in a popup that comes back to `land.html` (`web/src/osmAuth.ts`). Installed apps go to OSM and back in the same window instead.
+- Edits go in one changeset per visit, tagged `created_by=BikeOttawa Maps` and `#BikeOttawa`, its comment listing the tags set. Someone else's edit in between reloads the form.
+- Every card can leave an OSM note at the spot, anonymous without a sign-in.
+- `VITE_OSM_CLIENT_ID` turns editing on. Edits go to the real OSM, also from a local run.
+
 ## Photos
 
 Requested only when a card opens.

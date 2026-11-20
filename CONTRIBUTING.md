@@ -32,7 +32,7 @@ npm run tiles         # first run downloads 2.2 GB of OSM extracts
 npm run dev
 ```
 
-For the route planner, run the [local router](docs/development.md#the-router). For photos, put a Mapillary token in `web/.env.development.local`. More in [development.md](docs/development.md).
+For the route planner, run the [local router](docs/development.md#the-router). For photos, put a Mapillary token in `web/.env.development.local`. For editing from cards, add the redirect URI `http://127.0.0.1:5173/land.html` to the site's OAuth 2 app on openstreetmap.org (or register your own), put its client ID there as `VITE_OSM_CLIENT_ID`, run `npm run dev -- --host 127.0.0.1` and open http://127.0.0.1:5173: OSM takes plain `http` only for 127.0.0.1, not `localhost`. Edits go to the real map. More in [development.md](docs/development.md).
 
 ### Make the change
 

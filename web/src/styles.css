@@ -2428,3 +2428,130 @@ a {
   margin-right: 5px;
   vertical-align: -1px;
 }
+
+/* Under a card: fixing its details in OSM, or leaving a note. */
+.card-edit-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-edit-open {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-edit-open:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.card-edit-buttons .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.card-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.card-edit h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.card-edit-fields {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.card-edit-fields label {
+  display: contents;
+}
+
+.card-edit-name {
+  color: var(--muted);
+}
+
+.card-edit select,
+.card-edit textarea {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.card-edit textarea {
+  resize: vertical;
+}
+
+.card-edit-action {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-edit-action.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.card-edit-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.card-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.card-edit-error {
+  margin: 0;
+  font-size: 13px;
+  color: #a3341f;
+}
+
+.card-edit-done {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #1e7a3c;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  text-decoration: underline;
+}

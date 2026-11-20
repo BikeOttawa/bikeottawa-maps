@@ -47,8 +47,11 @@ export default defineConfig({
         globIgnores: ['tiles/**', 'data/**', 'basemap-assets/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
-        // The old site's paths go to their own pages, not to the app.
-        navigateFallbackDenylist: [new RegExp(`/(${Object.keys(OLD_PAGES).join('|')})(/(index\\.html)?)?(\\?|$)`)],
+        // The old site's paths go to their own pages, not to the app; so does the way back from OSM's sign-in.
+        navigateFallbackDenylist: [
+          new RegExp(`/(${Object.keys(OLD_PAGES).join('|')})(/(index\\.html)?)?(\\?|$)`),
+          /\/land\.html(\?|$)/,
+        ],
         runtimeCaching: [
           {
             // Basemap fonts and icons: kept once fetched, refreshed in the background.
