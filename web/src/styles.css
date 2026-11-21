@@ -715,6 +715,11 @@ a {
   flex: none;
 }
 
+/* The modes: each as wide as its label plus an equal share of the room left, so the longest is not the tightest. */
+.modes .mode-button {
+  flex: 1 1 auto;
+}
+
 /* Narrow phones: smaller icons, and the smallest fit the labels only. */
 @media (max-width: 400px) {
   .mode-switch button {

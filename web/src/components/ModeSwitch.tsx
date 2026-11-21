@@ -13,11 +13,17 @@ interface Props {
 export function ModeSwitch({ mode, onChange }: Props) {
   const { t } = useI18n()
   return (
-    <div className="mode-switch">
+    <div className="mode-switch modes">
       {(['explore', 'route', 'reach'] as const).map((id) => {
         const Icon = ICONS[id]
         return (
-          <button key={id} type="button" aria-pressed={id === mode} onClick={() => onChange(id)}>
+          <button
+            key={id}
+            type="button"
+            className="mode-button"
+            aria-pressed={id === mode}
+            onClick={() => onChange(id)}
+          >
             <Icon />
             {t(`mode.${id}`)}
           </button>
