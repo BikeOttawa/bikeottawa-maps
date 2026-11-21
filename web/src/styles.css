@@ -2555,3 +2555,25 @@ a {
   font-size: inherit;
   text-decoration: underline;
 }
+
+/* The route's stops on or off: only while a route is shown, greyed when off. */
+.route-stops-ctrl:empty {
+  display: none;
+}
+
+/* Over MapLibre's `.maplibregl-ctrl-group button`, which sets display: block. */
+.route-stops-ctrl .route-stops-button {
+  display: grid;
+  place-items: center;
+}
+
+/* The route card's 16 px icon, a size up to sit with the other buttons' icons. */
+.route-stops-button > svg {
+  width: 21px;
+  height: 21px;
+}
+
+.route-stops-button[aria-pressed="false"] > svg {
+  filter: grayscale(1);
+  opacity: 0.45;
+}

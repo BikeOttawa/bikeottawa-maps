@@ -481,6 +481,8 @@ export function App() {
     if (phone && bothEnds) setTopOpen(false)
   }, [ends])
   const routeHighlight = planning ? (pointedPart ?? pinnedPart) : null
+  // A route's stops crowd a phone's screen: there they wait for the map button.
+  const [routeStops, setRouteStops] = useState(() => !window.matchMedia(PHONE_LAYOUT).matches)
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
   const closures = useClosures(roadwork || (planning && travel === 'bike'), lang)
@@ -853,6 +855,7 @@ export function App() {
       routeOthers: plannedRoutes.flatMap((other, i) => (i === choice ? [] : [{ route: other, choice: i }])),
       routeOthersDim: routeClose,
       routeHighlight,
+      routeStops,
       routeView: routeColoured,
       routeOnFoot: travel === 'foot',
       reach: reachStyle,
@@ -883,6 +886,7 @@ export function App() {
       choice,
       routeClose,
       routeHighlight,
+      routeStops,
       routeColoured,
       travel,
       reachStyle,
@@ -1060,6 +1064,7 @@ export function App() {
         onWardsChange={setWards}
         onRoadworkChange={setRoadwork}
         onLightsChange={setLights}
+        onRouteStopsChange={setRouteStops}
         routing={mapRouting}
         reach={reachShape}
         found={routing ? null : (found?.lngLat ?? null)}

@@ -16,6 +16,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { BasemapSwitch } from '../components/BasemapSwitch'
+import { RouteStopsSwitch } from '../components/RouteStopsSwitch'
 import { ASSETS_BASE, REGION } from '../config'
 import type { BasemapId } from '../layers'
 import { isPlaceKind, placeImageId } from '../places'
@@ -71,6 +72,7 @@ interface Props {
   onWardsChange: (on: boolean) => void
   onRoadworkChange: (on: boolean) => void
   onLightsChange: (on: boolean) => void
+  onRouteStopsChange: (on: boolean) => void
   /** Details of the selection, shown in a popup beside it. Null where they go elsewhere (phones). */
   popup: ReactNode | null
   /** How far you get, drawn when the style has a reach source. */
@@ -148,6 +150,7 @@ export function MapView({
   onWardsChange,
   onRoadworkChange,
   onLightsChange,
+  onRouteStopsChange,
   popup,
   reach,
   found,
@@ -164,6 +167,7 @@ export function MapView({
   const profile = useMemo(() => (state.route ? routeProfile(state.route.coords) : []), [state.route])
   // Home of the map-style switcher, placed by MapLibre among its own controls.
   const [styleControl, setStyleControl] = useState<HTMLElement | null>(null)
+  const [stopsControl, setStopsControl] = useState<HTMLElement | null>(null)
   // The popup's content element lives as long as the map view; React renders into it.
   const popupElement = useMemo(() => document.createElement('div'), [])
   const popupRef = useRef<Popup | null>(null)
@@ -204,6 +208,11 @@ export function MapView({
     switcher.className = 'maplibregl-ctrl maplibregl-ctrl-group basemap-ctrl'
     map.addControl({ onAdd: () => switcher, onRemove: () => switcher.remove() }, 'top-right')
     setStyleControl(switcher)
+    // Under it, while a route is shown: its stops on or off. Empty, it is hidden.
+    const stops = document.createElement('div')
+    stops.className = 'maplibregl-ctrl maplibregl-ctrl-group route-stops-ctrl'
+    map.addControl({ onAdd: () => stops, onRemove: () => stops.remove() }, 'top-right')
+    setStopsControl(stops)
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left')
 
     // Markers are drawn the first time a style asks for them; a style rebuilt
@@ -688,6 +697,9 @@ export function MapView({
           />,
           styleControl,
         )}
+      {stopsControl &&
+        state.route &&
+        createPortal(<RouteStopsSwitch on={state.routeStops ?? true} onChange={onRouteStopsChange} />, stopsControl)}
       {popup && createPortal(popup, popupElement)}
     </>
   )

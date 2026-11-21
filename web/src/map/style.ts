@@ -120,6 +120,8 @@ export interface StyleState {
   routeOthersDim?: boolean
   /** Legend item to pick out on the route, the rest of it stepping back. */
   routeHighlight: RouteHighlight | null
+  /** Stop signs, traffic lights, barriers and roadwork on the route. Off, only the kind picked out shows. */
+  routeStops?: boolean
   /** What the route line is coloured by; comfort when not given. */
   routeView?: RouteView
   /** A walking route is one colour; cycling comfort means nothing on foot. */
@@ -416,6 +418,7 @@ function routeLayers(
   highlight: RouteHighlight | null,
   onFoot: boolean,
   dimOthers: boolean,
+  stops: boolean,
 ): LayerSpecification[] {
   const round = { 'line-cap': 'round' as const, 'line-join': 'round' as const }
   // With something picked out, everything else on the route fades so it is easy to find.
@@ -484,6 +487,7 @@ function routeLayers(
       id: 'route-stops',
       type: 'symbol',
       source: 'route-stops',
+      ...(!stops && { filter: ['==', ['get', 'kind'], highlight ?? ''] }),
       // Too many to show from far out, unless they are what is being looked for.
       minzoom: (STOP_KINDS as readonly string[]).includes(highlight ?? '') ? 0 : 12,
       layout: {
@@ -1731,7 +1735,13 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...collisions.under,
       ...thefts.under,
       ...construction.under,
-      ...routeLayers(theme, state.routeHighlight, state.routeOnFoot ?? false, state.routeOthersDim ?? false),
+      ...routeLayers(
+        theme,
+        state.routeHighlight,
+        state.routeOnFoot ?? false,
+        state.routeOthersDim ?? false,
+        state.routeStops ?? true,
+      ),
       ...base.slice(at),
       ...reachLabelLayers(state.reach, state.basemap, theme),
       ...routeLabelLayers(state, theme),

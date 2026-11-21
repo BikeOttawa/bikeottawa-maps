@@ -670,6 +670,7 @@ const en = {
   walk: 'Walk your bike',
   stopSigns: 'Stop signs',
   trafficLights: 'Traffic lights',
+  routeStops: 'Stops and barriers on the route',
   barriers: 'Barriers',
   barriersHint:
     'Bollards, gates, chicanes, raised kerbs: most let a bike through, but they can be tight with a cargo bike or a trailer.',
@@ -1400,6 +1401,7 @@ const fr: Record<keyof typeof en, string> = {
   walk: 'Vélo à la main',
   stopSigns: 'Arrêts',
   trafficLights: 'Feux',
+  routeStops: 'Arrêts et obstacles du trajet',
   barriers: 'Barrières',
   barriersHint:
     'Bornes, barrières, chicanes, bordures hautes : on passe d’habitude, mais c’est parfois serré en vélo-cargo ou avec une remorque.',
