@@ -1064,7 +1064,7 @@ const WARDS_ATTRIBUTION =
 
 /**
  * Ward and district boundaries, dashed, with each ward's name and councillor
- * at a spot well inside it (worked out by pipeline/fetch-wards.mjs).
+ * at a spot well inside it (worked out by the region's pipeline/fetch-wards.mjs).
  */
 function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecification[]; labels: LayerSpecification[] } {
   if (!state.wards) return { lines: [], labels: [] }

@@ -39,7 +39,7 @@ import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
-import { REGION } from './region'
+import { hasCityData, REGION } from './region'
 import type { RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight, RouteStop } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
@@ -228,8 +228,9 @@ function rememberReachView(view: ReachView) {
   }
 }
 
-/** The roadwork overlay: off unless turned on, remembered per browser. */
+/** The roadwork overlay, where the region has it: off unless turned on, remembered per browser. */
 function storedRoadwork(): boolean {
+  if (!hasCityData('roadwork')) return false
   try {
     return localStorage.getItem(ROADWORK_KEY) === 'on'
   } catch {
@@ -268,8 +269,9 @@ function rememberLights(on: boolean) {
   }
 }
 
-/** The wards overlay: off unless turned on, remembered per browser. */
+/** The wards overlay, where the region has it: off unless turned on, remembered per browser. */
 function storedWards(): boolean {
+  if (!hasCityData('wards')) return false
   try {
     return localStorage.getItem(WARDS_KEY) === 'on'
   } catch {
@@ -485,7 +487,7 @@ export function App() {
   const [routeStops, setRouteStops] = useState(() => !window.matchMedia(PHONE_LAYOUT).matches)
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
-  const closures = useClosures(roadwork || (planning && travel === 'bike'), lang)
+  const closures = useClosures(hasCityData('roadwork') && (roadwork || (planning && travel === 'bike')), lang)
   const plannedRoutes = planning ? visibleRoutes(routeState) : []
   // The route chosen holds for the trip it was chosen on: new points or another style start from the best.
   const trip = JSON.stringify([points.map((p) => p?.lngLat), vias, profile])

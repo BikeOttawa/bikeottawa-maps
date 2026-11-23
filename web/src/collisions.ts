@@ -6,7 +6,7 @@ import { SEASONS, seasonOf } from './seasons'
 
 /**
  * Traffic collisions involving cyclists or pedestrians, from the City of
- * Ottawa's open data (pipeline/fetch-collisions.mjs writes public/data/collisions.geojson).
+ * Ottawa's open data (the region's pipeline/fetch-collisions.mjs writes its data/collisions.geojson).
  */
 
 /** Worst injury in the collision, least to most severe. */

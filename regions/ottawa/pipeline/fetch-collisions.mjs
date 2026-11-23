@@ -1,6 +1,6 @@
 // Downloads the City of Ottawa's traffic collisions that involve a cyclist or a
 // pedestrian and writes them, trimmed to what the map shows, to
-// web/public/data/collisions.geojson. The file is committed; run this again
+// the region's data/collisions.geojson. The file is committed; run this again
 // (npm run collisions) when the city publishes a new year, usually each summer.
 // Data: Open Government Licence – Ottawa.
 
@@ -9,7 +9,7 @@ import { withoutCopies } from './collisions.mjs'
 
 const SERVICE =
   'https://services.arcgis.com/G6F8XLCl5KtAlZ2G/arcgis/rest/services/Traffic_Collisions_by_Location_2017-2024_(excluding_2023)/FeatureServer/0'
-const OUT = new URL('../web/public/data/collisions.geojson', import.meta.url)
+const OUT = new URL('../data/collisions.geojson', import.meta.url)
 const PAGE = 1000
 
 /** "02 - Non-fatal injury" → "Non-fatal injury"; the city's codes carry a number in front. */

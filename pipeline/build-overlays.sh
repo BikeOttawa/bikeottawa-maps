@@ -71,11 +71,12 @@ tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
 OSM_TIMESTAMP="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$REGION")"
 printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s,"comfort":%s}\n' "$OSM_TIMESTAMP" \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(cat "$WORK/pathways.json")" "$(cat "$WORK/comfort.json")" > "$OUT/meta.json"
-# The City's construction forecast, when the region shows the construction
-# layer (its cityLayers). Its server being down leaves that layer empty for a
-# day rather than failing the build.
-if node regions/region.mjs cityLayers 2>/dev/null | tr ',' '\n' | grep -qx construction; then
-  node pipeline/fetch-construction.mjs "$OUT" || echo "construction: not fetched; the layer stays empty"
+# The city's construction forecast, when the region has one (its cityData),
+# fetched by the region's own script. Its server being down leaves that layer
+# empty for a day rather than failing the build.
+if node regions/region.mjs cityData 2>/dev/null | tr ',' '\n' | grep -qx construction; then
+  node "$(node regions/region.mjs dir)/pipeline/fetch-construction.mjs" "$OUT" ||
+    echo "construction: not fetched; the layer stays empty"
 else
   rm -f "$OUT/construction.geojson"
 fi

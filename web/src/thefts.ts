@@ -7,7 +7,7 @@ import { SEASONS, seasonOf } from './seasons'
 
 /**
  * Bikes reported stolen to the Ottawa Police Service, from its open data
- * (pipeline/fetch-thefts.mjs writes public/data/thefts.geojson). The police
+ * (the region's pipeline/fetch-thefts.mjs writes its data/thefts.geojson). The police
  * place each theft at the nearest intersection, so thefts gather at them.
  */
 

@@ -33,9 +33,16 @@ export function loadRegion() {
   return { id, dir, region: JSON.parse(readFileSync(`${dir}region.json`, 'utf8')) }
 }
 
-/** The region's brand files, served at the top of the site: file name → contents. */
-export function brandFiles(dir) {
-  return Object.fromEntries(readdirSync(`${dir}brand`).map((name) => [name, readFileSync(`${dir}brand/${name}`)]))
+/**
+ * The region's files the site serves as they are: its brand at the top of the
+ * site, its data under data/. Path on the site → contents.
+ */
+export function siteFiles(dir) {
+  const files = (folder, under) =>
+    existsSync(`${dir}${folder}`)
+      ? readdirSync(`${dir}${folder}`).map((name) => [`${under}${name}`, readFileSync(`${dir}${folder}/${name}`)])
+      : []
+  return Object.fromEntries([...files('brand', ''), ...files('data', 'data/')])
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

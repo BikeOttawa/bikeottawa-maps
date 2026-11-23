@@ -20,11 +20,12 @@ mkdir -p "$OUT/profiles"
 cp "$(node regions/region.mjs dir)"/profiles/*.brf "$OUT/profiles/"
 node regions/region.mjs profiles.bike > "$OUT/bike-profile"
 
-# Elevation is NRCan's MRDEM-30: bare ground (no trees or roofs), from lidar
-# around Ottawa–Gatineau. It is resampled to 1-arcsecond .hgt tiles, the finest
-# BRouter reads; SRTM fills in outside Canada. GDAL runs from its Docker image.
+# Elevation is SRTM, under the region's own finer raster where it names one
+# (its elevation: for Ottawa NRCan's MRDEM-30, bare ground with no trees or
+# roofs, from lidar). It is resampled to 1-arcsecond .hgt tiles, the finest
+# BRouter reads. GDAL runs from its Docker image.
 GDAL_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-3.13.3
-MRDEM=/vsicurl/https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif
+FINER="$(node regions/region.mjs elevation 2>/dev/null || true)"
 SRTM="${SRTM_DIR:-.cache/elevation}"
 mkdir -p "$SRTM"
 
@@ -41,12 +42,12 @@ node -e "
       curl -fsSL --retry 3 "https://s3.amazonaws.com/elevation-tiles-prod/skadi/${tile:0:3}/$tile.hgt.gz" | gunzip > "$SRTM/$tile.hgt"
     # A tile's 3601 x 3601 points sit on whole arcseconds, edges included.
     edges="$(node -p "const h=1/7200; [$lon-h, $lat-h, $lon+1+h, $lat+1+h].join(' ')")"
-    # Later sources win: MRDEM over SRTM wherever MRDEM has data.
+    # Later sources win: the finer raster over SRTM wherever it has data.
     docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/w" -w /w \
       -e GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR -e GDAL_PAM_ENABLED=NO -e CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif \
       "$GDAL_IMAGE" sh -ec "
         gdalwarp -q -overwrite -t_srs EPSG:4326 -te $edges -ts 3601 3601 -r bilinear \
-          -ot Float32 -dstnodata -32768 '$SRTM/$tile.hgt' '$MRDEM' /tmp/tile.tif
+          -ot Float32 -dstnodata -32768 '$SRTM/$tile.hgt' ${FINER:+'/vsicurl/$FINER'} /tmp/tile.tif
         gdal_translate -q -of SRTMHGT -ot Int16 /tmp/tile.tif '$OUT/elevation/$tile.hgt'"
   done
 ls -lh "$OUT/region.osm.pbf"

@@ -5,7 +5,7 @@ import { type Lang, translator } from './i18n'
 
 /**
  * Construction: the City of Ottawa's forecast of capital works, roads, sewers,
- * cycling, bridges, transit, for the Projects layer (pipeline/fetch-construction.mjs
+ * cycling, bridges, transit, for the Projects layer (the region's pipeline/fetch-construction.mjs
  * writes tiles/construction.geojson each night); and the closures on its
  * traffic map right now, fetched live, for the Roadwork overlay.
  */

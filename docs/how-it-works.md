@@ -9,7 +9,7 @@
 
 ## Layers
 
-Collisions, Thefts and Projects come from the city's own data, not OSM. The region's `cityLayers` names those the site shows; without it, none.
+Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, and its `pipeline/` fetches them; without it, none.
 
 ### Places
 
@@ -35,13 +35,13 @@ Collisions, Thefts and Projects come from the city's own data, not OSM. The regi
 
 - City of Ottawa, involving a cyclist or a pedestrian, 2017 to 2024 (2023 is missing from the city's data).
 - Filters: years (slider and monthly timeline), who, severity, circumstances, least collisions per spot. Once something is picked, ticks mark each group's share before the pick.
-- `npm run collisions` → `web/public/data/collisions.geojson` (committed). Records listed twice are dropped.
+- `npm run collisions` → `regions/ottawa/data/collisions.geojson` (committed). Records listed twice are dropped.
 
 ### Thefts
 
 - Ottawa Police, bikes stolen 2018 to 2025, placed at intersections. Heat map zoomed out.
 - Filters: year, where taken from, time of day, season, kind of bike, value, recovered, least thefts or value per intersection.
-- `npm run thefts` → `web/public/data/thefts.geojson` (committed). Keeps stolen and recovered bikes only; no e-scooters, no copies.
+- `npm run thefts` → `regions/ottawa/data/thefts.geojson` (committed). Keeps stolen and recovered bikes only; no e-scooters, no copies.
 
 ### Projects
 
@@ -53,7 +53,7 @@ Collisions, Thefts and Projects come from the city's own data, not OSM. The regi
 
 - **Bike lanes** (on): cycle tracks and pathways dark green, painted lanes dashed, shared lanes dotted, paved shoulders yellow. Width from the tags.
 - **Bike routes**: OSM route relations, ranked national, regional, local and mountain bike.
-- **Wards**: Ottawa's wards and Gatineau's districts with their councillors. `npm run wards` → `web/public/data/wards.geojson` (committed).
+- **Wards**: Ottawa's wards and Gatineau's districts with their councillors. `npm run wards` → `regions/ottawa/data/wards.geojson` (committed).
 - **Roadwork**: today's closures, live from the City's traffic map and Québec 511, for the map's area only (`web/src/useClosures.ts`). Gatineau publishes none.
 - **Street lights**: ways with `lit` or street lamps along half their length (`pipeline/lamps.mjs`), and the lamps.
 

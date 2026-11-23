@@ -11,7 +11,7 @@ describe('layersShown', () => {
     expect(layersShown(['thefts', 'collisions'])).toEqual(['places', 'pathways', 'comfort', 'collisions', 'thefts'])
   })
 
-  it('ignores names that are not city layers', () => {
+  it('ignores the city data that is not a layer', () => {
     expect(layersShown(['wards', 'construction'])).toEqual(['places', 'pathways', 'comfort', 'construction'])
   })
 })

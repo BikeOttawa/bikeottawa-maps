@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
-import { brandFiles, loadRegion } from '../regions/region.mjs'
+import { loadRegion, siteFiles } from '../regions/region.mjs'
 import { oldPageHtml } from './src/oldSite'
 
 // The region the site is built for.
@@ -21,24 +21,24 @@ const oldSitePages = (): Plugin => ({
   },
 })
 
-const TYPES: Record<string, string> = { svg: 'image/svg+xml', png: 'image/png' }
+const TYPES: Record<string, string> = { svg: 'image/svg+xml', png: 'image/png', geojson: 'application/geo+json' }
 
-/** The region's logo and icons (its `brand` folder) at the top of the site, and its name in the page. */
-const regionBrand = (): Plugin => ({
-  name: 'region-brand',
+/** The region's logo and icons at the top of the site, its data under data/, and its name in the page. */
+const regionFiles = (): Plugin => ({
+  name: 'region-files',
   transformIndexHtml: (html) =>
     html.replaceAll('%REGION_TITLE%', region.title.en).replaceAll('%REGION_DESCRIPTION%', region.description),
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       const name = ((req as { url?: string }).url ?? '').slice(server.config.base.length).split('?')[0]
-      const file = brandFiles(dir)[name]
+      const file = siteFiles(dir)[name]
       if (!file) return next()
       res.setHeader('Content-Type', TYPES[name.split('.').at(-1) ?? ''] ?? 'application/octet-stream')
       res.end(file)
     })
   },
   generateBundle() {
-    for (const [fileName, source] of Object.entries(brandFiles(dir))) this.emitFile({ type: 'asset', fileName, source })
+    for (const [fileName, source] of Object.entries(siteFiles(dir))) this.emitFile({ type: 'asset', fileName, source })
   },
 })
 
@@ -47,7 +47,7 @@ export default defineConfig({
   plugins: [
     react(),
     oldSitePages(),
-    regionBrand(),
+    regionFiles(),
     // Installable app: a manifest, and a service worker that keeps the app's own
     // files so it opens at once (and offline). Map tiles, routing and search
     // always go to the network.

@@ -11,7 +11,8 @@ export interface Region {
   extracts: { pbf: string; poly: string }[]
   replicationUrl: string
   profiles: { bike: string; walk: string }
-  cityLayers?: string[]
+  cityData?: string[]
+  elevation?: string
   org?: { name: string; url: string; join?: string; volunteer?: string; donate?: string }
   repo: string
   osm: { createdBy: string; hashtag: string }
@@ -19,4 +20,4 @@ export interface Region {
 }
 
 export function loadRegion(): { id: string; dir: string; region: Region }
-export function brandFiles(dir: string): Record<string, Uint8Array>
+export function siteFiles(dir: string): Record<string, Uint8Array>

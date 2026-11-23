@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!web/public", "!regions/*/brand"]
+    "includes": ["**", "!web/public", "!regions/*/brand", "!regions/*/data"]
   },
   "formatter": {
     "enabled": true,

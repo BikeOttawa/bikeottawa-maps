@@ -13,6 +13,7 @@ import {
   ROUTE_LEVEL_IDS,
   routeBandColors,
 } from '../layers'
+import { hasCityData } from '../region'
 import { ConeIcon, LampIcon, LanesIcon, RoutesIcon, WardsIcon } from './OverlayIcons'
 
 /** A small picture of each map style, taken from the map itself. */
@@ -127,16 +128,20 @@ export function BasemapSwitch({
               ))}
             </ul>
           )}
-          <label className="check bike-lanes-toggle">
-            <input type="checkbox" checked={wards} onChange={(e) => onWardsChange(e.target.checked)} />
-            <WardsIcon />
-            {t('wards')}
-          </label>
-          <label className="check bike-lanes-toggle" title={t('roadworkHint')}>
-            <input type="checkbox" checked={roadwork} onChange={(e) => onRoadworkChange(e.target.checked)} />
-            <ConeIcon />
-            {t('roadwork')}
-          </label>
+          {hasCityData('wards') && (
+            <label className="check bike-lanes-toggle">
+              <input type="checkbox" checked={wards} onChange={(e) => onWardsChange(e.target.checked)} />
+              <WardsIcon />
+              {t('wards')}
+            </label>
+          )}
+          {hasCityData('roadwork') && (
+            <label className="check bike-lanes-toggle" title={t('roadworkHint')}>
+              <input type="checkbox" checked={roadwork} onChange={(e) => onRoadworkChange(e.target.checked)} />
+              <ConeIcon />
+              {t('roadwork')}
+            </label>
+          )}
           <label className="check bike-lanes-toggle" title={t('lightsHint')}>
             <input type="checkbox" checked={lights} onChange={(e) => onLightsChange(e.target.checked)} />
             <LampIcon />

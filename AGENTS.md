@@ -21,12 +21,12 @@ What the code does not tell you. See README.md for what the project is, and docs
 ## Data
 
 - Everything about one city is in `regions/<id>/` (see `regions/README.md`): its area, names, links, logo and router profiles. Code outside it should not name a city. `MAP_REGION` picks the region; the web tests always read Ottawa's.
-- Collisions, Thefts and Projects show only when the region's `cityLayers` names them.
+- Collisions, Thefts, Projects, wards and roadwork show only when the region's `cityData` names them. Its `pipeline/` fetches them and its `data/` keeps the committed ones.
 - The stress model is `pipeline/stressmodel.mjs`, used by the tiles and by the route card: a change moves both, and the router's profiles do not read it.
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
-- Collisions are committed (`web/public/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
-- Thefts are committed (`web/public/data/thefts.geojson`); `npm run thefts` refreshes them when the police publish a year. Then move `THEFT_YEARS` in `web/src/thefts.ts` to the years the script prints.
-- Wards are committed (`web/public/data/wards.geojson`); `npm run wards` refreshes them after an election or by-election. Check the councillors it prints: Ottawa's table also keeps a ward's past councillors, and the script takes the one marked "to present".
+- Collisions are committed (`regions/ottawa/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
+- Thefts are committed (`regions/ottawa/data/thefts.geojson`); `npm run thefts` refreshes them when the police publish a year. Then move `THEFT_YEARS` in `web/src/thefts.ts` to the years the script prints.
+- Wards are committed (`regions/ottawa/data/wards.geojson`); `npm run wards` refreshes them after an election or by-election. Check the councillors it prints: Ottawa's table also keeps a ward's past councillors, and the script takes the one marked "to present".
 
 ## Router
 

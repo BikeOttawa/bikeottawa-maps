@@ -4,14 +4,14 @@ Setup and checks are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Layout
 
-| Path        | What                                                                               |
-| ----------- | ---------------------------------------------------------------------------------- |
-| `web/`      | The app: React, TypeScript, Vite, MapLibre                                         |
-| `pipeline/` | Builds the tiles from OSM and fetches the city and police data                     |
-| `routing/`  | The router: BRouter with the region's profiles                                     |
-| `docker/`   | nginx config for the site image                                                    |
-| `docs/`     | [How it works](how-it-works.md), this page, [deployment](deployment.md)            |
-| `regions/`  | One folder per city: area, names, logo, profiles ([details](../regions/README.md)) |
+| Path        | What                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `web/`      | The app: React, TypeScript, Vite, MapLibre                                                                                     |
+| `pipeline/` | Builds the tiles from OSM                                                                                                      |
+| `routing/`  | The router: BRouter with the region's profiles                                                                                 |
+| `docker/`   | nginx config for the site image                                                                                                |
+| `docs/`     | [How it works](how-it-works.md), this page, [deployment](deployment.md)                                                        |
+| `regions/`  | One folder per city: area, names, logo, profiles, its own data and the scripts that fetch it ([details](../regions/README.md)) |
 
 ## Tiles
 
@@ -43,7 +43,7 @@ npm run dev            # .env.development points the app at it
 
 - The routing data is built from the same OSM file, to keep tags stock BRouter data drops (`winter_service`, `width`, lanes, `crossing:signals`).
 - `npm run router` mounts the region's `profiles`, so profile edits apply on the next request. Rebuild only for fresh data or new lookup tags.
-- Elevation: NRCan MRDEM-30, SRTM outside Canada.
+- Elevation: SRTM, under the region's finer raster where it names one (NRCan MRDEM-30 for Ottawa).
 - The image builds on our [BRouter fork](https://github.com/YaroShkvorets/brouter/tree/bikeottawa) (`ghcr.io/yaroshkvorets/brouter:bikeottawa`), which adds [How far](how-it-works.md#how-far). To update BRouter: rebase the `bikeottawa` branch on upstream, push, and pin the new digest as `BROUTER_IMAGE` in `routing/Dockerfile`.
 
 ## Scripts

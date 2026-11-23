@@ -1,5 +1,5 @@
 // Downloads the Ottawa Police Service's bike thefts and writes them, trimmed to
-// what the map shows, to web/public/data/thefts.geojson. The file is committed;
+// what the map shows, to the region's data/thefts.geojson. The file is committed;
 // run this again (npm run thefts) when the police publish a new year.
 // Each theft is placed at the nearest intersection, not where it happened.
 // Data: Open Government Licence – Ottawa Police Service.
@@ -19,7 +19,7 @@ import {
 
 const SERVICE =
   'https://services7.arcgis.com/2vhcNzw0NfUwAD3d/arcgis/rest/services/Bike_Theft_Open_Data/FeatureServer/0'
-const OUT = new URL('../web/public/data/thefts.geojson', import.meta.url)
+const OUT = new URL('../data/thefts.geojson', import.meta.url)
 const PAGE = 2000
 
 async function page(offset) {
