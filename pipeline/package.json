@@ -5,8 +5,5 @@
   "type": "module",
   "scripts": {
     "test": "node --test"
-  },
-  "dependencies": {
-    "stressmodel": "github:BikeOttawa/stressmodel#a0fdab9e5b9319b16e2ddf16602aa7fa944ecff3"
   }
 }

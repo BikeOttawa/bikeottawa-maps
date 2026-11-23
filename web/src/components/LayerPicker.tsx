@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n'
-import { LAYER_IDS, type LayerId, LTS_COLORS, pathwayColors } from '../layers'
+import { LAYERS, type LayerId, LTS_COLORS, pathwayColors } from '../layers'
 import { GROUP_COLORS } from '../places'
 import { BarricadeIcon } from './OverlayIcons'
 
@@ -84,7 +84,7 @@ export function LayerPicker({ active, onChange }: Props) {
   return (
     <fieldset className="layer-picker">
       <legend className="visually-hidden">{t('layers')}</legend>
-      {LAYER_IDS.map((id) => (
+      {LAYERS.map((id) => (
         <button
           key={id}
           ref={id === active ? activeButton : undefined}

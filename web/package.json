@@ -15,8 +15,7 @@
     "maplibre-gl": "^6.17.0",
     "pmtiles": "^4.5.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "stressmodel": "github:BikeOttawa/stressmodel#a0fdab9e5b9319b16e2ddf16602aa7fa944ecff3"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@mapbox/maki": "^8.2.0",

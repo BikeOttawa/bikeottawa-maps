@@ -17,16 +17,16 @@ Setup and checks are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 Built into `web/public/tiles`, not committed. The app loads only what the current layer draws.
 
-| File                   | What                                               |
-| ---------------------- | -------------------------------------------------- |
-| `basemap.pmtiles`      | Protomaps basemap (`npm run basemap`)              |
-| `overlays.pmtiles`     | Streets and paths: Comfort, Pathways, bike lanes   |
-| `places.pmtiles`       | Places                                             |
-| `places/<kind>.json`   | Each kind of place as `[lon, lat, …]`, for merging |
-| `night.pmtiles`        | Lit ways and street lamps                          |
-| `routes.pmtiles`       | Bike routes, with `routes.json` listing them       |
-| `meta.json`            | OSM data date, build time, km per band for legends |
-| `construction.geojson` | The City's construction forecast                   |
+| File                   | What                                                |
+| ---------------------- | --------------------------------------------------- |
+| `basemap.pmtiles`      | Protomaps basemap (`npm run basemap`)               |
+| `overlays.pmtiles`     | Streets and paths: Comfort, Pathways, bike lanes    |
+| `places.pmtiles`       | Places                                              |
+| `places/<kind>.json`   | Each kind of place as `[lon, lat, …]`, for merging  |
+| `night.pmtiles`        | Lit ways and street lamps                           |
+| `routes.pmtiles`       | Bike routes, with `routes.json` listing them        |
+| `meta.json`            | OSM data date, build time, km per band for legends  |
+| `construction.geojson` | The City's construction forecast, if Projects is on |
 
 ## OSM data
 

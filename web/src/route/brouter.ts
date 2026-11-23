@@ -1,4 +1,4 @@
-import stressmodel from 'stressmodel/stressmodel.js'
+import { evaluateLTS } from '../../../pipeline/stressmodel.mjs'
 import type { Profile } from './styles'
 
 export type LngLat = [lon: number, lat: number]
@@ -83,7 +83,7 @@ function parseTags(text: string): Record<string, string> {
 export function rateStretch(tags: Record<string, string>): { lts: number; walk: WalkKind | null } {
   if (tags.highway === 'steps') return { lts: 0, walk: 'stairs' }
   if (tags.bicycle === 'dismount') return { lts: 0, walk: 'other' }
-  const lts = stressmodel.evaluateLTS({ tags }).lts
+  const lts = evaluateLTS({ tags }).lts
   if (lts > 0) return { lts, walk: null }
   return { lts, walk: tags.footway === 'sidewalk' ? 'sidewalk' : 'other' }
 }

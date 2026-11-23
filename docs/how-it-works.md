@@ -9,6 +9,8 @@
 
 ## Layers
 
+Collisions, Thefts and Projects come from the city's own data, not OSM. `VITE_CITY_LAYERS` in `web/.env` names those the site shows; without it, none.
+
 ### Places
 
 - Kinds and groups in `web/src/places.ts`, loaded from `tiles/places/<kind>.json`.
@@ -25,7 +27,7 @@
 
 ### Comfort
 
-- Every street and path bikes may use, by level of traffic stress (1 to 4), from [stressmodel](https://github.com/BikeOttawa/stressmodel).
+- Every street and path bikes may use, by level of traffic stress (1 to 4), from `pipeline/stressmodel.mjs` (first written as [stressmodel](https://github.com/BikeOttawa/stressmodel)).
 - Filters: stress, type, speed limit, lanes each way, bike infrastructure, surface, lighting.
 - Bands: `pipeline/comfort.mjs`; km per combination in `meta.json`.
 

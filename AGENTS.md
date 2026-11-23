@@ -20,6 +20,8 @@ What the code does not tell you. See README.md for what the project is, and docs
 
 ## Data
 
+- Collisions, Thefts and Projects show only when `VITE_CITY_LAYERS` (`web/.env`) names them. Another city's site leaves them out.
+- The stress model is `pipeline/stressmodel.mjs`, used by the tiles and by the route card: a change moves both, and the router's profiles do not read it.
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
 - Collisions are committed (`web/public/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
 - Thefts are committed (`web/public/data/thefts.geojson`); `npm run thefts` refreshes them when the police publish a year. Then move `THEFT_YEARS` in `web/src/thefts.ts` to the years the script prints.

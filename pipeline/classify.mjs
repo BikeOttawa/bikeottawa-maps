@@ -1,8 +1,8 @@
 // Turns raw OSM tags into the small set of properties the map tiles carry.
-import stressmodel from 'stressmodel/stressmodel.js'
 // Surfaces by how they ride, smoothest first; other values count as unknown. The
 // web app groups route surfaces with the same file.
 import { pathwaySurface } from './pathway-bands.mjs'
+import { evaluateLTS } from './stressmodel.mjs'
 import SURFACE_GROUPS from './surface-groups.json' with { type: 'json' }
 
 const PATH_HIGHWAYS = new Set(['path', 'footway', 'cycleway'])
@@ -198,7 +198,7 @@ export function classifyWay(tags) {
   const bikesAllowed = tags.bicycle === 'yes' || tags.bicycle === 'designated'
   if (highway === 'footway' && tags.footway === 'crossing' && !bikesAllowed) return null
 
-  const lts = stressmodel.evaluateLTS({ tags }).lts
+  const lts = evaluateLTS({ tags }).lts
   const isPath = PATH_HIGHWAYS.has(highway)
   // The bike lanes overlay goes by the tags alone, whatever the stress model says.
   const bikeway = bikewayProps(tags)
