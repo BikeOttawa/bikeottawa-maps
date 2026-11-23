@@ -16,6 +16,7 @@ What the code does not tell you. See README.md for what the project is, and docs
 ## Text
 
 - Every string lives in `web/src/i18n.ts`, in English and in Quebec French (dépanneur, stationnement, casse-croûte), never one without the other.
+- `i18n.ts` names no city, agency or service. A region's own wording (its title, its data's sources and credits) is in its `region.json`, and a roadwork source's in its file: both languages there too.
 - Keep French about as short as the English: long labels wrap and break buttons. Typography follows the OQLF: a non-breaking space before a colon, none before `;` `?` `!`.
 
 ## Data

@@ -74,7 +74,7 @@ printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s,"comfort":%s}\n' "$OSM
 # The city's construction forecast, when the region has one (its cityData),
 # fetched by the region's own script. Its server being down leaves that layer
 # empty for a day rather than failing the build.
-if node regions/region.mjs cityData 2>/dev/null | tr ',' '\n' | grep -qx construction; then
+if node regions/region.mjs cityData.construction > /dev/null 2>&1; then
   node "$(node regions/region.mjs dir)/pipeline/fetch-construction.mjs" "$OUT" ||
     echo "construction: not fetched; the layer stays empty"
 else

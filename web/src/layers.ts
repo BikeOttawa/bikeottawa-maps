@@ -15,7 +15,7 @@ export function layersShown(cityData: readonly string[] = []): LayerId[] {
   return LAYER_IDS.filter((id) => !CITY_LAYER_IDS.includes(id) || cityData.includes(id))
 }
 
-export const LAYERS: readonly LayerId[] = layersShown(REGION.cityData)
+export const LAYERS: readonly LayerId[] = layersShown(Object.keys(REGION.cityData ?? {}))
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
 export type BasemapId = (typeof BASEMAP_IDS)[number]

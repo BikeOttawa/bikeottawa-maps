@@ -1,12 +1,9 @@
-import { isMessageKey, type Lang, translator } from '../i18n'
-import { REGION } from '../region'
-import type { Closure, RoadworkCredit, RoadworkSource } from './closures'
+import type { Lang } from '../i18n'
+import { creditLine, REGION } from '../region'
+import type { Closure, RoadworkSourceFile } from './closures'
 
 /** Every source there is, by its file's name. */
-const FILES = import.meta.glob<{ default: RoadworkSource; credit: RoadworkCredit }>(
-  ['./sources/*.ts', '!./sources/*.test.ts'],
-  { eager: true },
-)
+const FILES = import.meta.glob<RoadworkSourceFile>(['./sources/*.ts', '!./sources/*.test.ts'], { eager: true })
 const file = (name: string) => FILES[`./sources/${name}.ts`]
 
 /** The sources the region reads its roadwork from; none, and it has no Roadwork overlay. */
@@ -28,15 +25,12 @@ export async function loadClosures(lang: Lang, signal: AbortSignal): Promise<Clo
 
 /** What the overlay reads, for its hint: "the City of Ottawa’s traffic map and Québec 511 on Quebec’s highways". */
 export function roadworkSourceNames(lang: Lang): string {
-  const t = translator(lang)
-  const names = ROADWORK_SOURCES.map((name) => {
-    const key = `roadwork.source.${name}`
-    return isMessageKey(key) ? t(key) : name
-  })
+  const names = ROADWORK_SOURCES.map((name) => file(name).label[lang])
   return new Intl.ListFormat(lang === 'fr' ? 'fr-CA' : 'en-CA', { type: 'conjunction' }).format(names)
 }
 
 /** Whose data the overlay shows, for the map's credits. */
-export const ROADWORK_ATTRIBUTION = `Roadwork: ${ROADWORK_SOURCES.map((name) => file(name).credit)
-  .map(({ name, url }) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`)
-  .join(', ')}`
+export const ROADWORK_ATTRIBUTION = creditLine(
+  'Roadwork',
+  ROADWORK_SOURCES.map((name) => file(name).credit),
+)

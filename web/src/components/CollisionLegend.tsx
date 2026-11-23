@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { COLLISION_YEARS, type Collision, type CollisionFilters, type CollisionSpot, countByMonth } from '../collisions'
 import { useI18n } from '../i18n'
 import { type BasemapId, collisionColors } from '../layers'
+import { sourceLine } from '../region'
 import { CollisionConditions } from './CollisionConditions'
 import { LegendNote } from './LegendNote'
 import { MinCountSlider, YearRange } from './YearRange'
@@ -29,7 +30,10 @@ export function CollisionLegend({ spots, collisions, busiestSpot, filters, onCha
     return byInjury
   }, [spots])
   const colors = collisionColors(basemap)
-  const number = (n: number) => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')
+  const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
+  const number = (n: number) => n.toLocaleString(locale)
+  // The years the city left out, for the note on its data.
+  const missing = new Intl.ListFormat(locale, { type: 'conjunction' }).format(COLLISION_YEARS.missing.map(String))
   const shown = counts ? filters.severities.reduce((sum, s) => sum + counts[s], 0) : null
 
   const months = useMemo(
@@ -75,9 +79,8 @@ export function CollisionLegend({ spots, collisions, busiestSpot, filters, onCha
         <p>{t('crash.conditionsHint')}</p>
         <p>{t('crash.circles')}</p>
         <p>
-          {t('crash.source')
-            .replace('{first}', String(COLLISION_YEARS.first))
-            .replace('{last}', String(COLLISION_YEARS.last))}
+          {sourceLine('collisions', lang, COLLISION_YEARS)}
+          {missing && ` ${t('crash.missing').replace('{years}', missing)}`}
         </p>
       </LegendNote>
     </div>

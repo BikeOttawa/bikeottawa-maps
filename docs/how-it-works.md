@@ -9,7 +9,7 @@
 
 ## Layers
 
-Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, and its `pipeline/` fetches them; without it, none. Its `roadwork` names the services read for closures.
+Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, with whose data each is, and its `pipeline/` fetches them; without it, none. Its `roadwork` names the services read for closures.
 
 ### Places
 

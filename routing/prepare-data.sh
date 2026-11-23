@@ -25,7 +25,7 @@ node regions/region.mjs profiles.bike > "$OUT/bike-profile"
 # roofs, from lidar). It is resampled to 1-arcsecond .hgt tiles, the finest
 # BRouter reads. GDAL runs from its Docker image.
 GDAL_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-3.13.3
-FINER="$(node regions/region.mjs elevation 2>/dev/null || true)"
+FINER="$(node regions/region.mjs elevation.url 2>/dev/null || true)"
 SRTM="${SRTM_DIR:-.cache/elevation}"
 mkdir -p "$SRTM"
 

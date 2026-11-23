@@ -58,6 +58,7 @@ import {
 } from '../pathways'
 import type { PlacePoints } from '../placePoints'
 import { GROUP_COLORS, PLACE_GROUP_IDS, type PlaceGroupId, type PlaceKind, placeGroup, placeImageId } from '../places'
+import { cityData, creditLine, REGION } from '../region'
 import { ROADWORK_ATTRIBUTION } from '../roadwork/sources'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
@@ -1060,8 +1061,7 @@ const PLACE_LABEL_ZOOM = 15
  * topmost labels first pick, and here a shop's name matters more than the street's.
  */
 export const WARDS_SOURCE = 'wards'
-const WARDS_ATTRIBUTION =
-  'Wards: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>, <a href="https://www.donneesquebec.ca/organisation/ville-de-gatineau/" target="_blank" rel="noopener">Ville de Gatineau</a>'
+const WARDS_ATTRIBUTION = creditLine('Wards', cityData('wards')?.credits)
 
 /**
  * Ward and district boundaries, dashed, with each ward's name and councillor
@@ -1124,18 +1124,14 @@ export const COLLISIONS_SOURCE = 'collisions'
 /** The same spots, merged where they would overlap; the heat maps use them each alone. */
 export const COLLISION_SPOTS_SOURCE = 'collision-spots'
 export const THEFT_SPOTS_SOURCE = 'theft-spots'
-const COLLISIONS_ATTRIBUTION =
-  'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
+const COLLISIONS_ATTRIBUTION = creditLine('Collisions', cityData('collisions')?.credits)
 export const CONSTRUCTION_SOURCE = 'construction'
 export const CLOSURES_SOURCE = 'closures'
-const CONSTRUCTION_ATTRIBUTION =
-  'Construction: <a href="https://ottawa.ca/en/parking-roads-and-travel/road-construction-and-maintenance" target="_blank" rel="noopener">City of Ottawa</a>'
+const CONSTRUCTION_ATTRIBUTION = creditLine('Construction', cityData('construction')?.credits)
 export const THEFTS_SOURCE = 'thefts'
-const THEFTS_ATTRIBUTION =
-  'Thefts: <a href="https://www.ottawapolice.ca/" target="_blank" rel="noopener">Ottawa Police Service</a>'
-/** The router's elevation (MRDEM-30), shown with a route. */
-const ELEVATION_ATTRIBUTION =
-  'Elevation: <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener">NRCan</a>'
+const THEFTS_ATTRIBUTION = creditLine('Thefts', cityData('thefts')?.credits)
+/** The router's finer elevation, where the region has one, shown with a route. */
+const ELEVATION_ATTRIBUTION = creditLine('Elevation', REGION.elevation ? [REGION.elevation.credit] : [])
 
 const COLLISION_POINTS_FROM = SPOTS_FROM
 
@@ -1652,7 +1648,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       route: {
         type: 'geojson',
         data: routeData(state.route, state.routeView ?? 'comfort'),
-        ...(state.route && { attribution: ELEVATION_ATTRIBUTION }),
+        ...(state.route && ELEVATION_ATTRIBUTION && { attribution: ELEVATION_ATTRIBUTION }),
       },
       'route-stops': { type: 'geojson', data: stopsData(state.route) },
       'route-others': { type: 'geojson', data: otherRoutesData(state.routeOthers) },

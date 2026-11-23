@@ -19,9 +19,46 @@
   ],
   "replicationUrl": "https://planet.openstreetmap.org/replication/hour/",
   "profiles": { "bike": "ottbike", "walk": "ottwalk" },
-  "cityData": ["collisions", "thefts", "construction", "wards"],
+  "cityData": {
+    "collisions": {
+      "credits": [{ "name": "City of Ottawa", "url": "https://open.ottawa.ca/" }],
+      "source": { "en": "City of Ottawa open data", "fr": "Données ouvertes de la Ville d’Ottawa" }
+    },
+    "thefts": {
+      "credits": [{ "name": "Ottawa Police Service", "url": "https://www.ottawapolice.ca/" }],
+      "source": {
+        "en": "Ottawa Police Service open data",
+        "fr": "Données ouvertes du Service de police d’Ottawa"
+      },
+      "note": {
+        "en": "The police place each theft at the nearest intersection.",
+        "fr": "La police place chaque vol à l’intersection la plus proche."
+      }
+    },
+    "construction": {
+      "credits": [
+        {
+          "name": "City of Ottawa",
+          "url": "https://ottawa.ca/en/parking-roads-and-travel/road-construction-and-maintenance"
+        }
+      ],
+      "source": {
+        "en": "City of Ottawa construction forecast",
+        "fr": "Prévisions de travaux de la Ville d’Ottawa"
+      }
+    },
+    "wards": {
+      "credits": [
+        { "name": "City of Ottawa", "url": "https://open.ottawa.ca/" },
+        { "name": "Ville de Gatineau", "url": "https://www.donneesquebec.ca/organisation/ville-de-gatineau/" }
+      ]
+    }
+  },
   "roadwork": ["ottawa", "quebec511"],
-  "elevation": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
+  "elevation": {
+    "url": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
+    "credit": { "name": "NRCan", "url": "https://open.canada.ca/en/open-government-licence-canada" }
+  },
   "org": {
     "name": "Bike Ottawa",
     "url": "https://bikeottawa.ca/",

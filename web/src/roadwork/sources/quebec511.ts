@@ -1,8 +1,10 @@
 import type { LineString, MultiLineString } from 'geojson'
-import { type Lang, translator } from '../../i18n'
-import { type Closure, getJson, middleOf, type RoadworkCredit, type RoadworkSource } from '../closures'
+import type { Credit, Text } from '../../../../regions/region.mjs'
+import type { Lang } from '../../i18n'
+import { type Closure, getJson, middleOf, type RoadworkSource } from '../closures'
 
-export const credit: RoadworkCredit = { name: 'Québec 511', url: 'https://www.quebec511.info' }
+export const credit: Credit = { name: 'Québec 511', url: 'https://www.quebec511.info' }
+export const label: Text = { en: 'Québec 511 on Quebec’s highways', fr: 'Québec 511 sur les routes du Québec' }
 
 /**
  * Québec 511: roadwork on the roads the province runs (autoroutes, numbered
@@ -45,7 +47,6 @@ const time = (text?: string) => {
  * the work heads the card, the rest is its text.
  */
 export function parse(json: Answer, lang: Lang): Closure[] {
-  const t = translator(lang)
   const closures: Closure[] = []
   for (const work of json.features ?? []) {
     const { geometry: line, properties: p } = work
@@ -66,7 +67,7 @@ export function parse(json: Answer, lang: Lang): Closure[] {
       detour: lang === 'fr' && detour ? detour : undefined,
       start: time(p.debut),
       end: time(p.fin),
-      by: t('roadwork.by.quebec511'),
+      by: 'Québec 511 (Transports Québec)',
       url: /^https?:\/\//i.test(p.urlFrancais ?? '') ? p.urlFrancais : undefined,
     })
   }

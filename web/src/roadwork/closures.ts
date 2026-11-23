@@ -1,5 +1,5 @@
 import type { FeatureCollection, LineString, MultiLineString } from 'geojson'
-import type { Region } from '../../../regions/region.mjs'
+import type { Credit, Region, Text } from '../../../regions/region.mjs'
 import { type Lang, translator } from '../i18n'
 
 /**
@@ -50,10 +50,15 @@ export interface RoadworkAsk {
  */
 export type RoadworkSource = (ask: RoadworkAsk) => Promise<Closure[]>
 
-/** Whose data a source reads, for the map's credits: the file's `credit` export. */
-export interface RoadworkCredit {
-  name: string
-  url: string
+/**
+ * A file in sources/: the source, whose data it reads (for the map's credits)
+ * and what it reads as the overlay's hint names it, after "Roads and lanes
+ * closed today:". A source's wording is its own, kept in its file in both languages.
+ */
+export interface RoadworkSourceFile {
+  default: RoadworkSource
+  credit: Credit
+  label: Text
 }
 
 /** A service's JSON answer. */
