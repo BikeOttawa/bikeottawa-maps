@@ -21,6 +21,7 @@ Cycling maps for Ottawa–Gatineau, built on OpenStreetMap by [Bike Ottawa](http
 - [Development](docs/development.md)
 - [Deployment](docs/deployment.md)
 - [Contributing](CONTRIBUTING.md)
+- [Another city](regions/README.md): what a region holds
 
 ## Licence
 

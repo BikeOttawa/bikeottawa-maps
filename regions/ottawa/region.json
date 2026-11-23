@@ -1,0 +1,43 @@
+{
+  "title": { "en": "Bike Ottawa Maps", "fr": "Cartes Bike Ottawa" },
+  "shortTitle": "Bike Ottawa",
+  "description": "Cycling maps for Ottawa–Gatineau: street comfort, winter-maintained pathways, bike parking and more.",
+  "name": "Ottawa–Gatineau",
+  "bbox": [-76.4, 44.95, -75.2, 45.65],
+  "center": [-75.6972, 45.4215],
+  "timeZone": "America/Toronto",
+  "routingBbox": [-77.3, 44.1, -74.3, 46.3],
+  "extracts": [
+    {
+      "pbf": "https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf",
+      "poly": "https://download.geofabrik.de/north-america/canada/ontario.poly"
+    },
+    {
+      "pbf": "https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf",
+      "poly": "https://download.geofabrik.de/north-america/canada/quebec.poly"
+    }
+  ],
+  "replicationUrl": "https://planet.openstreetmap.org/replication/hour/",
+  "profiles": { "bike": "ottbike", "walk": "ottwalk" },
+  "cityLayers": ["collisions", "thefts", "construction"],
+  "org": {
+    "name": "Bike Ottawa",
+    "url": "https://bikeottawa.ca/",
+    "join": "https://bikeottawa.ca/join-bike-ottawa/",
+    "volunteer": "https://bikeottawa.ca/volunteer-signup/",
+    "donate": "https://bikeottawa.ca/donate-to-bike-ottawa/"
+  },
+  "repo": "https://github.com/BikeOttawa/bikeottawa-maps",
+  "osm": { "createdBy": "BikeOttawa Maps", "hashtag": "#BikeOttawa" },
+  "oldPages": {
+    "lts": "layer=comfort",
+    "winter": "layer=pathways&pathways=by:snow",
+    "pathways": "layer=pathways",
+    "collisions": "layer=collisions",
+    "amenities": "layer=places",
+    "routing": "mode=route",
+    "isochrones": "mode=reach",
+    "thefts": "layer=thefts",
+    "desire": ""
+  }
+}

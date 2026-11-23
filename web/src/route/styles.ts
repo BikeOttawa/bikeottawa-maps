@@ -1,7 +1,9 @@
 /**
  * Riding styles. Each is a set of weights (0 = don't care, 1 = avoid as much
- * as possible) passed to the `ottbike` BRouter profile in routing/profiles.
+ * as possible) passed to the region's bike profile, a BRouter profile in its `profiles` folder.
  */
+
+import { REGION } from '../region'
 
 /** Weights shown as sliders in the Custom style. */
 export const WEIGHT_KEYS = ['roadsPen', 'sidewalkPen', 'surfacePen', 'plowPen', 'litPen'] as const
@@ -102,7 +104,7 @@ export function isTravel(value: unknown): value is Travel {
   return TRAVEL_MODES.includes(value as Travel)
 }
 
-/** Walking styles, for the `ottwalk` profile: winter avoids unplowed paths and walks them slowly. */
+/** Walking styles, for the region's walk profile: winter avoids unplowed paths and walks them slowly. */
 export const WALK_STYLE_IDS = ['normal', 'winter'] as const
 export type WalkStyleId = (typeof WALK_STYLE_IDS)[number]
 
@@ -110,14 +112,14 @@ export function isWalkStyleId(value: unknown): value is WalkStyleId {
   return WALK_STYLE_IDS.includes(value as WalkStyleId)
 }
 
-/** What the router is asked to use: a profile in routing/profiles and its parameters. */
+/** What the router is asked to use: one of the region's profiles and its parameters. */
 export interface Profile {
-  name: 'ottbike' | 'ottwalk'
+  name: string
   params: Readonly<Record<string, number>>
 }
 
 export function profileFor(travel: Travel, style: StyleId, custom: RouteParams, walkStyle: WalkStyleId): Profile {
   return travel === 'foot'
-    ? { name: 'ottwalk', params: { winter: walkStyle === 'winter' ? 1 : 0 } }
-    : { name: 'ottbike', params: paramsFor(style, custom) }
+    ? { name: REGION.profiles.walk, params: { winter: walkStyle === 'winter' ? 1 : 0 } }
+    : { name: REGION.profiles.bike, params: paramsFor(style, custom) }
 }

@@ -1,4 +1,4 @@
-# BRouter with the ottbike and ottwalk profiles and routing data for the region baked in.
+# BRouter with the region's profiles and routing data baked in.
 # Run routing/prepare-data.sh first, then: docker build -t bikeottawa-router routing
 #
 # The base is our fork's image (bikeottawa branch, commit ff7deb5): upstream
@@ -13,14 +13,14 @@ USER root
 COPY lookups-extra.dat lookups-extra-node.dat extend-lookups.sh /tmp/
 RUN /tmp/extend-lookups.sh /profiles2/lookups.dat /tmp/lookups-extra.dat /tmp/lookups-extra-node.dat \
     && rm /tmp/lookups-extra.dat /tmp/lookups-extra-node.dat /tmp/extend-lookups.sh
-COPY profiles/ /profiles2/
+COPY data/profiles/ /profiles2/
 # No profile uploads on a public server.
 RUN chown root:root /customprofiles && chmod 555 /customprofiles
 
 FROM base AS segments
 COPY build-segments.sh /usr/local/bin/
 COPY data/ /data/
-RUN build-segments.sh /data/region.osm.pbf /data/elevation /segments4
+RUN build-segments.sh /data/region.osm.pbf /data/elevation /segments4 "$(cat /data/bike-profile)"
 
 FROM base
 COPY --from=segments /segments4 /segments4

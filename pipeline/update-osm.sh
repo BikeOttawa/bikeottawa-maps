@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Keeps .cache/osm/region.osm.pbf current: all OSM data for the routing area in
-# region.json, which the map tiles and the router are both built from.
+# Keeps .cache/osm/region.osm.pbf current: all OSM data for the region's routing
+# area (regions/region.mjs), which the map tiles and the router are both built from.
 #
 # The first run cuts the area out of the Geofabrik extracts. Later runs only
 # fetch OpenStreetMap's hourly change files and apply them, so the data is at
@@ -13,10 +13,15 @@ OSM="${OSM_DIR:-.cache/osm}"
 REGION="$OSM/region.osm.pbf"
 mkdir -p "$OSM"
 
-region() { node -p "const r=require('./region.json'); $1"; }
-BBOX="$(region "r.routingBbox.join(',')")"
-REPLICATION_URL="$(region "r.replicationUrl")"
-COUNT="$(region "r.extracts.length")"
+region() { node regions/region.mjs "$1"; }
+BBOX="$(region routingBbox)"
+REPLICATION_URL="$(region replicationUrl)"
+COUNT="$(region extracts.length)"
+
+# Data cut for another region is of no use here: start again from the extracts.
+ID="$(region id)"
+[ "$(cat "$OSM/region.id" 2>/dev/null || echo "$ID")" = "$ID" ] || rm -f "$REGION"
+echo "$ID" > "$OSM/region.id"
 
 timestamp_of() { osmium fileinfo -g header.option.osmosis_replication_timestamp "$1" 2>/dev/null || true; }
 
@@ -25,7 +30,7 @@ if [ ! -f "$REGION" ]; then
   parts=()
   stamps=()
   for i in $(seq 0 $((COUNT - 1))); do
-    url="$(region "r.extracts[$i].pbf")"
+    url="$(region "extracts.$i.pbf")"
     src="$OSM/$(basename "$url")"
     [ -f "$src" ] || { echo "Downloading $url"; curl -fsSL --retry 3 -o "$src" "$url"; }
     osmium extract --bbox "$BBOX" "$src" --overwrite -o "$OSM/part-$i.osm.pbf"
@@ -54,7 +59,7 @@ while [ "$status" -eq 1 ]; do
   osmium extract --bbox "$BBOX" "$OSM/updated.osm.pbf" --overwrite -o "$OSM/box.osm.pbf"
   parts=()
   for i in $(seq 0 $((COUNT - 1))); do
-    url="$(region "r.extracts[$i].poly")"
+    url="$(region "extracts.$i.poly")"
     poly="$OSM/$(basename "$url")"
     [ -f "$poly" ] || curl -fsSL --retry 3 -o "$poly" "$url"
     osmium extract --polygon "$poly" "$OSM/box.osm.pbf" --overwrite -o "$OSM/part-$i.osm.pbf"

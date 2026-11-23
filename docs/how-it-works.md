@@ -9,7 +9,7 @@
 
 ## Layers
 
-Collisions, Thefts and Projects come from the city's own data, not OSM. `VITE_CITY_LAYERS` in `web/.env` names those the site shows; without it, none.
+Collisions, Thefts and Projects come from the city's own data, not OSM. The region's `cityLayers` names those the site shows; without it, none.
 
 ### Places
 
@@ -59,7 +59,7 @@ Collisions, Thefts and Projects come from the city's own data, not OSM. `VITE_CI
 
 ## Route planner
 
-- [BRouter](https://github.com/abrensch/brouter) with our `ottbike` and `ottwalk` profiles (`routing/profiles`). Riding styles are weights for `ottbike` (`web/src/route/styles.ts`).
+- [BRouter](https://github.com/abrensch/brouter) with the region's profiles, `ottbike` and `ottwalk` for Ottawa (`regions/ottawa/profiles`). Riding styles are weights for the bike profile (`web/src/route/styles.ts`).
 - Up to three routes: the best, then BRouter's `alternativeidx` 1 and 2. Much slower or overlapping ones are dropped (`web/src/route/alternatives.ts`). The URL keeps the pick (`alt=1`).
 - A bike route's card splits it by comfort, bikeways, surface, lighting and snow (`web/src/route/breakdown.ts`), and counts stop signs, traffic lights, barriers and roadwork within 10 m (`web/src/route/roadwork.ts`).
 - Search and addresses: [Photon](https://photon.komoot.io), two requests at a time. `VITE_GEOCODER_URL` picks another server.

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Gathers what the router image is built from, into routing/data:
-#   region.osm.pbf   OSM data for the routing area in region.json
+#   region.osm.pbf   OSM data for the region's routing area (regions/region.mjs)
 #   elevation/*.hgt  1-arcsecond elevation tiles covering the same area
+#   profiles/*.brf   the region's profiles, and bike-profile, the name of its bike one
 # Needs: node, curl, docker, and what pipeline/update-osm.sh needs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,6 +15,11 @@ mkdir -p "$OUT/elevation"
 [ -f "$REGION" ] || pipeline/update-osm.sh
 cp "$REGION" "$OUT/region.osm.pbf"
 
+rm -rf "$OUT/profiles"
+mkdir -p "$OUT/profiles"
+cp "$(node regions/region.mjs dir)"/profiles/*.brf "$OUT/profiles/"
+node regions/region.mjs profiles.bike > "$OUT/bike-profile"
+
 # Elevation is NRCan's MRDEM-30: bare ground (no trees or roofs), from lidar
 # around Ottawa–Gatineau. It is resampled to 1-arcsecond .hgt tiles, the finest
 # BRouter reads; SRTM fills in outside Canada. GDAL runs from its Docker image.
@@ -24,7 +30,7 @@ mkdir -p "$SRTM"
 
 # One tile per degree cell, named after its south-west corner, e.g. N45W076.
 node -e "
-  const [w,s,e,n]=require('./region.json').routingBbox;
+  const [w,s,e,n]='$(node regions/region.mjs routingBbox)'.split(',').map(Number);
   for (let lat=Math.floor(s); lat<=Math.floor(n); lat++)
     for (let lon=Math.floor(w); lon<=Math.floor(e); lon++)
       console.log((lat<0?'S':'N')+String(Math.abs(lat)).padStart(2,'0')+(lon<0?'W':'E')+String(Math.abs(lon)).padStart(3,'0'), lon, lat)" |

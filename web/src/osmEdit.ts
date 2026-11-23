@@ -4,6 +4,8 @@
  * (osmAuth.ts), so this runs without a browser.
  */
 
+import { REGION } from './region'
+
 export interface OsmElement {
   type: 'node' | 'way' | 'relation'
   id: number
@@ -27,12 +29,13 @@ function list(items: string[]): string {
 
 /** A changeset's comment, from all it holds: "Set surface and width on pathways #BikeOttawa". */
 export function changesetComment(keys: string[], things: string[]): string {
-  return `Set ${list(keys)} on ${list(things)} #BikeOttawa`
+  return `Set ${list(keys)} on ${list(things)} ${REGION.osm.hashtag}`
 }
 
 /** A note's text: the person's words, then where it comes from and what it is about, for mappers. */
 export function noteText(text: string, feature: string | null): string {
-  return [text.trim(), '', 'Sent from BikeOttawa Maps #BikeOttawa', feature].filter((line) => line !== null).join('\n')
+  const from = `Sent from ${REGION.osm.createdBy} ${REGION.osm.hashtag}`
+  return [text.trim(), '', from, feature].filter((line) => line !== null).join('\n')
 }
 
 const escapeXml = (text: string): string => text.replace(/[&<>"'\n\r\t]/g, (c) => `&#${c.charCodeAt(0)};`)

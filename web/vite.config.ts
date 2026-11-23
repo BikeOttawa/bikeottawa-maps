@@ -2,7 +2,13 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
-import { OLD_PAGES, oldPageHtml } from './src/oldSite'
+import { brandFiles, loadRegion } from '../regions/region.mjs'
+import { oldPageHtml } from './src/oldSite'
+
+// The region the site is built for.
+const { dir, region } = loadRegion()
+const OLD_PAGES = region.oldPages ?? {}
+const OLD_PATHS = Object.keys(OLD_PAGES)
 
 /** A page at each of the old site's paths, so its links still land on the right map. */
 const oldSitePages = (): Plugin => ({
@@ -10,15 +16,38 @@ const oldSitePages = (): Plugin => ({
   apply: 'build',
   generateBundle() {
     for (const [path, to] of Object.entries(OLD_PAGES)) {
-      this.emitFile({ type: 'asset', fileName: `${path}/index.html`, source: oldPageHtml(to) })
+      this.emitFile({ type: 'asset', fileName: `${path}/index.html`, source: oldPageHtml(to, region.title.en) })
     }
   },
 })
 
+const TYPES: Record<string, string> = { svg: 'image/svg+xml', png: 'image/png' }
+
+/** The region's logo and icons (its `brand` folder) at the top of the site, and its name in the page. */
+const regionBrand = (): Plugin => ({
+  name: 'region-brand',
+  transformIndexHtml: (html) =>
+    html.replaceAll('%REGION_TITLE%', region.title.en).replaceAll('%REGION_DESCRIPTION%', region.description),
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const name = ((req as { url?: string }).url ?? '').slice(server.config.base.length).split('?')[0]
+      const file = brandFiles(dir)[name]
+      if (!file) return next()
+      res.setHeader('Content-Type', TYPES[name.split('.').at(-1) ?? ''] ?? 'application/octet-stream')
+      res.end(file)
+    })
+  },
+  generateBundle() {
+    for (const [fileName, source] of Object.entries(brandFiles(dir))) this.emitFile({ type: 'asset', fileName, source })
+  },
+})
+
 export default defineConfig({
+  resolve: { alias: { '@region': dir.replace(/\/$/, '') } },
   plugins: [
     react(),
     oldSitePages(),
+    regionBrand(),
     // Installable app: a manifest, and a service worker that keeps the app's own
     // files so it opens at once (and offline). Map tiles, routing and search
     // always go to the network.
@@ -29,9 +58,9 @@ export default defineConfig({
       // The icons already match the pre-store patterns below; listing them twice is a Workbox error risk.
       includeManifestIcons: false,
       manifest: {
-        name: 'Bike Ottawa Maps',
-        short_name: 'Bike Ottawa',
-        description: 'Cycling maps for Ottawa–Gatineau: street comfort, winter pathways, routes and more.',
+        name: region.title.en,
+        short_name: region.shortTitle,
+        description: region.description,
         lang: 'en',
         display: 'standalone',
         theme_color: '#0B6E6E',
@@ -49,7 +78,7 @@ export default defineConfig({
         navigateFallback: 'index.html',
         // The old site's paths go to their own pages, not to the app; so does the way back from OSM's sign-in.
         navigateFallbackDenylist: [
-          new RegExp(`/(${Object.keys(OLD_PAGES).join('|')})(/(index\\.html)?)?(\\?|$)`),
+          ...(OLD_PATHS.length ? [new RegExp(`/(${OLD_PATHS.join('|')})(/(index\\.html)?)?(\\?|$)`)] : []),
           /\/land\.html(\?|$)/,
         ],
         runtimeCaching: [

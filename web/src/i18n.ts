@@ -3,7 +3,6 @@ import { createContext, useContext } from 'react'
 export type Lang = 'en' | 'fr'
 
 const en = {
-  title: 'Bike Ottawa Maps',
   switchLang: 'Français',
   switchLangShort: 'FR',
   layers: 'Layer',
@@ -588,7 +587,7 @@ const en = {
   'help.ideas': 'Suggest an idea',
   'help.ideas.text':
     'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us on GitHub](issue).',
-  'help.join': 'Join Bike Ottawa',
+  'help.join': 'Join {org}',
   'help.join.text':
     'The volunteer group behind these maps works for better cycling across the city. [Become a member](join), [volunteer](volunteer) or [donate](donate).',
   'mode.explore': 'Explore',
@@ -725,7 +724,6 @@ const en = {
 }
 
 const fr: Record<keyof typeof en, string> = {
-  title: 'Cartes Bike Ottawa',
   switchLang: 'English',
   switchLangShort: 'EN',
   layers: 'Couche',
@@ -1315,7 +1313,7 @@ const fr: Record<keyof typeof en, string> = {
   'help.ideas': 'Proposer une idée',
   'help.ideas.text':
     'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous sur GitHub](issue).',
-  'help.join': 'Se joindre à Bike Ottawa',
+  'help.join': 'Se joindre à {org}',
   'help.join.text':
     'Le groupe de bénévoles derrière ces cartes défend le vélo partout en ville. [Devenez membre](join), [bénévole](volunteer) ou [faites un don](donate).',
   'mode.explore': 'Explorer',

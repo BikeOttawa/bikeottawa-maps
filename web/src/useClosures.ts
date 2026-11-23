@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { REGION } from './config'
 import { CLOSURES_URL, type Closure, parseClosures, parseQuebecRoadwork, quebecRoadworkUrl } from './construction'
 import type { Lang } from './i18n'
+import { REGION } from './region'
 
 async function fetchJson(url: string, signal: AbortSignal): Promise<unknown> {
   const res = await fetch(url, { signal })

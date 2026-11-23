@@ -2,18 +2,21 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { osmViewUrl } from '../hash'
 import { useI18n } from '../i18n'
+import { REGION } from '../region'
 
-const WAYS = ['edit', 'phone', 'photos', 'ideas', 'join'] as const
+const { join, volunteer, donate } = REGION.org ?? {}
+/** Joining is offered when the region's group has pages to join, volunteer and donate. */
+const GROUP_LINKS = join && volunteer && donate ? { join, volunteer, donate } : null
+
+const WAYS = ['edit', 'phone', 'photos', 'ideas', ...(GROUP_LINKS ? (['join'] as const) : [])] as const
 
 const LINKS: Record<string, string> = {
   streetcomplete: 'https://streetcomplete.app/',
   everydoor: 'https://every-door.app/',
   fotoshi: 'https://fotoshi.com/',
   mapillary: 'https://www.mapillary.com/mobile-apps',
-  issue: 'https://github.com/BikeOttawa/bikeottawa-maps/issues/new',
-  join: 'https://bikeottawa.ca/join-bike-ottawa/',
-  volunteer: 'https://bikeottawa.ca/volunteer-signup/',
-  donate: 'https://bikeottawa.ca/donate-to-bike-ottawa/',
+  issue: `${REGION.repo}/issues/new`,
+  ...GROUP_LINKS,
 }
 
 /** Text with each `[words](key)` made a link to `links[key]`. */
@@ -90,7 +93,7 @@ function HelpCard({ onClose }: { onClose: () => void }) {
         <ul className="help-ways">
           {WAYS.map((way) => (
             <li key={way}>
-              <h3>{t(`help.${way}`)}</h3>
+              <h3>{t(`help.${way}`).replace('{org}', REGION.org?.name ?? '')}</h3>
               <p>{linked(t(`help.${way}.text`), links)}</p>
             </li>
           ))}

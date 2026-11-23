@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds web/public/tiles/basemap.pmtiles (Protomaps extract of the region in region.json)
+# Builds web/public/tiles/basemap.pmtiles (Protomaps extract of the region, see regions/region.mjs)
 # and copies the fonts and icons the basemap style needs into web/public/basemap-assets.
 # Needs: pmtiles, git, node, curl.
 set -euo pipefail
@@ -10,7 +10,7 @@ ASSETS=web/public/basemap-assets
 WORK="${WORK_DIR:-.cache/pipeline}"
 mkdir -p "$OUT" "$WORK"
 
-BBOX="$(node -p "require('./region.json').bbox.join(',')")"
+BBOX="$(node regions/region.mjs bbox)"
 BUILD="${PROTOMAPS_BUILD:-$(curl -fsSL https://build-metadata.protomaps.dev/builds.json | node -p "JSON.parse(require('fs').readFileSync(0)).at(-1).key")}"
 
 echo "Extracting $BBOX from Protomaps build $BUILD"

@@ -10,7 +10,7 @@ What the code does not tell you. See README.md for what the project is, and docs
 
 ## Deploying
 
-- The site image (root `Dockerfile`) copies only `web/`, `region.json` and the files named there. A web import from elsewhere in the repo, such as `pipeline/surface-groups.json`, must be copied there too, or the deploy fails although lint, tests and the Pages build pass.
+- The site image (root `Dockerfile`) copies only `web/`, `regions/` and the files named there. A web import from elsewhere in the repo, such as `pipeline/surface-groups.json`, must be copied there too, or the deploy fails although lint, tests and the Pages build pass.
 - After a push, check that the Deploy run passed (`gh run list`). Pages waits for the site image, so a failed run leaves the old site live without any other sign.
 
 ## Text
@@ -20,7 +20,8 @@ What the code does not tell you. See README.md for what the project is, and docs
 
 ## Data
 
-- Collisions, Thefts and Projects show only when `VITE_CITY_LAYERS` (`web/.env`) names them. Another city's site leaves them out.
+- Everything about one city is in `regions/<id>/` (see `regions/README.md`): its area, names, links, logo and router profiles. Code outside it should not name a city. `MAP_REGION` picks the region; the web tests always read Ottawa's.
+- Collisions, Thefts and Projects show only when the region's `cityLayers` names them.
 - The stress model is `pipeline/stressmodel.mjs`, used by the tiles and by the route card: a change moves both, and the router's profiles do not read it.
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
 - Collisions are committed (`web/public/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
@@ -29,7 +30,7 @@ What the code does not tell you. See README.md for what the project is, and docs
 
 ## Router
 
-- The local router (`npm run router`, port 17777) reads `routing/profiles/*.brf` live, so a broken profile breaks it at once. Try profile changes on a second container on another port first.
+- The local router (`npm run router`, port 17777) reads the region's `profiles/*.brf` live, so a broken profile breaks it at once. Try profile changes on a second container on another port first.
 - Profiles can only use the tags and values in BRouter's lookups (`/profiles2/lookups.dat` in the image, plus `routing/lookups-extra*.dat`). An unknown value makes the whole profile fail to load.
 - Changes to BRouter itself go on the `bikeottawa` branch of github.com/YaroShkvorets/brouter. Its CI publishes `ghcr.io/yaroshkvorets/brouter:bikeottawa`, pinned by digest in `routing/Dockerfile`. That build runs upstream's checks (PMD), so run `./gradlew build` before pushing.
 

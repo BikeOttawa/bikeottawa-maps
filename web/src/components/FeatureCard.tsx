@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MAPILLARY_TOKEN, REGION } from '../config'
+import { MAPILLARY_TOKEN } from '../config'
 import { editKind } from '../editFields'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
@@ -17,6 +17,7 @@ import type { Selected } from '../map/style'
 import { formatLength, type KnownSurfaceId, widthBand } from '../pathways'
 import { commonsLink, directImage, imageLink, mapillaryId, mapillaryViewerUrl, streetViewUrl } from '../photos'
 import { isPlaceKind } from '../places'
+import { REGION } from '../region'
 import { wayType } from '../wayType'
 import { CardEdits } from './CardEdits'
 import { OTHER } from './GroupBars'
@@ -182,6 +183,7 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
     // Hours lead with whether the place is open now, when they can be understood.
     const week = key === 'opening_hours' ? parseHours(String(props[key])) : null
     if (week) {
+      // In the region's time, wherever the viewer is.
       const status = hoursStatus(week, weekTimeIn(REGION.timeZone))
       const words = describeStatus(status, locale, {
         openUntil: t('hours.openUntil'),

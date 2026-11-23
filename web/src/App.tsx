@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import bikeOttawaLogo from './assets/bike-ottawa.png'
 import {
   type CollisionFilters,
   collisionSpots,
@@ -40,6 +39,7 @@ import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
+import { REGION } from './region'
 import type { RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight, RouteStop } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
@@ -545,9 +545,9 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = lang
-    document.title = t('title')
+    document.title = REGION.title[lang]
     rememberLang(lang)
-  }, [lang, t])
+  }, [lang])
 
   useEffect(() => writeUrl({ ...url, alt }), [url, alt])
 
@@ -1072,8 +1072,8 @@ export function App() {
       <div className="sidebar">
         <div className={`card topbar ${topOpen ? '' : 'folded'}`} ref={topbar}>
           <header className="brand">
-            <img className="brand-logo" src={bikeOttawaLogo} alt="" width="60" height="28" />
-            <h1>{t('title')}</h1>
+            <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" height="28" />
+            <h1>{REGION.title[lang]}</h1>
           </header>
           <div className="topbar-row">
             <ModeSwitch mode={mode} onChange={changeMode} />
@@ -1252,11 +1252,15 @@ export function App() {
                     {' · '}
                   </>
                 )}
-                <a href="https://bikeottawa.ca/" target="_blank" rel="noopener noreferrer">
-                  Bike Ottawa
-                </a>
-                {' · '}
-                <a href="https://github.com/BikeOttawa/bikeottawa-maps" target="_blank" rel="noopener noreferrer">
+                {REGION.org && (
+                  <>
+                    <a href={REGION.org.url} target="_blank" rel="noopener noreferrer">
+                      {REGION.org.name}
+                    </a>
+                    {' · '}
+                  </>
+                )}
+                <a href={REGION.repo} target="_blank" rel="noopener noreferrer">
                   GitHub
                 </a>
               </p>

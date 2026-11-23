@@ -20,6 +20,7 @@ The images are `ghcr.io/<owner>/bikeottawa-maps` (site) and `ghcr.io/<owner>/bik
 
 Repository variables (Settings → Secrets and variables → Actions → Variables) go into the GitHub Pages build:
 
+- `MAP_REGION`: the folder of `regions/` to build, for the tiles, the router and both images too. Without it, `ottawa`.
 - `ROUTER_URL`: the router's address, ending in `/brouter`. Without it the planner says no routing server is connected.
 - `MAPILLARY_TOKEN`: a Mapillary client token, for street-level photos. Without it cards link to the photos instead.
 - `FOTOSHI_KEY`: a Fotoshi browser key, approved by Fotoshi for the site's address, for more photos on cards. Without it cards show only the Fotoshi photos tagged in OSM.
