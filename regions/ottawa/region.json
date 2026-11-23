@@ -19,7 +19,8 @@
   ],
   "replicationUrl": "https://planet.openstreetmap.org/replication/hour/",
   "profiles": { "bike": "ottbike", "walk": "ottwalk" },
-  "cityData": ["collisions", "thefts", "construction", "wards", "roadwork"],
+  "cityData": ["collisions", "thefts", "construction", "wards"],
+  "roadwork": ["ottawa", "quebec511"],
   "elevation": "https://canelevation-dem.s3.ca-central-1.amazonaws.com/mrdem-30/mrdem-30-dtm.tif",
   "org": {
     "name": "Bike Ottawa",

@@ -12,6 +12,7 @@ export interface Region {
   replicationUrl: string
   profiles: { bike: string; walk: string }
   cityData?: string[]
+  roadwork?: string[]
   elevation?: string
   org?: { name: string; url: string; join?: string; volunteer?: string; donate?: string }
   repo: string

@@ -24,13 +24,7 @@ import { RouteResult } from './components/RouteResult'
 import { LayerPeek, ReachPeek, RoutePeek } from './components/SheetPeek'
 import { TheftCard } from './components/TheftCard'
 import { ASSETS_BASE, ROUTER_URL } from './config'
-import {
-  type ConstructionFilters,
-  closureSummary,
-  closuresGeoJSON,
-  formatConstructionFilters,
-  parseConstructionFilters,
-} from './construction'
+import { type ConstructionFilters, formatConstructionFilters, parseConstructionFilters } from './construction'
 import { osmViewUrl, parseHash, withHashParam } from './hash'
 import { initialLang, type Lang, LangContext, rememberLang, translator } from './i18n'
 import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
@@ -40,6 +34,8 @@ import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePat
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
 import { hasCityData, REGION } from './region'
+import { closureSummary, closuresGeoJSON } from './roadwork/closures'
+import { ROADWORK_SOURCES } from './roadwork/sources'
 import type { RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight, RouteStop } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
@@ -230,7 +226,7 @@ function rememberReachView(view: ReachView) {
 
 /** The roadwork overlay, where the region has it: off unless turned on, remembered per browser. */
 function storedRoadwork(): boolean {
-  if (!hasCityData('roadwork')) return false
+  if (!ROADWORK_SOURCES.length) return false
   try {
     return localStorage.getItem(ROADWORK_KEY) === 'on'
   } catch {
@@ -487,7 +483,7 @@ export function App() {
   const [routeStops, setRouteStops] = useState(() => !window.matchMedia(PHONE_LAYOUT).matches)
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
-  const closures = useClosures(hasCityData('roadwork') && (roadwork || (planning && travel === 'bike')), lang)
+  const closures = useClosures(ROADWORK_SOURCES.length > 0 && (roadwork || (planning && travel === 'bike')), lang)
   const plannedRoutes = planning ? visibleRoutes(routeState) : []
   // The route chosen holds for the trip it was chosen on: new points or another style start from the best.
   const trip = JSON.stringify([points.map((p) => p?.lngLat), vias, profile])

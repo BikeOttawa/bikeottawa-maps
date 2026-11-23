@@ -26,6 +26,14 @@ const TYPES: Record<string, string> = { svg: 'image/svg+xml', png: 'image/png', 
 /** The region's logo and icons at the top of the site, its data under data/, and its name in the page. */
 const regionFiles = (): Plugin => ({
   name: 'region-files',
+  // A roadwork source the region names has to be there, or its overlay would stay empty.
+  async buildStart() {
+    for (const name of region.roadwork ?? []) {
+      const file = `src/roadwork/sources/${name}.ts`
+      if (!(await this.resolve(`/${file}`)))
+        this.error(`region.json names the roadwork source "${name}": web/${file} is missing`)
+    }
+  },
   transformIndexHtml: (html) =>
     html.replaceAll('%REGION_TITLE%', region.title.en).replaceAll('%REGION_DESCRIPTION%', region.description),
   configureServer(server) {

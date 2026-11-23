@@ -1,6 +1,6 @@
-import type { Closure } from '../construction'
 import { isMessageKey, useI18n } from '../i18n'
 import { type BasemapId, constructionColors } from '../layers'
+import type { Closure } from '../roadwork/closures'
 
 type Props = { onClose: () => void; basemap: BasemapId } & (
   | { project: Record<string, unknown>; closure?: undefined }
@@ -31,9 +31,9 @@ function CloseButton({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * A construction project from the City's forecast (its type, when, what it
- * does to traffic, its page), or a closure on its traffic map (what is closed,
- * from when to when).
+ * A construction project from the city's forecast (its type, when, what it
+ * does to traffic, its page), or a closure from the Roadwork overlay (what is
+ * closed, from when to when).
  */
 export function ConstructionCard({ project, closure, onClose, basemap }: Props) {
   const { t, lang } = useI18n()
@@ -41,7 +41,7 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
   const label = (key: string) => (isMessageKey(key) ? t(key) : null)
 
   if (closure) {
-    // The City writes local date-times; a range reads "Mar 23 – Dec 1, 2026".
+    // Local date-times; a range reads "Mar 23 – Dec 1, 2026".
     const day = (text?: string) => (text ? new Date(text) : null)
     const [start, end] = [day(closure.start), day(closure.end)]
     const format = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' })
@@ -49,7 +49,7 @@ export function ConstructionCard({ project, closure, onClose, basemap }: Props) 
     const facts = [
       { label: t('construction.lanes'), value: closure.lanes ?? null },
       { label: t('construction.detour'), value: closure.detour ?? null },
-      { label: t('construction.by'), value: label(`construction.by.${closure.source}`) ?? closure.source ?? null },
+      { label: t('construction.by'), value: closure.by ?? null },
     ]
     return (
       <section className="feature-card" aria-live="polite">

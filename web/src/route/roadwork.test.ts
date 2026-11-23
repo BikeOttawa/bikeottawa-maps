@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Closure } from '../construction'
+import type { Closure } from '../roadwork/closures'
 import type { Route } from './brouter'
 import { roadworkOnRoute } from './roadwork'
 

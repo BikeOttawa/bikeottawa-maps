@@ -21,7 +21,8 @@ What the code does not tell you. See README.md for what the project is, and docs
 ## Data
 
 - Everything about one city is in `regions/<id>/` (see `regions/README.md`): its area, names, links, logo and router profiles. Code outside it should not name a city. `MAP_REGION` picks the region; the web tests always read Ottawa's.
-- Collisions, Thefts, Projects, wards and roadwork show only when the region's `cityData` names them. Its `pipeline/` fetches them and its `data/` keeps the committed ones.
+- Collisions, Thefts, Projects and wards show only when the region's `cityData` names them. Its `pipeline/` fetches them and its `data/` keeps the committed ones.
+- Roadwork shows when the region's `roadwork` names sources: files in `web/src/roadwork/sources/`, each reading one service into `Closure` (`web/src/roadwork/closures.ts`). They are shared, not a city's: do not name a region in one.
 - The stress model is `pipeline/stressmodel.mjs`, used by the tiles and by the route card: a change moves both, and the router's profiles do not read it.
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
 - Collisions are committed (`regions/ottawa/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
@@ -37,7 +38,7 @@ What the code does not tell you. See README.md for what the project is, and docs
 ## Outside services
 
 - Photon (place search, addresses) refuses bursts: keep lookups to two at a time (`web/src/route/geocode.ts`). Testing with many parallel requests got the network blocked for a while.
-- The Roadwork overlay reads the City's traffic map (`traffic.ottawa.ca/map/service/events`) and Quebec's roadwork service (`ws.mapserver.transports.gouv.qc.ca`, asked for the map's box only: the whole province is about 700 KB) from the browser, once per language while it is on or a bike route is planned (the route card counts the roadwork on the route); the Projects data comes from `maps.ottawa.ca` at build time only.
+- The Roadwork overlay reads the region's sources, for Ottawa the City's traffic map (`traffic.ottawa.ca/map/service/events`) and Quebec's roadwork service (`ws.mapserver.transports.gouv.qc.ca`, asked for the map's box only: the whole province is about 700 KB), from the browser, once per language while it is on or a bike route is planned (the route card counts the roadwork on the route); the Projects data comes from `maps.ottawa.ca` at build time only.
 - Cards fetch a feature's current tags from the OSM API only when "All OSM tags" is opened (`web/src/components/OsmTags.tsx`): one request per feature, never in bulk. A route's barrier card is the exception: on opening it asks the OSM API for the few metres around the barrier (`map.json`, one request) to find its node.
 - The Mapillary token comes from `VITE_MAPILLARY_TOKEN`: `web/.env.development.local` locally (git ignores it), the `MAPILLARY_TOKEN` repository variable when deployed. Never put it in code.
 - The Fotoshi key works the same way (`VITE_FOTOSHI_KEY`, the `FOTOSHI_KEY` variable). Fotoshi's terms keep ordinary developer keys on a server: the live site needs a browser key Fotoshi approved for its addresses. Cards ask for one search when opened (`web/src/photos.ts`).

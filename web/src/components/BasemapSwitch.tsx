@@ -14,6 +14,7 @@ import {
   routeBandColors,
 } from '../layers'
 import { hasCityData } from '../region'
+import { ROADWORK_SOURCES, roadworkSourceNames } from '../roadwork/sources'
 import { ConeIcon, LampIcon, LanesIcon, RoutesIcon, WardsIcon } from './OverlayIcons'
 
 /** A small picture of each map style, taken from the map itself. */
@@ -31,7 +32,7 @@ interface Props {
   /** Ottawa's wards and Gatineau's districts, with their councillors. */
   wards: boolean
   onWardsChange: (on: boolean) => void
-  /** Roadwork: the closures on the City's traffic map right now. */
+  /** Roadwork: the closures right now, from the region's sources. */
   roadwork: boolean
   onRoadworkChange: (on: boolean) => void
   /** Street lights: lit streets and paths, and the lamps. */
@@ -54,7 +55,7 @@ export function BasemapSwitch({
   lights,
   onLightsChange,
 }: Props) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -135,8 +136,11 @@ export function BasemapSwitch({
               {t('wards')}
             </label>
           )}
-          {hasCityData('roadwork') && (
-            <label className="check bike-lanes-toggle" title={t('roadworkHint')}>
+          {ROADWORK_SOURCES.length > 0 && (
+            <label
+              className="check bike-lanes-toggle"
+              title={t('roadworkHint').replace('{sources}', roadworkSourceNames(lang))}
+            >
               <input type="checkbox" checked={roadwork} onChange={(e) => onRoadworkChange(e.target.checked)} />
               <ConeIcon />
               {t('roadwork')}

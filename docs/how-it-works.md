@@ -9,7 +9,7 @@
 
 ## Layers
 
-Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, and its `pipeline/` fetches them; without it, none.
+Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, and its `pipeline/` fetches them; without it, none. Its `roadwork` names the services read for closures.
 
 ### Places
 
@@ -54,7 +54,7 @@ Collisions, Thefts and Projects come from the city's own data, not OSM. So do th
 - **Bike lanes** (on): cycle tracks and pathways dark green, painted lanes dashed, shared lanes dotted, paved shoulders yellow. Width from the tags.
 - **Bike routes**: OSM route relations, ranked national, regional, local and mountain bike.
 - **Wards**: Ottawa's wards and Gatineau's districts with their councillors. `npm run wards` → `regions/ottawa/data/wards.geojson` (committed).
-- **Roadwork**: today's closures, live from the City's traffic map and Québec 511, for the map's area only (`web/src/useClosures.ts`). Gatineau publishes none.
+- **Roadwork**: today's closures, live from the region's sources (`web/src/roadwork/sources/`), each read into one shape. Ottawa's are the City's traffic map and Québec 511 for the map's area; Gatineau publishes none.
 - **Street lights**: ways with `lit` or street lamps along half their length (`pipeline/lamps.mjs`), and the lamps.
 
 ## Route planner
