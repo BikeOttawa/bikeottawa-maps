@@ -576,8 +576,7 @@ const en = {
   'help.photos.text':
     '[Fotoshi](fotoshi) for places and single photos: snap a bike rack or a fountain and pin the photo to it. [Mapillary](mapillary) for whole routes: with your phone on the handlebars, it takes photos as you ride.',
   'help.ideas': 'Suggest an idea',
-  'help.ideas.text':
-    'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us on GitHub](issue).',
+  'help.ideas.text': 'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us](ideas).',
   'help.join': 'Join {org}',
   'help.join.text':
     'The volunteer group behind these maps works for better cycling across the city. [Become a member](join), [volunteer](volunteer) or [donate](donate).',
@@ -1293,7 +1292,7 @@ const fr: Record<keyof typeof en, string> = {
     '[Fotoshi](fotoshi) pour les lieux et les photos seules\u00a0: photographiez un support à vélos ou une fontaine et épinglez-y la photo. [Mapillary](mapillary) pour des trajets entiers\u00a0: téléphone au guidon, il prend des photos en chemin.',
   'help.ideas': 'Proposer une idée',
   'help.ideas.text':
-    'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous sur GitHub](issue).',
+    'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous](ideas).',
   'help.join': 'Se joindre à {org}',
   'help.join.text':
     'Le groupe de bénévoles derrière ces cartes défend le vélo partout en ville. [Devenez membre](join), [bénévole](volunteer) ou [faites un don](donate).',

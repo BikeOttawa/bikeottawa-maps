@@ -67,6 +67,7 @@
     "donate": "https://bikeottawa.ca/donate-to-bike-ottawa/"
   },
   "repo": "https://github.com/BikeOttawa/bikeottawa-maps",
+  "ideas": "https://github.com/BikeOttawa/bikeottawa-maps/issues",
   "osm": { "createdBy": "BikeOttawa Maps", "hashtag": "#BikeOttawa" },
   "oldPages": {
     "lts": "layer=comfort",

@@ -32,7 +32,8 @@ The tiles, the router and the site all read the same choice (`regions/region.mjs
 | `roadwork`                   | Optional. The roadwork sources the site reads today's closures from (below)                                                                                                 |
 | `elevation`                  | Optional. A finer elevation raster laid over SRTM for the router: `url`, a GeoTIFF's address, and `credit`, whose it is (`name`, `url`)                                     |
 | `org`                        | Optional. The group behind the site: `name` and `url` for the footer, and `join`, `volunteer`, `donate` for the help card                                                   |
-| `repo`                       | The code's repository: the footer's link, and where ideas are sent                                                                                                          |
+| `repo`                       | The code's repository, for the footer's link                                                                                                                                |
+| `ideas`                      | Optional. Where "Suggest an idea" in the help card goes: a form or a page that takes ideas. The repository's issues if not set                                              |
 | `osm`                        | `createdBy` and `hashtag`, written on edits and notes sent to OpenStreetMap                                                                                                 |
 | `oldPages`                   | Optional. Paths of a site this one replaces, each with the map it opens here                                                                                                |
 

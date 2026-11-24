@@ -41,6 +41,8 @@ export interface Region {
   elevation?: { url: string; credit: Credit }
   org?: { name: string; url: string; join?: string; volunteer?: string; donate?: string }
   repo: string
+  /** Where "Suggest an idea" goes: a form or a page. The repository's issues unless set. */
+  ideas?: string
   osm: { createdBy: string; hashtag: string }
   oldPages?: Record<string, string>
 }

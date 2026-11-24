@@ -15,8 +15,8 @@ const LINKS: Record<string, string> = {
   everydoor: 'https://every-door.app/',
   fotoshi: 'https://fotoshi.com/',
   mapillary: 'https://www.mapillary.com/mobile-apps',
-  // The list, which anyone can read; a new issue asks to sign in first.
-  issue: `${REGION.repo}/issues`,
+  // Where the region takes ideas; else the code's issue list, which anyone can read.
+  ideas: REGION.ideas ?? `${REGION.repo}/issues`,
   ...GROUP_LINKS,
 }
 

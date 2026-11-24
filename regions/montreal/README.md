@@ -31,7 +31,7 @@ Each of these is optional and switches on its part of the site; Ottawa's folder 
 - **City data**: collisions, thefts, wards and construction projects, each fetched by a script in `pipeline/` into `data/` and named in `cityData` ([../README.md](../README.md) has the formats). Montréal's open data portal, [donnees.montreal.ca](https://donnees.montreal.ca), is the place to look.
 - **Roadwork**: a source for the city's own closures in `web/src/roadwork/sources/`, added to `roadwork`.
 - **Elevation**: a finer raster for the router; NRCan's MRDEM-30, which Ottawa uses, covers all of Canada.
-- **Organization**: `org`, for the footer and the help card, and its own logo and icons in `brand/`.
+- **Organization**: `org`, for the footer and the help card, its own logo and icons in `brand/`, and `ideas`, a form or page that takes people's ideas.
 - **Profiles**: tune `bike` and `walk` for local streets.
 
 ## For a new city
