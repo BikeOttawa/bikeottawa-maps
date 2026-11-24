@@ -2,9 +2,20 @@
 
 import type { ComfortSet } from './comfort'
 import type { KnownSurfaceId, PathwaySet, WidthBand } from './pathways'
+import { REGION } from './region'
 
 export const LAYER_IDS = ['places', 'pathways', 'comfort', 'collisions', 'thefts', 'construction'] as const
 export type LayerId = (typeof LAYER_IDS)[number]
+
+/** Layers made from a city's own data rather than from OpenStreetMap: a city shows those it has. */
+const CITY_LAYER_IDS: readonly LayerId[] = ['collisions', 'thefts', 'construction']
+
+/** The layers on offer: the OpenStreetMap ones, and the city's own that the region names. */
+export function layersShown(cityData: readonly string[] = []): LayerId[] {
+  return LAYER_IDS.filter((id) => !CITY_LAYER_IDS.includes(id) || cityData.includes(id))
+}
+
+export const LAYERS: readonly LayerId[] = layersShown(Object.keys(REGION.cityData ?? {}))
 
 export const BASEMAP_IDS = ['light', 'grey', 'dark', 'satellite'] as const
 export type BasemapId = (typeof BASEMAP_IDS)[number]
@@ -326,6 +337,7 @@ export function isBasemapId(value: unknown): value is BasemapId {
   return BASEMAP_IDS.includes(value as BasemapId)
 }
 
+/** A layer this site shows: a link to one it does not opens the map as usual. */
 export function isLayerId(value: unknown): value is LayerId {
-  return LAYER_IDS.includes(value as LayerId)
+  return LAYERS.includes(value as LayerId)
 }

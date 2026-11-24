@@ -1,3 +1,4 @@
+import { REGION } from '../region'
 import type { Route } from './brouter'
 
 const escapeXml = (text: string) => text.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`)
@@ -10,7 +11,7 @@ export function toGpx(route: Route, name: string): string {
     )
     .join('\n')
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Bike Ottawa Maps" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="${escapeXml(REGION.title.en)}" xmlns="http://www.topografix.com/GPX/1/1">
 <trk><name>${escapeXml(name)}</name><trkseg>
 ${points}
 </trkseg></trk>

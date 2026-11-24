@@ -19,6 +19,10 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  # Which folder of regions/ is built and deployed.
+  MAP_REGION: ${{ vars.MAP_REGION || 'ottawa' }}
+
 # Two builds side by side, each deployed only if it passes: site (checks,
 # tiles, Pages build, site image) then deploy-site (Pages); router (the router
 # image) then deploy-router (Cloud Run).
@@ -57,7 +61,7 @@ jobs:
           path: |
             web/public/tiles/basemap.pmtiles
             web/public/basemap-assets
-          key: basemap-${{ hashFiles('region.json', 'pipeline/build-basemap.sh') }}-${{ steps.month.outputs.value }}
+          key: basemap-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/build-basemap.sh') }}-${{ steps.month.outputs.value }}
       - if: steps.basemap.outputs.cache-hit != 'true'
         run: npm run basemap
       # The region's OSM data carries over from run to run and is only topped up
@@ -65,10 +69,10 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: |
-            .cache/osm/region.osm.pbf
+            .cache/osm/${{ env.MAP_REGION }}.osm.pbf
             .cache/osm/*.poly
-          key: osm-${{ hashFiles('region.json', 'pipeline/update-osm.sh') }}-${{ github.run_id }}
-          restore-keys: osm-${{ hashFiles('region.json', 'pipeline/update-osm.sh') }}-
+          key: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-${{ github.run_id }}
+          restore-keys: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-
       - run: npm run tiles
       # GitHub Pages: main only, served under /<repo>/. The route planner shows
       # there once the ROUTER_URL repository variable points at a running router.
@@ -109,6 +113,7 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
+          build-args: MAP_REGION=${{ env.MAP_REGION }}
           push: true
           tags: ${{ steps.image.outputs.tags }}
           labels: ${{ steps.image.outputs.labels }}
@@ -138,15 +143,15 @@ jobs:
       - uses: actions/cache/restore@v6
         with:
           path: |
-            .cache/osm/region.osm.pbf
+            .cache/osm/${{ env.MAP_REGION }}.osm.pbf
             .cache/osm/*.poly
-          key: osm-${{ hashFiles('region.json', 'pipeline/update-osm.sh') }}-${{ github.run_id }}
-          restore-keys: osm-${{ hashFiles('region.json', 'pipeline/update-osm.sh') }}-
+          key: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-${{ github.run_id }}
+          restore-keys: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-
       - run: pipeline/update-osm.sh
       - uses: actions/cache@v6
         with:
           path: routing/data/elevation
-          key: elevation-${{ hashFiles('region.json', 'routing/prepare-data.sh') }}
+          key: elevation-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'routing/prepare-data.sh') }}
       - run: routing/prepare-data.sh
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
@@ -189,6 +194,8 @@ jobs:
     needs: router
     runs-on: ubuntu-latest
     steps:
+      # For the region's centre and profiles, which the new router is tried with.
+      - uses: actions/checkout@v7
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -207,9 +214,11 @@ jobs:
           gcloud run services update "$SERVICE" "${where[@]}" --image "$image" --no-traffic --tag next
           url=$(gcloud run services describe "$SERVICE" "${where[@]}" --format=json \
             | jq -r '.status.traffic[] | select(.tag == "next") | .url')
-          for profile in ottbike ottwalk; do
+          # A short trip from the region's centre, about 600 m east.
+          lonlats=$(node -p "const [lon, lat] = '$(node regions/region.mjs center)'.split(',').map(Number); lon + ',' + lat + '|' + (lon + 0.0072).toFixed(4) + ',' + (lat - 0.0015).toFixed(4)")
+          for profile in $(node regions/region.mjs profiles.bike) $(node regions/region.mjs profiles.walk); do
             curl -fsS --retry 3 --max-time 60 \
-              "$url/brouter?lonlats=-75.6972,45.4215|-75.6900,45.4200&profile=$profile&alternativeidx=0&format=geojson" \
+              "$url/brouter?lonlats=$lonlats&profile=$profile&alternativeidx=0&format=geojson" \
               | grep -q LineString || { echo "The new router did not plan a route with $profile" >&2; exit 1; }
           done
           gcloud run services update-traffic "$SERVICE" "${where[@]}" --to-latest

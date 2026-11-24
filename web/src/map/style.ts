@@ -58,6 +58,8 @@ import {
 } from '../pathways'
 import type { PlacePoints } from '../placePoints'
 import { GROUP_COLORS, PLACE_GROUP_IDS, type PlaceGroupId, type PlaceKind, placeGroup, placeImageId } from '../places'
+import { cityData, creditLine, REGION } from '../region'
+import { ROADWORK_ATTRIBUTION } from '../roadwork/sources'
 import { partLook, partOf, type RouteView } from '../route/breakdown'
 import { type Route, type RouteHighlight, STOP_KINDS, type StopKind } from '../route/brouter'
 import { THEFT_GROUPS, type TheftGroupId, theftGroupColor, VALUE_STEPS } from '../thefts'
@@ -92,7 +94,7 @@ export type Selected =
   | { kind: 'theft'; spot: string; at: [number, number] }
   /** A project on the construction layer, with its properties. */
   | { kind: 'construction'; props: Record<string, unknown>; at: [number, number] }
-  /** A closure on the construction layer or the route, by its id on the City's traffic map. */
+  /** A closure on the roadwork overlay or the route, by its id. */
   | { kind: 'closure'; id: string; at: [number, number] }
   /** A barrier on the route, by its OSM `barrier` value. */
   | { kind: 'barrier'; barrier: string; at: [number, number] }
@@ -142,7 +144,7 @@ export interface StyleState {
   theftsBy?: TheftGroupId | null
   /** What the construction layer shows. */
   construction?: ConstructionFilters
-  /** The roadwork overlay: the closures on the City's traffic map right now, as cones. */
+  /** The roadwork overlay: the closures right now, as cones. */
   roadwork?: boolean
   /** Those closures; null until loaded. */
   closures?: FeatureCollection | null
@@ -1059,12 +1061,11 @@ const PLACE_LABEL_ZOOM = 15
  * topmost labels first pick, and here a shop's name matters more than the street's.
  */
 export const WARDS_SOURCE = 'wards'
-const WARDS_ATTRIBUTION =
-  'Wards: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>, <a href="https://www.donneesquebec.ca/organisation/ville-de-gatineau/" target="_blank" rel="noopener">Ville de Gatineau</a>'
+const WARDS_ATTRIBUTION = creditLine('Wards', cityData('wards')?.credits)
 
 /**
  * Ward and district boundaries, dashed, with each ward's name and councillor
- * at a spot well inside it (worked out by pipeline/fetch-wards.mjs).
+ * at a spot well inside it (worked out by the region's pipeline/fetch-wards.mjs).
  */
 function wardLayers(state: StyleState, theme: Theme): { lines: LayerSpecification[]; labels: LayerSpecification[] } {
   if (!state.wards) return { lines: [], labels: [] }
@@ -1123,20 +1124,14 @@ export const COLLISIONS_SOURCE = 'collisions'
 /** The same spots, merged where they would overlap; the heat maps use them each alone. */
 export const COLLISION_SPOTS_SOURCE = 'collision-spots'
 export const THEFT_SPOTS_SOURCE = 'theft-spots'
-const COLLISIONS_ATTRIBUTION =
-  'Collisions: <a href="https://open.ottawa.ca/" target="_blank" rel="noopener">City of Ottawa</a>'
+const COLLISIONS_ATTRIBUTION = creditLine('Collisions', cityData('collisions')?.credits)
 export const CONSTRUCTION_SOURCE = 'construction'
 export const CLOSURES_SOURCE = 'closures'
-const CLOSURES_ATTRIBUTION =
-  'Roadwork: <a href="https://traffic.ottawa.ca/map/" target="_blank" rel="noopener">City of Ottawa</a>, <a href="https://www.quebec511.info" target="_blank" rel="noopener">Québec 511</a>'
-const CONSTRUCTION_ATTRIBUTION =
-  'Construction: <a href="https://ottawa.ca/en/parking-roads-and-travel/road-construction-and-maintenance" target="_blank" rel="noopener">City of Ottawa</a>'
+const CONSTRUCTION_ATTRIBUTION = creditLine('Construction', cityData('construction')?.credits)
 export const THEFTS_SOURCE = 'thefts'
-const THEFTS_ATTRIBUTION =
-  'Thefts: <a href="https://www.ottawapolice.ca/" target="_blank" rel="noopener">Ottawa Police Service</a>'
-/** The router's elevation (MRDEM-30), shown with a route. */
-const ELEVATION_ATTRIBUTION =
-  'Elevation: <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener">NRCan</a>'
+const THEFTS_ATTRIBUTION = creditLine('Thefts', cityData('thefts')?.credits)
+/** The router's finer elevation, where the region has one, shown with a route. */
+const ELEVATION_ATTRIBUTION = creditLine('Elevation', REGION.elevation ? [REGION.elevation.credit] : [])
 
 const COLLISION_POINTS_FROM = SPOTS_FROM
 
@@ -1409,7 +1404,7 @@ function constructionLayers(state: StyleState): { under: LayerSpecification[]; o
   }
 }
 
-/** The roadwork overlay: a cone at each closure on the City's traffic map, over any layer. */
+/** The roadwork overlay: a cone at each closure, over any layer. */
 function roadworkLayers(state: StyleState): LayerSpecification[] {
   if (!state.roadwork) return []
   const lines: FilterSpecification = ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString']]]
@@ -1653,7 +1648,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       route: {
         type: 'geojson',
         data: routeData(state.route, state.routeView ?? 'comfort'),
-        ...(state.route && { attribution: ELEVATION_ATTRIBUTION }),
+        ...(state.route && ELEVATION_ATTRIBUTION && { attribution: ELEVATION_ATTRIBUTION }),
       },
       'route-stops': { type: 'geojson', data: stopsData(state.route) },
       'route-others': { type: 'geojson', data: otherRoutesData(state.routeOthers) },
@@ -1700,7 +1695,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
         [CLOSURES_SOURCE]: {
           type: 'geojson',
           data: state.closures ?? { type: 'FeatureCollection', features: [] },
-          attribution: CLOSURES_ATTRIBUTION,
+          attribution: ROADWORK_ATTRIBUTION,
         },
       }),
       // Loaded only while the thefts layer is on.

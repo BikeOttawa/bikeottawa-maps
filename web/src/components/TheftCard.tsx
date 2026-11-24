@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { isMessageKey, useI18n } from '../i18n'
 import { streetViewUrl } from '../photos'
+import { cityData } from '../region'
 import { type TheftProps, theftPlace } from '../thefts'
 import { CardPhoto } from './PlacePhoto'
 
@@ -19,6 +20,8 @@ interface Props {
 export function TheftCard({ items, at, onClose }: Props) {
   const { t, lang } = useI18n()
   const locale = lang === 'fr' ? 'fr-CA' : 'en-CA'
+  // What the region says of where its thefts are placed.
+  const note = cityData('thefts')?.note?.[lang]
   const [index, setIndex] = useState(0)
   // A new spot starts again at its most recent theft.
   // biome-ignore lint/correctness/useExhaustiveDependencies: resets when the thefts change
@@ -91,7 +94,7 @@ export function TheftCard({ items, at, onClose }: Props) {
         </button>
       </header>
       <CardPhoto at={at} />
-      <p className="theft-spot" title={`${summary}. ${t('theft.nearHint')}`}>
+      <p className="theft-spot" title={note ? `${summary}. ${note}` : summary}>
         {summary}
       </p>
       <div className="theft-head">

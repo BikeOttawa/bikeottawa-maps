@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds web/public/tiles/overlays.pmtiles (streets), places.pmtiles, night.pmtiles
 # (lit ways + street lamps), routes.pmtiles and routes.json (signed bike routes) and
-# places/<kind>.json (where each kind of place is) for the map area in region.json,
+# places/<kind>.json (where each kind of place is) for the region's map area (regions/region.mjs),
 # from OSM data brought up to date by pipeline/update-osm.sh.
 # Needs: osmium, tippecanoe, node, and what update-osm.sh needs.
 set -euo pipefail
@@ -9,8 +9,9 @@ cd "$(dirname "$0")/.."
 
 pipeline/update-osm.sh
 
-REGION="${OSM_DIR:-.cache/osm}/region.osm.pbf"
-BBOX="$(node -p "require('./region.json').bbox.join(',')")"
+REGION="${OSM_DIR:-.cache/osm}/$(node regions/region.mjs id).osm.pbf"
+BBOX="$(node regions/region.mjs bbox)"
+TITLE="$(node regions/region.mjs shortTitle)"
 WORK="${WORK_DIR:-.cache/pipeline}"
 OUT=web/public/tiles
 mkdir -p "$WORK" "$OUT"
@@ -43,26 +44,26 @@ echo "Building tiles"
 tippecanoe --force --quiet -o "$OUT/overlays.pmtiles" \
   -Z9 -z14 -r1 --read-parallel \
   --drop-densest-as-needed --extend-zooms-if-still-dropping \
-  --name "Bike Ottawa streets" --attribution "© OpenStreetMap contributors" \
+  --name "$TITLE streets" --attribution "© OpenStreetMap contributors" \
   -L "ways:$WORK/ways.geojsonseq"
 
 # Each place kind has its own zoom to appear from, so nothing needs dropping.
 tippecanoe --force --quiet -o "$OUT/places.pmtiles" \
   -Z9 -z14 -r1 --read-parallel --no-feature-limit --no-tile-size-limit \
-  --name "Bike Ottawa places" --attribution "© OpenStreetMap contributors" \
+  --name "$TITLE places" --attribution "© OpenStreetMap contributors" \
   -L "places:$WORK/places.geojsonseq"
 
 # Signed bike routes, for the routes overlay: few enough to keep every one.
 tippecanoe --force --quiet -o "$OUT/routes.pmtiles" \
   -Z9 -z14 -r1 --read-parallel --no-feature-limit --no-tile-size-limit \
-  --name "Bike Ottawa routes" --attribution "© OpenStreetMap contributors" \
+  --name "$TITLE routes" --attribution "© OpenStreetMap contributors" \
   -L "routes:$WORK/routes.geojsonseq"
 
 # The street lights overlay, in a file of its own so it only loads when it is on:
 # every lit way from zoom 9, and the street lamps themselves from zoom 12.
 tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
   -Z9 -z14 -r1 --read-parallel --coalesce --reorder --no-tile-size-limit \
-  --name "Bike Ottawa night" --attribution "© OpenStreetMap contributors" \
+  --name "$TITLE night" --attribution "© OpenStreetMap contributors" \
   -L "streets:$WORK/lit.geojsonseq" -L "lamps:$WORK/lamps.geojsonseq"
 
 # Date of the OSM data (how far the change files have been applied), km of pathway, and
@@ -70,9 +71,15 @@ tippecanoe --force --quiet -o "$OUT/night.pmtiles" \
 OSM_TIMESTAMP="$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$REGION")"
 printf '{"osmTimestamp":"%s","builtAt":"%s","pathways":%s,"comfort":%s}\n' "$OSM_TIMESTAMP" \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(cat "$WORK/pathways.json")" "$(cat "$WORK/comfort.json")" > "$OUT/meta.json"
-# The City's construction forecast, for the construction layer. Its server being
-# down leaves that layer empty for a day rather than failing the build.
-node pipeline/fetch-construction.mjs "$OUT" || echo "construction: not fetched; the layer stays empty"
+# The city's construction forecast, when the region has one (its cityData),
+# fetched by the region's own script. Its server being down leaves that layer
+# empty for a day rather than failing the build.
+if node regions/region.mjs cityData.construction > /dev/null 2>&1; then
+  node "$(node regions/region.mjs dir)/pipeline/fetch-construction.mjs" "$OUT" ||
+    echo "construction: not fetched; the layer stays empty"
+else
+  rm -f "$OUT/construction.geojson"
+fi
 
 ls -lh "$OUT/overlays.pmtiles" "$OUT/places.pmtiles" "$OUT/night.pmtiles" "$OUT/routes.pmtiles"
 cat "$OUT/meta.json"

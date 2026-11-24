@@ -15,12 +15,20 @@ Cycling maps for Ottawa–Gatineau, built on OpenStreetMap by [Bike Ottawa](http
 - **Route planner** by bike or on foot
 - **How far** you get by bike or foot in 5 to 30 minutes
 
+## For your city
+
+The maps can be built for any area OpenStreetMap covers. Everything about a city lives in one folder under `regions/`: its area, names, logo, colour and router profiles, and its own data where it has some.
+
+- [Montréal](regions/montreal/README.md) is the example to copy: OSM data only, with Places, Pathways, Comfort and the route planner.
+- [Ottawa](regions/ottawa/README.md) adds the city's own collisions, thefts, construction projects and wards.
+
 ## Docs
 
 - [How the map works](docs/how-it-works.md)
 - [Development](docs/development.md)
 - [Deployment](docs/deployment.md)
 - [Contributing](CONTRIBUTING.md)
+- [Another city](regions/README.md): what a region holds
 
 ## Licence
 

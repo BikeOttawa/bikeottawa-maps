@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 // The module reads the region and the page address at import time.
-vi.mock('../config', () => ({ REGION: { bbox: [-76.4, 44.95, -75.2, 45.65], center: [-75.7, 45.42] } }))
+vi.mock('../region', () => ({ REGION: { bbox: [-76.4, 44.95, -75.2, 45.65], center: [-75.7, 45.42] } }))
 
 const { addressLabel, placeLabel, placeOf } = await import('./geocode')
 

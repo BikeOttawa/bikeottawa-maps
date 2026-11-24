@@ -10,31 +10,36 @@ What the code does not tell you. See README.md for what the project is, and docs
 
 ## Deploying
 
-- The site image (root `Dockerfile`) copies only `web/`, `region.json` and the files named there. A web import from elsewhere in the repo, such as `pipeline/surface-groups.json`, must be copied there too, or the deploy fails although lint, tests and the Pages build pass.
+- The site image (root `Dockerfile`) copies only `web/`, `regions/` and the files named there. A web import from elsewhere in the repo, such as `pipeline/surface-groups.json`, must be copied there too, or the deploy fails although lint, tests and the Pages build pass.
 - After a push, check that the Deploy run passed (`gh run list`). Pages waits for the site image, so a failed run leaves the old site live without any other sign.
 
 ## Text
 
 - Every string lives in `web/src/i18n.ts`, in English and in Quebec French (dépanneur, stationnement, casse-croûte), never one without the other.
+- `i18n.ts` names no city, agency or service. A region's own wording (its title, its data's sources and credits) is in its `region.json`, and a roadwork source's in its file: both languages there too.
 - Keep French about as short as the English: long labels wrap and break buttons. Typography follows the OQLF: a non-breaking space before a colon, none before `;` `?` `!`.
 
 ## Data
 
+- Everything about one city is in `regions/<id>/` (see `regions/README.md`): its area, names, links, logo and router profiles. Code outside it should not name a city. `MAP_REGION` picks the region; the web tests always read Ottawa's.
+- Collisions, Thefts, Projects and wards show only when the region's `cityData` names them. Its `pipeline/` fetches them and its `data/` keeps the committed ones.
+- Roadwork shows when the region's `roadwork` names sources: files in `web/src/roadwork/sources/`, each reading one service into `Closure` (`web/src/roadwork/closures.ts`). They are shared, not a city's: do not name a region in one.
+- The stress model is `pipeline/stressmodel.mjs`, used by the tiles and by the route card: a change moves both, and the router's profiles do not read it.
 - Tiles in `web/public/tiles` are not committed; `npm run tiles` rebuilds them in a few minutes.
-- Collisions are committed (`web/public/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
-- Thefts are committed (`web/public/data/thefts.geojson`); `npm run thefts` refreshes them when the police publish a year. Then move `THEFT_YEARS` in `web/src/thefts.ts` to the years the script prints.
-- Wards are committed (`web/public/data/wards.geojson`); `npm run wards` refreshes them after an election or by-election. Check the councillors it prints: Ottawa's table also keeps a ward's past councillors, and the script takes the one marked "to present".
+- Collisions are committed (`regions/ottawa/data/collisions.geojson`); `npm run collisions` refreshes them when the city publishes a year.
+- Thefts are committed (`regions/ottawa/data/thefts.geojson`); `npm run thefts` refreshes them when the police publish a year. Then move `THEFT_YEARS` in `web/src/thefts.ts` to the years the script prints.
+- Wards are committed (`regions/ottawa/data/wards.geojson`); `npm run wards` refreshes them after an election or by-election. Check the councillors it prints: Ottawa's table also keeps a ward's past councillors, and the script takes the one marked "to present".
 
 ## Router
 
-- The local router (`npm run router`, port 17777) reads `routing/profiles/*.brf` live, so a broken profile breaks it at once. Try profile changes on a second container on another port first.
+- The local router (`npm run router`, port 17777) reads the region's `profiles/*.brf` live, so a broken profile breaks it at once. Try profile changes on a second container on another port first.
 - Profiles can only use the tags and values in BRouter's lookups (`/profiles2/lookups.dat` in the image, plus `routing/lookups-extra*.dat`). An unknown value makes the whole profile fail to load.
 - Changes to BRouter itself go on the `bikeottawa` branch of github.com/YaroShkvorets/brouter. Its CI publishes `ghcr.io/yaroshkvorets/brouter:bikeottawa`, pinned by digest in `routing/Dockerfile`. That build runs upstream's checks (PMD), so run `./gradlew build` before pushing.
 
 ## Outside services
 
 - Photon (place search, addresses) refuses bursts: keep lookups to two at a time (`web/src/route/geocode.ts`). Testing with many parallel requests got the network blocked for a while.
-- The Roadwork overlay reads the City's traffic map (`traffic.ottawa.ca/map/service/events`) and Quebec's roadwork service (`ws.mapserver.transports.gouv.qc.ca`, asked for the map's box only: the whole province is about 700 KB) from the browser, once per language while it is on or a bike route is planned (the route card counts the roadwork on the route); the Projects data comes from `maps.ottawa.ca` at build time only.
+- The Roadwork overlay reads the region's sources, for Ottawa the City's traffic map (`traffic.ottawa.ca/map/service/events`) and Quebec's roadwork service (`ws.mapserver.transports.gouv.qc.ca`, asked for the map's box only: the whole province is about 700 KB), from the browser, once per language while it is on or a bike route is planned (the route card counts the roadwork on the route); the Projects data comes from `maps.ottawa.ca` at build time only.
 - Cards fetch a feature's current tags from the OSM API only when "All OSM tags" is opened (`web/src/components/OsmTags.tsx`): one request per feature, never in bulk. A route's barrier card is the exception: on opening it asks the OSM API for the few metres around the barrier (`map.json`, one request) to find its node.
 - The Mapillary token comes from `VITE_MAPILLARY_TOKEN`: `web/.env.development.local` locally (git ignores it), the `MAPILLARY_TOKEN` repository variable when deployed. Never put it in code.
 - The Fotoshi key works the same way (`VITE_FOTOSHI_KEY`, the `FOTOSHI_KEY` variable). Fotoshi's terms keep ordinary developer keys on a server: the live site needs a browser key Fotoshi approved for its addresses. Cards ask for one search when opened (`web/src/photos.ts`).

@@ -1,5 +1,6 @@
 import { OSM_API, OSM_CLIENT_ID, OSM_URL } from './config'
 import { osmApi } from './osmEdit'
+import { REGION } from './region'
 
 /**
  * Signing in to OpenStreetMap, with OAuth 2 and PKCE: there is no secret, so
@@ -60,8 +61,8 @@ export const osm = osmApi({
   url: OSM_API,
   token: () => user?.token ?? null,
   changesetTags: () => ({
-    created_by: 'BikeOttawa Maps',
-    hashtags: '#BikeOttawa',
+    created_by: REGION.osm.createdBy,
+    hashtags: REGION.osm.hashtag,
     host: new URL(import.meta.env.BASE_URL, window.location.href).href,
   }),
   onUnauthorized: () => setUser(null),

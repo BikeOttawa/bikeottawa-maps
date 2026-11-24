@@ -1,6 +1,7 @@
 import { type CSSProperties, useMemo } from 'react'
 import { type MessageKey, useI18n } from '../i18n'
 import { type BasemapId, theftColors } from '../layers'
+import { sourceLine } from '../region'
 import {
   THEFT_GROUP_IDS,
   THEFT_GROUPS,
@@ -193,9 +194,7 @@ export function TheftLegend({ spots, thefts, busiestSpot, filters, onChange, bas
       <LegendNote>
         <p>{t('theft.hint')}</p>
         <p>{t('theft.circles')}</p>
-        <p>
-          {t('theft.source').replace('{first}', String(THEFT_YEARS.first)).replace('{last}', String(THEFT_YEARS.last))}
-        </p>
+        <p>{sourceLine('thefts', lang, THEFT_YEARS)}</p>
       </LegendNote>
     </div>
   )

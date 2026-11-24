@@ -1,5 +1,5 @@
 // Downloads Ottawa's wards and Gatineau's districts with their councillors and
-// writes them to web/public/data/wards.geojson: one polygon per ward and one
+// writes them to the region's data/wards.geojson: one polygon per ward and one
 // point inside it for the label. The file is committed; run this again
 // (npm run wards) after an election or a by-election.
 // Data: City of Ottawa (Open Government Licence – Ottawa), Ville de Gatineau (CC BY 4.0).
@@ -11,7 +11,7 @@ const OTTAWA_WARDS = 'https://maps.ottawa.ca/arcgis/rest/services/Planning/MapSe
 const OTTAWA_COUNCIL =
   'https://services.arcgis.com/G6F8XLCl5KtAlZ2G/arcgis/rest/services/_Elected_Officials_2022_2026/FeatureServer/0'
 const GATINEAU_DISTRICTS = 'https://www.gatineau.ca/upload/donneesouvertes/DISTRICT_ELECTORAUX.json'
-const OUT = new URL('../web/public/data/wards.geojson', import.meta.url)
+const OUT = new URL('../data/wards.geojson', import.meta.url)
 
 async function json(url, what) {
   const res = await fetch(url)

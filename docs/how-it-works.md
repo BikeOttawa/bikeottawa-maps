@@ -9,6 +9,8 @@
 
 ## Layers
 
+Collisions, Thefts and Projects come from the city's own data, not OSM. So do the wards and roadwork overlays. The region's `cityData` names those the site shows, with whose data each is, and its `pipeline/` fetches them; without it, none. Its `roadwork` names the services read for closures.
+
 ### Places
 
 - Kinds and groups in `web/src/places.ts`, loaded from `tiles/places/<kind>.json`.
@@ -25,7 +27,7 @@
 
 ### Comfort
 
-- Every street and path bikes may use, by level of traffic stress (1 to 4), from [stressmodel](https://github.com/BikeOttawa/stressmodel).
+- Every street and path bikes may use, by level of traffic stress (1 to 4), from `pipeline/stressmodel.mjs` (first written as [stressmodel](https://github.com/BikeOttawa/stressmodel)).
 - Filters: stress, type, speed limit, lanes each way, bike infrastructure, surface, lighting.
 - Bands: `pipeline/comfort.mjs`; km per combination in `meta.json`.
 
@@ -33,13 +35,13 @@
 
 - City of Ottawa, involving a cyclist or a pedestrian, 2017 to 2024 (2023 is missing from the city's data).
 - Filters: years (slider and monthly timeline), who, severity, circumstances, least collisions per spot. Once something is picked, ticks mark each group's share before the pick.
-- `npm run collisions` → `web/public/data/collisions.geojson` (committed). Records listed twice are dropped.
+- `npm run collisions` → `regions/ottawa/data/collisions.geojson` (committed). Records listed twice are dropped.
 
 ### Thefts
 
 - Ottawa Police, bikes stolen 2018 to 2025, placed at intersections. Heat map zoomed out.
 - Filters: year, where taken from, time of day, season, kind of bike, value, recovered, least thefts or value per intersection.
-- `npm run thefts` → `web/public/data/thefts.geojson` (committed). Keeps stolen and recovered bikes only; no e-scooters, no copies.
+- `npm run thefts` → `regions/ottawa/data/thefts.geojson` (committed). Keeps stolen and recovered bikes only; no e-scooters, no copies.
 
 ### Projects
 
@@ -51,13 +53,13 @@
 
 - **Bike lanes** (on): cycle tracks and pathways dark green, painted lanes dashed, shared lanes dotted, paved shoulders yellow. Width from the tags.
 - **Bike routes**: OSM route relations, ranked national, regional, local and mountain bike.
-- **Wards**: Ottawa's wards and Gatineau's districts with their councillors. `npm run wards` → `web/public/data/wards.geojson` (committed).
-- **Roadwork**: today's closures, live from the City's traffic map and Québec 511, for the map's area only (`web/src/useClosures.ts`). Gatineau publishes none.
+- **Wards**: Ottawa's wards and Gatineau's districts with their councillors. `npm run wards` → `regions/ottawa/data/wards.geojson` (committed).
+- **Roadwork**: today's closures, live from the region's sources (`web/src/roadwork/sources/`), each read into one shape. Ottawa's are the City's traffic map and Québec 511 for the map's area; Gatineau publishes none.
 - **Street lights**: ways with `lit` or street lamps along half their length (`pipeline/lamps.mjs`), and the lamps.
 
 ## Route planner
 
-- [BRouter](https://github.com/abrensch/brouter) with our `ottbike` and `ottwalk` profiles (`routing/profiles`). Riding styles are weights for `ottbike` (`web/src/route/styles.ts`).
+- [BRouter](https://github.com/abrensch/brouter) with the region's profiles, `ottbike` and `ottwalk` for Ottawa (`regions/ottawa/profiles`). Riding styles are weights for the bike profile (`web/src/route/styles.ts`).
 - Up to three routes: the best, then BRouter's `alternativeidx` 1 and 2. Much slower or overlapping ones are dropped (`web/src/route/alternatives.ts`). The URL keeps the pick (`alt=1`).
 - A bike route's card splits it by comfort, bikeways, surface, lighting and snow (`web/src/route/breakdown.ts`), and counts stop signs, traffic lights, barriers and roadwork within 10 m (`web/src/route/roadwork.ts`).
 - Search and addresses: [Photon](https://photon.komoot.io), two requests at a time. `VITE_GEOCODER_URL` picks another server.

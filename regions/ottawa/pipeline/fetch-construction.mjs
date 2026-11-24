@@ -20,7 +20,7 @@ const SERVICE = 'https://maps.ottawa.ca/arcgis/rest/services/ConstructionForecas
 /** Lines (roads, pipes, paths) and points (bridges, buildings, parks). */
 const LAYERS = [0, 1]
 const PAGE = 1000
-const out = process.argv[2] ?? new URL('../web/public/tiles', import.meta.url).pathname
+const out = process.argv[2] ?? new URL('../../../web/public/tiles', import.meta.url).pathname
 
 async function json(url) {
   const res = await fetch(url)

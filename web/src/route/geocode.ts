@@ -1,5 +1,5 @@
-import { REGION } from '../config'
 import type { Lang } from '../i18n'
+import { REGION } from '../region'
 import type { LngLat } from './brouter'
 
 export interface Place {

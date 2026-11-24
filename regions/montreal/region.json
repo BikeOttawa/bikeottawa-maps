@@ -1,0 +1,25 @@
+{
+  "title": { "en": "Montréal Bike Maps", "fr": "Cartes vélo de Montréal" },
+  "shortTitle": "Vélo MTL",
+  "description": {
+    "en": "Cycling maps for Montréal: street comfort, pathways, bike parking and more.",
+    "fr": "Cartes vélo de Montréal\u00a0: confort des rues, sentiers, stationnement vélo et plus."
+  },
+  "name": "Montréal",
+  "bbox": [-73.688, 45.414, -73.528, 45.523],
+  "center": [-73.608, 45.469],
+  "accent": "#B5123E",
+  "timeZone": "America/Toronto",
+  "routingBbox": [-74.0, 45.25, -73.2, 45.75],
+  "extracts": [
+    {
+      "pbf": "https://download.geofabrik.de/north-america/canada/quebec-latest.osm.pbf",
+      "poly": "https://download.geofabrik.de/north-america/canada/quebec.poly"
+    }
+  ],
+  "replicationUrl": "https://planet.openstreetmap.org/replication/hour/",
+  "profiles": { "bike": "bike", "walk": "walk" },
+  "roadwork": ["quebec511"],
+  "repo": "https://github.com/BikeOttawa/bikeottawa-maps",
+  "osm": { "createdBy": "BikeOttawa Maps", "hashtag": "#MontrealBikeMaps" }
+}

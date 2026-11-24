@@ -3,7 +3,6 @@ import { createContext, useContext } from 'react'
 export type Lang = 'en' | 'fr'
 
 const en = {
-  title: 'Bike Ottawa Maps',
   switchLang: 'Français',
   switchLangShort: 'FR',
   layers: 'Layer',
@@ -88,9 +87,9 @@ const en = {
   'construction.kind.bridges': 'Bridges and culverts',
   'construction.kind.transit': 'Transit',
   'construction.kind.other': 'Other work',
-  'construction.source': 'City of Ottawa construction forecast, updated each night.',
+  'construction.updated': 'Updated each night.',
   roadwork: 'Roadwork',
-  roadworkHint: 'Roads and lanes closed today: the City of Ottawa’s traffic map, and Québec 511 on Quebec’s highways',
+  roadworkHint: 'Roads and lanes closed today: {sources}',
   roadworkOnRoute: 'Closures on the Roadwork overlay along the route, right now.',
   'construction.traffic': 'Traffic',
   'construction.work': 'Work',
@@ -101,15 +100,8 @@ const en = {
   'construction.lanes': 'Lanes',
   'construction.detour': 'Detour',
   'construction.more': 'More about it',
-  'construction.by.QUEBEC': 'Québec 511 (Transports Québec)',
   'construction.by': 'Source',
   'construction.closure': 'Closure',
-  'construction.by.CITY': 'City of Ottawa',
-  'construction.by.MTO': 'Ontario (MTO)',
-  'construction.by.NCC': 'NCC',
-  'construction.by.GATINEAU': 'City of Gatineau',
-  'construction.by.LRT': 'O-Train',
-  'construction.by.PSPC': 'Public Services and Procurement Canada',
   'construction.peek.now': 'Now',
   'construction.peek.later': 'Later',
   'theft.shown': '{count} thefts at {spots} spots',
@@ -117,8 +109,6 @@ const en = {
   'theft.circles': 'Bigger circle: more thefts there. Drag the slider to keep only the busier spots.',
   'theft.minCount': 'Spots with at least {count} thefts',
   'theft.timeline': 'Thefts month by month',
-  'theft.source':
-    'Ottawa Police Service open data, {first} to {last}. The police place each theft at the nearest intersection.',
   'theft.filters': 'What, when and where from',
   'theft.hint':
     'Open a row to colour the spots by their thefts: big ones show each group’s share, small ones the most common. With none open, they show the value stolen. Tap a line to show only those thefts; the thin mark is how it stands before anything else is picked.',
@@ -175,7 +165,6 @@ const en = {
   'theft.valueAny': 'any',
   'theft.valueOrMore': '{value} or more',
   'theft.noValue': 'No value given',
-  'theft.nearHint': 'The police place each theft at the nearest intersection.',
   'theft.previous': 'Previous theft here',
   'theft.next': 'Next theft here',
   'crash.party': 'Involved',
@@ -188,7 +177,8 @@ const en = {
   'crash.everySpot': 'Every spot',
   'crash.circles': 'Bigger circle: more collisions there. Drag the slider to keep only the busier spots.',
   'crash.minCount': 'Spots with at least {count} collisions',
-  'crash.source': 'City of Ottawa open data, {first} to {last}. The city has not published 2023.',
+  sourceYears: '{source}, {first} to {last}.',
+  'crash.missing': 'The city has not published {years}.',
   'crash.conditions': 'Circumstances',
   'crash.filters': 'Filter the collisions',
   'crash.timeline': 'Collisions month by month',
@@ -586,9 +576,8 @@ const en = {
   'help.photos.text':
     '[Fotoshi](fotoshi) for places and single photos: snap a bike rack or a fountain and pin the photo to it. [Mapillary](mapillary) for whole routes: with your phone on the handlebars, it takes photos as you ride.',
   'help.ideas': 'Suggest an idea',
-  'help.ideas.text':
-    'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us on GitHub](issue).',
-  'help.join': 'Join Bike Ottawa',
+  'help.ideas.text': 'A feature you’d like, a bug, or data that is wrong but you can’t fix: [tell us](ideas).',
+  'help.join': 'Join {org}',
   'help.join.text':
     'The volunteer group behind these maps works for better cycling across the city. [Become a member](join), [volunteer](volunteer) or [donate](donate).',
   'mode.explore': 'Explore',
@@ -725,7 +714,6 @@ const en = {
 }
 
 const fr: Record<keyof typeof en, string> = {
-  title: 'Cartes Bike Ottawa',
   switchLang: 'English',
   switchLangShort: 'EN',
   layers: 'Couche',
@@ -810,10 +798,9 @@ const fr: Record<keyof typeof en, string> = {
   'construction.kind.bridges': 'Ponts et ponceaux',
   'construction.kind.transit': 'Transport en commun',
   'construction.kind.other': 'Autres travaux',
-  'construction.source': 'Prévisions de travaux de la Ville d’Ottawa, mises à jour chaque nuit.',
+  'construction.updated': 'Mise à jour chaque nuit.',
   roadwork: 'Travaux',
-  roadworkHint:
-    'Rues et voies fermées aujourd’hui : carte de la circulation de la Ville d’Ottawa, et Québec 511 sur les routes du Québec',
+  roadworkHint: 'Rues et voies fermées aujourd’hui : {sources}',
   roadworkOnRoute: 'Fermetures de la couche Travaux le long du trajet, en ce moment.',
   'construction.traffic': 'Circulation',
   'construction.work': 'Travaux',
@@ -824,15 +811,8 @@ const fr: Record<keyof typeof en, string> = {
   'construction.lanes': 'Voies',
   'construction.detour': 'Détour',
   'construction.more': 'En savoir plus',
-  'construction.by.QUEBEC': 'Québec 511 (Transports Québec)',
   'construction.by': 'Source',
   'construction.closure': 'Fermeture',
-  'construction.by.CITY': 'Ville d’Ottawa',
-  'construction.by.MTO': 'Ontario (MTO)',
-  'construction.by.NCC': 'CCN',
-  'construction.by.GATINEAU': 'Ville de Gatineau',
-  'construction.by.LRT': 'O-Train',
-  'construction.by.PSPC': 'Services publics et Approvisionnement Canada',
   'construction.peek.now': 'En cours',
   'construction.peek.later': 'Plus tard',
   'theft.shown': '{count} vols à {spots} endroits',
@@ -841,8 +821,6 @@ const fr: Record<keyof typeof en, string> = {
     'Cercle plus grand\u00a0: plus de vols. Glissez le curseur pour ne garder que les endroits les plus touchés.',
   'theft.minCount': 'Endroits avec au moins {count} vols',
   'theft.timeline': 'Vols mois par mois',
-  'theft.source':
-    'Données ouvertes du Service de police d’Ottawa, de {first} à {last}. La police place chaque vol à l’intersection la plus proche.',
   'theft.filters': 'Quoi, quand et d’où',
   'theft.hint':
     'Ouvrez une rangée pour colorer les endroits selon leurs vols\u00a0: les gros montrent la part de chaque groupe, les petits le plus fréquent. Sans rangée ouverte, ils montrent la valeur volée. Touchez une ligne pour ne montrer que ces vols; le trait fin\u00a0: où elle en est avant tout autre choix.',
@@ -899,7 +877,6 @@ const fr: Record<keyof typeof en, string> = {
   'theft.valueAny': 'toute',
   'theft.valueOrMore': '{value} ou plus',
   'theft.noValue': 'Valeur non déclarée',
-  'theft.nearHint': 'La police place chaque vol à l’intersection la plus proche.',
   'theft.previous': 'Vol précédent à cet endroit',
   'theft.next': 'Vol suivant à cet endroit',
   'crash.party': 'Impliqués',
@@ -913,7 +890,8 @@ const fr: Record<keyof typeof en, string> = {
   'crash.circles':
     'Cercle plus grand\u00a0: plus de collisions. Glissez le curseur pour ne garder que les endroits les plus touchés.',
   'crash.minCount': 'Endroits avec au moins {count} collisions',
-  'crash.source': 'Données ouvertes de la Ville d’Ottawa, de {first} à {last}. La Ville n’a pas publié 2023.',
+  sourceYears: '{source}, de {first} à {last}.',
+  'crash.missing': 'La Ville n’a pas publié {years}.',
   'crash.conditions': 'Circonstances',
   'crash.filters': 'Filtrer les collisions',
   'crash.timeline': 'Collisions mois par mois',
@@ -1093,7 +1071,7 @@ const fr: Record<keyof typeof en, string> = {
   'place.convenience': 'Dépanneur',
   'place.general': 'Magasin général',
   'place.pharmacy': 'Pharmacie',
-  'place.station': 'Train', // O-Train stations are « stations », VIA's are « gares »; this covers both
+  'place.station': 'Train', // light-rail stops are « stations », railway ones « gares »; this covers both
   'place.ferry': 'Traversier',
   'place.cafe': 'Café',
   'place.restaurant': 'Restaurant',
@@ -1314,8 +1292,8 @@ const fr: Record<keyof typeof en, string> = {
     '[Fotoshi](fotoshi) pour les lieux et les photos seules\u00a0: photographiez un support à vélos ou une fontaine et épinglez-y la photo. [Mapillary](mapillary) pour des trajets entiers\u00a0: téléphone au guidon, il prend des photos en chemin.',
   'help.ideas': 'Proposer une idée',
   'help.ideas.text':
-    'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous sur GitHub](issue).',
-  'help.join': 'Se joindre à Bike Ottawa',
+    'Une fonction souhaitée, un bogue, une donnée fausse que vous ne pouvez pas corriger\u00a0: [dites-le-nous](ideas).',
+  'help.join': 'Se joindre à {org}',
   'help.join.text':
     'Le groupe de bénévoles derrière ces cartes défend le vélo partout en ville. [Devenez membre](join), [bénévole](volunteer) ou [faites un don](donate).',
   'mode.explore': 'Explorer',

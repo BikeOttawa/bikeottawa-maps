@@ -1,23 +1,9 @@
 /**
- * The old maps.bikeottawa.ca had a page per map. The build writes a small page
- * at each of their paths (see vite.config.ts) that sends visitors to the same
- * map here, at the same place: the old pages kept it as `?lat=…&lng=…&zoom=…`.
+ * A site this one replaces may have had a page per map. The build writes a
+ * small page at each of those paths (the region's `oldPages`, see
+ * vite.config.ts) that sends visitors to the same map here, at the same place:
+ * the old maps.bikeottawa.ca kept it as `?lat=…&lng=…&zoom=…`.
  */
-
-/** Old path → what it opens here, as hash entries. */
-export const OLD_PAGES: Record<string, string> = {
-  lts: 'layer=comfort',
-  // The winter map is the pathways layer coloured by snow clearing.
-  winter: 'layer=pathways&pathways=by:snow',
-  pathways: 'layer=pathways',
-  collisions: 'layer=collisions',
-  amenities: 'layer=places',
-  routing: 'mode=route',
-  isochrones: 'mode=reach',
-  thefts: 'layer=thefts',
-  // Nothing like it here: the map as it opens.
-  desire: '',
-}
 
 /**
  * Where an old page sends visitors: the app one folder up, with the old view
@@ -34,15 +20,15 @@ export function oldPageTarget(search: string, to: string): string {
 }
 
 /** An old path's page: off at once with JavaScript, by a refresh and a link without. */
-export function oldPageHtml(to: string): string {
+export function oldPageHtml(to: string, title: string): string {
   const plain = oldPageTarget('', to)
   return `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<title>Bike Ottawa Maps</title>
+<title>${title}</title>
 <script>location.replace((${oldPageTarget})(location.search, ${JSON.stringify(to)}))</script>
 <noscript><meta http-equiv="refresh" content="0; url=${plain}"></noscript>
-<p><a href="${plain}">Bike Ottawa Maps</a></p>
+<p><a href="${plain}">${title}</a></p>
 </html>
 `
 }

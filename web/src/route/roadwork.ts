@@ -1,5 +1,5 @@
 import type { Position } from 'geojson'
-import type { Closure } from '../construction'
+import type { Closure } from '../roadwork/closures'
 import type { LngLat, Route, RouteStop } from './brouter'
 
 /** How close roadwork must come to the route to be on it, in metres: the street ridden, not a road beside the path. */
@@ -17,7 +17,7 @@ const M_PER_DEGREE = 111_320
  */
 export function roadworkOnRoute(route: Route, closures: readonly Closure[]): RouteStop[] {
   if (route.coords.length < 2) return []
-  // Metres east and north, close enough at Ottawa's scale.
+  // Metres east and north, close enough at a city's scale.
   const kx = Math.cos((route.coords[0][1] * Math.PI) / 180) * M_PER_DEGREE
   const xs = route.coords.map(([lon]) => lon * kx)
   const ys = route.coords.map(([, lat]) => lat * M_PER_DEGREE)

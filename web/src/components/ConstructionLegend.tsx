@@ -9,6 +9,7 @@ import {
 } from '../construction'
 import { useI18n } from '../i18n'
 import { type BasemapId, CONSTRUCTION_KIND_COLORS, constructionColors } from '../layers'
+import { sourceLine } from '../region'
 import { GroupRow, OTHER } from './GroupBars'
 import { LegendNote } from './LegendNote'
 
@@ -72,7 +73,9 @@ export function ConstructionLegend({ filters, onChange, projects, basemap }: Pro
       )}
       <LegendNote>
         {projects && <p>{t('construction.hint')}</p>}
-        <p>{t('construction.source')}</p>
+        <p>
+          {sourceLine('construction', lang)} {t('construction.updated')}
+        </p>
       </LegendNote>
     </div>
   )

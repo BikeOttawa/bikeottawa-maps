@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import bikeOttawaLogo from './assets/bike-ottawa.png'
 import {
   type CollisionFilters,
   collisionSpots,
@@ -25,13 +24,7 @@ import { RouteResult } from './components/RouteResult'
 import { LayerPeek, ReachPeek, RoutePeek } from './components/SheetPeek'
 import { TheftCard } from './components/TheftCard'
 import { ASSETS_BASE, ROUTER_URL } from './config'
-import {
-  type ConstructionFilters,
-  closureSummary,
-  closuresGeoJSON,
-  formatConstructionFilters,
-  parseConstructionFilters,
-} from './construction'
+import { type ConstructionFilters, formatConstructionFilters, parseConstructionFilters } from './construction'
 import { osmViewUrl, parseHash, withHashParam } from './hash'
 import { initialLang, type Lang, LangContext, rememberLang, translator } from './i18n'
 import { type BasemapId, isBasemapId, isLayerId, type LayerId } from './layers'
@@ -40,6 +33,9 @@ import type { Selected, StyleState } from './map/style'
 import { formatPathwayFilters, type PathwayFilters, type PathwayTotals, parsePathwayFilters } from './pathways'
 import { usePlacePoints } from './placePoints'
 import { isPlaceKind, PLACE_KINDS, type PlaceKind } from './places'
+import { hasCityData, REGION } from './region'
+import { closureSummary, closuresGeoJSON } from './roadwork/closures'
+import { ROADWORK_SOURCES } from './roadwork/sources'
 import type { RouteView } from './route/breakdown'
 import type { LngLat, RouteHighlight, RouteStop } from './route/brouter'
 import { type Place, reverseLabel } from './route/geocode'
@@ -228,8 +224,9 @@ function rememberReachView(view: ReachView) {
   }
 }
 
-/** The roadwork overlay: off unless turned on, remembered per browser. */
+/** The roadwork overlay, where the region has it: off unless turned on, remembered per browser. */
 function storedRoadwork(): boolean {
+  if (!ROADWORK_SOURCES.length) return false
   try {
     return localStorage.getItem(ROADWORK_KEY) === 'on'
   } catch {
@@ -268,8 +265,9 @@ function rememberLights(on: boolean) {
   }
 }
 
-/** The wards overlay: off unless turned on, remembered per browser. */
+/** The wards overlay, where the region has it: off unless turned on, remembered per browser. */
 function storedWards(): boolean {
+  if (!hasCityData('wards')) return false
   try {
     return localStorage.getItem(WARDS_KEY) === 'on'
   } catch {
@@ -485,7 +483,7 @@ export function App() {
   const [routeStops, setRouteStops] = useState(() => !window.matchMedia(PHONE_LAYOUT).matches)
   const routeState = useRoute(ROUTER_URL, points, vias, profile, planning)
   // Roadwork: the closures, fetched live while the overlay is on or a bike route is planned.
-  const closures = useClosures(roadwork || (planning && travel === 'bike'), lang)
+  const closures = useClosures(ROADWORK_SOURCES.length > 0 && (roadwork || (planning && travel === 'bike')), lang)
   const plannedRoutes = planning ? visibleRoutes(routeState) : []
   // The route chosen holds for the trip it was chosen on: new points or another style start from the best.
   const trip = JSON.stringify([points.map((p) => p?.lngLat), vias, profile])
@@ -545,9 +543,10 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = lang
-    document.title = t('title')
+    document.title = REGION.title[lang]
+    document.querySelector('meta[name="description"]')?.setAttribute('content', REGION.description[lang])
     rememberLang(lang)
-  }, [lang, t])
+  }, [lang])
 
   useEffect(() => writeUrl({ ...url, alt }), [url, alt])
 
@@ -1072,8 +1071,8 @@ export function App() {
       <div className="sidebar">
         <div className={`card topbar ${topOpen ? '' : 'folded'}`} ref={topbar}>
           <header className="brand">
-            <img className="brand-logo" src={bikeOttawaLogo} alt="" width="60" height="28" />
-            <h1>{t('title')}</h1>
+            <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" height="28" />
+            <h1>{REGION.title[lang]}</h1>
           </header>
           <div className="topbar-row">
             <ModeSwitch mode={mode} onChange={changeMode} />
@@ -1252,11 +1251,15 @@ export function App() {
                     {' · '}
                   </>
                 )}
-                <a href="https://bikeottawa.ca/" target="_blank" rel="noopener noreferrer">
-                  Bike Ottawa
-                </a>
-                {' · '}
-                <a href="https://github.com/BikeOttawa/bikeottawa-maps" target="_blank" rel="noopener noreferrer">
+                {REGION.org && (
+                  <>
+                    <a href={REGION.org.url} target="_blank" rel="noopener noreferrer">
+                      {REGION.org.name}
+                    </a>
+                    {' · '}
+                  </>
+                )}
+                <a href={REGION.repo} target="_blank" rel="noopener noreferrer">
                   GitHub
                 </a>
               </p>

@@ -1,11 +1,12 @@
 #!/bin/sh
 # Builds BRouter routing data (.rd5) from an OSM extract, with elevation when
 # .hgt tiles are provided. Runs inside the Docker build, on the BRouter image.
-# Usage: build-segments.sh <region.osm.pbf> <hgt-dir> <out-dir>
+# Usage: build-segments.sh <region.osm.pbf> <hgt-dir> <out-dir> <bike-profile>
 set -eu
 PBF="$1"
 HGT="$2"
 OUT="$3"
+BIKE="$4"
 P=/profiles2
 JAVA="java -Xmx2g -cp /app/brouter.jar -DuseDenseMaps=true"
 
@@ -26,7 +27,7 @@ if ls "$HGT"/*.hgt >/dev/null 2>&1; then
 fi
 
 $JAVA -Ddeletetmpfiles=true btools.mapcreator.OsmFastCutter "$P/lookups.dat" nodetiles waytiles nodes55 waytiles55 \
-  bordernids.dat relations.dat restrictions.dat "$P/all.brf" "$P/ottbike.brf" "$P/softaccess.brf" "$PBF"
+  bordernids.dat relations.dat restrictions.dat "$P/all.brf" "$P/$BIKE.brf" "$P/softaccess.brf" "$PBF"
 $JAVA -Ddeletetmpfiles=true btools.mapcreator.PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat bef
 $JAVA -DskipEncodingCheck=true btools.mapcreator.WayLinker unodes55 waytiles55 bordernodes.dat restrictions.dat \
   "$P/lookups.dat" "$P/all.brf" segments rd5

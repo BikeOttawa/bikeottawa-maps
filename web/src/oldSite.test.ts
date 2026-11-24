@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { OLD_PAGES, oldPageHtml, oldPageTarget } from './oldSite'
+import { oldPageHtml, oldPageTarget } from './oldSite'
+import { REGION } from './region'
+
+const OLD_PAGES = REGION.oldPages ?? {}
 
 describe('old site pages', () => {
   it('open the matching map', () => {
@@ -15,7 +18,7 @@ describe('old site pages', () => {
   })
 
   it('run the same code in the page', () => {
-    const html = oldPageHtml(OLD_PAGES.lts)
+    const html = oldPageHtml(OLD_PAGES.lts, 'Old maps')
     const script = html.match(/<script>(.*)<\/script>/s)?.[1] ?? ''
     let went = ''
     const location = {
@@ -27,5 +30,6 @@ describe('old site pages', () => {
     new Function('location', script)(location)
     expect(went).toBe('../#map=14/45.4/-75.7&layer=comfort')
     expect(html).toContain('content="0; url=../#layer=comfort"')
+    expect(html).toContain('<title>Old maps</title>')
   })
 })
