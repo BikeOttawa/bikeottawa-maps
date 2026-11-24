@@ -43,7 +43,7 @@ const regionFiles = (): Plugin => ({
   transformIndexHtml: (html) =>
     html
       .replaceAll('%REGION_TITLE%', region.title.en)
-      .replaceAll('%REGION_DESCRIPTION%', region.description)
+      .replaceAll('%REGION_DESCRIPTION%', region.description.en)
       .replaceAll('%REGION_ACCENT%', ACCENT)
       .replace('</head>', `${ACCENT_STYLE}</head>`),
   configureServer(server) {
@@ -78,7 +78,7 @@ export default defineConfig({
       manifest: {
         name: region.title.en,
         short_name: region.shortTitle,
-        description: region.description,
+        description: region.description.en,
         lang: 'en',
         display: 'standalone',
         theme_color: ACCENT,

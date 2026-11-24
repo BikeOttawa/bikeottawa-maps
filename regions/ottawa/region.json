@@ -1,7 +1,10 @@
 {
   "title": { "en": "Bike Ottawa Maps", "fr": "Cartes Bike Ottawa" },
   "shortTitle": "Bike Ottawa",
-  "description": "Cycling maps for Ottawa–Gatineau: street comfort, winter-maintained pathways, bike parking and more.",
+  "description": {
+    "en": "Cycling maps for Ottawa–Gatineau: street comfort, winter-maintained pathways, bike parking and more.",
+    "fr": "Cartes vélo d’Ottawa–Gatineau\u00a0: confort des rues, sentiers déneigés, stationnement vélo et plus."
+  },
   "name": "Ottawa–Gatineau",
   "bbox": [-76.4, 44.95, -75.2, 45.65],
   "center": [-75.6972, 45.4215],

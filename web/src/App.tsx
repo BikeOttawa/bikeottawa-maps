@@ -544,6 +544,7 @@ export function App() {
   useEffect(() => {
     document.documentElement.lang = lang
     document.title = REGION.title[lang]
+    document.querySelector('meta[name="description"]')?.setAttribute('content', REGION.description[lang])
     rememberLang(lang)
   }, [lang])
 

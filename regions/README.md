@@ -20,7 +20,7 @@ The tiles, the router and the site all read the same choice (`regions/region.mjs
 | `region.json` field          | Purpose                                                                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`, `shortTitle`        | The site's name, in English and French, and the short one under the installed app's icon                                                                                    |
-| `description`                | One line about the site, for search engines and the installed app                                                                                                           |
+| `description`                | One line about the site, in English and French, for search engines and link previews; the installed app shows the English one                                               |
 | `name`                       | The area's name                                                                                                                                                             |
 | `bbox`, `center`             | The area the map covers and searches, and where it opens                                                                                                                    |
 | `accent`                     | Optional. The site's colour, for buttons, links and the browser's bar, as `#rrggbb`; teal if not set. White text sits on it, so it must be dark enough                      |

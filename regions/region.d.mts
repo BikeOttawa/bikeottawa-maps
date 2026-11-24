@@ -25,7 +25,7 @@ export type CityDataKind = 'collisions' | 'thefts' | 'construction' | 'wards'
 export interface Region {
   title: Text
   shortTitle: string
-  description: string
+  description: Text
   name: string
   bbox: [west: number, south: number, east: number, north: number]
   center: [lon: number, lat: number]
