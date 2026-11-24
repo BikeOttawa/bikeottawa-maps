@@ -2,7 +2,10 @@
 
 One folder per city or area the maps can be built for. `MAP_REGION` picks one: in the environment, in a `.env` file at the top of the repository, or as a repository variable when deployed. Without it, `ottawa`.
 
-The tiles, the router and the site all read the same choice (`regions/region.mjs`). After changing it, build the tiles and the router again.
+- [ottawa](ottawa/README.md): the live site, with all the city's own data.
+- [montreal](montreal/README.md): a generic example with OSM data only, to copy for a new city.
+
+The tiles, the router and the site all read the same choice (`regions/region.mjs`). After changing it, build the tiles and the router again. Each region keeps its own OSM data (`.cache/osm/<region>.osm.pbf`), so switching back only brings it up to date.
 
 | File                                                                      | Purpose                                                                        |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -20,6 +23,7 @@ The tiles, the router and the site all read the same choice (`regions/region.mjs
 | `description`                | One line about the site, for search engines and the installed app                                                                                                           |
 | `name`                       | The area's name                                                                                                                                                             |
 | `bbox`, `center`             | The area the map covers and searches, and where it opens                                                                                                                    |
+| `accent`                     | Optional. The site's colour, for buttons, links and the browser's bar, as `#rrggbb`; teal if not set. White text sits on it, so it must be dark enough                      |
 | `timeZone`                   | Opening hours are read in this time                                                                                                                                         |
 | `routingBbox`                | The wider area routes may pass through                                                                                                                                      |
 | `extracts`, `replicationUrl` | The OSM extracts the area is cut from (each with its boundary), and where its updates come from                                                                             |

@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 pipeline/update-osm.sh
 
-REGION="${OSM_DIR:-.cache/osm}/region.osm.pbf"
+REGION="${OSM_DIR:-.cache/osm}/$(node regions/region.mjs id).osm.pbf"
 BBOX="$(node regions/region.mjs bbox)"
 TITLE="$(node regions/region.mjs shortTitle)"
 WORK="${WORK_DIR:-.cache/pipeline}"

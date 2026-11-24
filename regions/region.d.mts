@@ -29,6 +29,8 @@ export interface Region {
   name: string
   bbox: [west: number, south: number, east: number, north: number]
   center: [lon: number, lat: number]
+  /** The site's colour, as #rrggbb: teal unless set. */
+  accent?: string
   timeZone: string
   routingBbox: [west: number, south: number, east: number, north: number]
   extracts: { pbf: string; poly: string }[]

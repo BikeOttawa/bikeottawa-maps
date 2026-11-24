@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-REGION="${OSM_DIR:-.cache/osm}/region.osm.pbf"
+REGION="${OSM_DIR:-.cache/osm}/$(node regions/region.mjs id).osm.pbf"
 OUT=routing/data
 mkdir -p "$OUT/elevation"
 

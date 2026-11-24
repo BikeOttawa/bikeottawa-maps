@@ -30,7 +30,7 @@ Built into `web/public/tiles`, not committed. The app loads only what the curren
 
 ## OSM data
 
-- `npm run osm` (also run by `npm run tiles`) keeps `.cache/osm/region.osm.pbf`, the source of both the tiles and the router.
+- `npm run osm` (also run by `npm run tiles`) keeps `.cache/osm/<region>.osm.pbf`, the source of both the tiles and the router.
 - The first run downloads the Ontario and Quebec extracts (2.2 GB). After that it applies OSM's hourly changes: about an hour behind OSM, about 100 MB a day.
 
 ## The router

@@ -69,7 +69,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: |
-            .cache/osm/region.osm.pbf
+            .cache/osm/${{ env.MAP_REGION }}.osm.pbf
             .cache/osm/*.poly
           key: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-${{ github.run_id }}
           restore-keys: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-
@@ -143,7 +143,7 @@ jobs:
       - uses: actions/cache/restore@v6
         with:
           path: |
-            .cache/osm/region.osm.pbf
+            .cache/osm/${{ env.MAP_REGION }}.osm.pbf
             .cache/osm/*.poly
           key: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-${{ github.run_id }}
           restore-keys: osm-${{ hashFiles(format('regions/{0}/region.json', env.MAP_REGION), 'pipeline/update-osm.sh') }}-

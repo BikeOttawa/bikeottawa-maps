@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Keeps .cache/osm/region.osm.pbf current: all OSM data for the region's routing
+# Keeps .cache/osm/<region>.osm.pbf current: all OSM data for the region's routing
 # area (regions/region.mjs), which the map tiles and the router are both built from.
+# Each region has its own file, so switching regions keeps the other's.
 #
 # The first run cuts the area out of the Geofabrik extracts. Later runs only
 # fetch OpenStreetMap's hourly change files and apply them, so the data is at
@@ -9,19 +10,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+region() { node regions/region.mjs "$1"; }
 OSM="${OSM_DIR:-.cache/osm}"
-REGION="$OSM/region.osm.pbf"
+REGION="$OSM/$(region id).osm.pbf"
 mkdir -p "$OSM"
 
-region() { node regions/region.mjs "$1"; }
 BBOX="$(region routingBbox)"
 REPLICATION_URL="$(region replicationUrl)"
 COUNT="$(region extracts.length)"
-
-# Data cut for another region is of no use here: start again from the extracts.
-ID="$(region id)"
-[ "$(cat "$OSM/region.id" 2>/dev/null || echo "$ID")" = "$ID" ] || rm -f "$REGION"
-echo "$ID" > "$OSM/region.id"
 
 timestamp_of() { osmium fileinfo -g header.option.osmosis_replication_timestamp "$1" 2>/dev/null || true; }
 

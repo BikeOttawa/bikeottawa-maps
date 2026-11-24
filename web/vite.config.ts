@@ -9,6 +9,12 @@ import { oldPageHtml } from './src/oldSite'
 const { dir, region } = loadRegion()
 const OLD_PAGES = region.oldPages ?? {}
 const OLD_PATHS = Object.keys(OLD_PAGES)
+/** The site's colour: the region's, else the teal in styles.css. */
+const ACCENT = region.accent ?? '#0B6E6E'
+/** The region's colour over the stylesheet's, with its pale tint for highlighted backgrounds. */
+const ACCENT_STYLE = region.accent
+  ? `<style>html:root{--accent:${ACCENT};--accent-soft:color-mix(in srgb,${ACCENT} 11%,#fff)}</style>`
+  : ''
 
 /** A page at each of the old site's paths, so its links still land on the right map. */
 const oldSitePages = (): Plugin => ({
@@ -35,7 +41,11 @@ const regionFiles = (): Plugin => ({
     }
   },
   transformIndexHtml: (html) =>
-    html.replaceAll('%REGION_TITLE%', region.title.en).replaceAll('%REGION_DESCRIPTION%', region.description),
+    html
+      .replaceAll('%REGION_TITLE%', region.title.en)
+      .replaceAll('%REGION_DESCRIPTION%', region.description)
+      .replaceAll('%REGION_ACCENT%', ACCENT)
+      .replace('</head>', `${ACCENT_STYLE}</head>`),
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       const name = ((req as { url?: string }).url ?? '').slice(server.config.base.length).split('?')[0]
@@ -71,7 +81,7 @@ export default defineConfig({
         description: region.description,
         lang: 'en',
         display: 'standalone',
-        theme_color: '#0B6E6E',
+        theme_color: ACCENT,
         background_color: '#ffffff',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
