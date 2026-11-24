@@ -22,8 +22,6 @@ npm run router
 npm run dev
 ```
 
-The tiles and the router image are shared by every region: build them again after switching back to Ottawa. The OSM data is kept per region, so that is quick.
-
 ## Enriching it
 
 Each of these is optional and switches on its part of the site; Ottawa's folder shows them all.
