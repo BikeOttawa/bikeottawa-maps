@@ -46,6 +46,10 @@ npm run dev            # .env.development points the app at it
 - Elevation: SRTM, under the region's finer raster where it names one (NRCan MRDEM-30 for Ottawa).
 - The image builds on our [BRouter fork](https://github.com/YaroShkvorets/brouter/tree/bikeottawa) (`ghcr.io/yaroshkvorets/brouter:bikeottawa`), which adds [How far](how-it-works.md#how-far). To update BRouter: rebase the `bikeottawa` branch on upstream, push, and pin the new digest as `BROUTER_IMAGE` in `routing/Dockerfile`.
 
+## Signing in to OSM
+
+Editing from cards needs `VITE_OSM_CLIENT_ID` in `web/.env.development.local`, and that OAuth app must list `http://127.0.0.1:5173/land.html` among its redirect URIs. OSM takes a plain-http redirect only to 127.0.0.1, not `localhost`, so open the site at `http://127.0.0.1:5173`, as `npm run dev` prints it. Edits made there go to the real OSM.
+
 ## Scripts
 
 | Script                                          | What                                      |

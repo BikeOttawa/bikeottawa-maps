@@ -1,9 +1,11 @@
-import type { MessageKey } from './i18n'
-import type { PlaceKind } from './places'
+import { PLACE_KINDS as KIND_TAGS } from '../../pipeline/place-kinds.mjs'
+import { type MessageKey, translator } from './i18n'
+import { isPlaceKind, type PlaceKind } from './places'
 
 /**
  * What cards let people set in OSM: a few common tags for each kind of
- * feature, picked from lists. Kinds left out get notes only.
+ * feature, picked from lists, and for places a note. Kinds left out get OSM
+ * notes only.
  */
 
 /** A tag a card lets people set, and the values it offers. */
@@ -15,7 +17,12 @@ export interface TagField {
   names?: string
   /** For numbers: the unit they are shown with, '' for none. */
   unit?: string
+  /** Typed rather than picked, with this hint in the empty box. */
+  hint?: MessageKey
 }
+
+/** What the lists cannot say, in words, for mappers to turn into tags: "closed on Sundays". */
+const NOTE: TagField = { key: 'note', label: 'fact.note', values: [], hint: 'fact.note.hint' }
 
 /** What people may set on a kind of feature, and what it is called in changeset comments ("pathways"). */
 export interface EditKind {
@@ -160,17 +167,44 @@ const PLACES: Partial<Record<PlaceKind, EditKind>> = {
   pharmacy: { thing: 'pharmacies', fields: [WHEELCHAIR] },
 }
 
-/** What a card lets people set: by the way's kind, or the place's. */
+/** What a place is called in changeset comments, when its kind has no name there of its own: "viewpoint". */
+export const placeThing = (kind: PlaceKind): string => translator('en')(`place.${kind}`).toLowerCase()
+
+/** What a card lets people set: by the way's kind, or the place's, with a note on every place. */
 export function editKind(feature: 'way' | 'place', props: Record<string, unknown>): EditKind | null {
   if (feature === 'place') {
-    return typeof props.kind === 'string' && Object.hasOwn(PLACES, props.kind)
-      ? (PLACES[props.kind as PlaceKind] ?? null)
-      : null
+    if (!isPlaceKind(props.kind)) return null
+    const own = PLACES[props.kind]
+    return { thing: own?.thing ?? placeThing(props.kind), fields: [...(own?.fields ?? []), NOTE] }
   }
   if (props.pathway === true) return { thing: 'pathways', fields: PATHWAY_FIELDS }
   if (props.kind === 'path') return { thing: 'paths', fields: PATHWAY_FIELDS }
   if (props.kind === 'street') return { thing: 'streets', fields: STREET_FIELDS }
   return null
+}
+
+/**
+ * The tag that makes a new place that kind on the map: the first the tiles
+ * read it from (pipeline/place-kinds.mjs) that needs nothing more, or only a
+ * name when it has one. An unnamed beach is a swimming area, a named one a beach.
+ */
+export function kindTag(kind: PlaceKind, named: boolean): Record<string, string> {
+  const row = KIND_TAGS.find(([, , of, , needs]) => of === kind && (!needs || (needs === 'named' && named)))
+  return row ? { [row[0]]: row[1] } : {}
+}
+
+/** A new place's tags: those of its kind, its name, then the details picked. */
+export function newPlaceTags(kind: PlaceKind, name: string, picks: Record<string, string>): Record<string, string> {
+  const named = name.trim()
+  return {
+    ...kindTag(kind, named !== ''),
+    ...(named && { name: named }),
+    ...Object.fromEntries(
+      Object.entries(picks)
+        .map(([key, value]) => [key, value.trim()])
+        .filter(([, value]) => value !== ''),
+    ),
+  }
 }
 
 /** A field's values for a feature: its own value first when the list lacks it, so saving never changes it unseen. */

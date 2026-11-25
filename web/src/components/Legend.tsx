@@ -10,6 +10,7 @@ import type { Theft, TheftFilters, TheftSpot } from '../thefts'
 import { CollisionLegend } from './CollisionLegend'
 import { ComfortLegend } from './ComfortLegend'
 import { ConstructionLegend } from './ConstructionLegend'
+import { AddPlaceIcon } from './icons'
 import { PathwayLegend } from './PathwayLegend'
 import { PlaceIcon } from './PlaceIcon'
 import { TheftLegend } from './TheftLegend'
@@ -45,6 +46,8 @@ interface Props {
   basemap: BasemapId
   placeKinds: readonly PlaceKind[]
   onPlaceKindsChange: (kinds: readonly PlaceKind[]) => void
+  /** Puts a pin on the map for a place that is missing. */
+  onAddPlace: () => void
 }
 
 export function Legend({
@@ -55,6 +58,7 @@ export function Legend({
   basemap,
   placeKinds,
   onPlaceKindsChange,
+  onAddPlace,
   collisionSpots,
   collisions,
   busiestSpot,
@@ -117,10 +121,19 @@ export function Legend({
           basemap={basemap}
         />
       )}
-      {layer === 'places' &&
-        PLACE_GROUP_IDS.map((group) => (
-          <PlaceGroup key={group} group={group} picked={placeKinds} onChange={onPlaceKindsChange} />
-        ))}
+      {layer === 'places' && (
+        <>
+          {PLACE_GROUP_IDS.map((group) => (
+            <PlaceGroup key={group} group={group} picked={placeKinds} onChange={onPlaceKindsChange} />
+          ))}
+          <div className="add-place">
+            <button type="button" className="card-edit-open" onClick={onAddPlace}>
+              <AddPlaceIcon />
+              {t('add')}
+            </button>
+          </div>
+        </>
+      )}
     </section>
   )
 }

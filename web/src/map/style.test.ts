@@ -92,6 +92,29 @@ describe('buildStyle', () => {
     }
   })
 
+  it('draws the places this person added on the places layer, whatever kinds are ticked', () => {
+    const bench = {
+      osm: 'node/1',
+      kind: 'bench' as const,
+      at: [-75.69, 45.42] as [number, number],
+      tags: { amenity: 'bench', backrest: 'yes' },
+      added: '2026-11-25T09:00:00Z',
+    }
+    const style = build({ layer: 'places', placeKinds: [], addedPlaces: [bench] })
+    expect(style.sources['added-places']).toMatchObject({
+      data: {
+        features: [
+          {
+            properties: { amenity: 'bench', backrest: 'yes', kind: 'bench', osm: 'node/1' },
+            geometry: { coordinates: [-75.69, 45.42] },
+          },
+        ],
+      },
+    })
+    expect(layer(style, 'added-places-icon')).toBeDefined()
+    expect(build({ layer: 'comfort', addedPlaces: [bench] }).sources['added-places']).toBeUndefined()
+  })
+
   it('loads street tiles only for comfort and pathways, place tiles only for places', () => {
     const sources = (layerId: (typeof LAYER_IDS)[number]) => Object.keys(build({ layer: layerId }).sources)
     expect(sources('comfort')).toContain('overlays')

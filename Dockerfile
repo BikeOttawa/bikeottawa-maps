@@ -13,8 +13,8 @@ COPY web/package.json web/
 COPY pipeline/package.json pipeline/
 RUN npm ci --workspace web
 COPY regions regions
-# Shared with the tile pipeline: surface groups, the pathways' length steps and the stress model.
-COPY pipeline/surface-groups.json pipeline/pathway-lengths.json pipeline/stressmodel.mjs pipeline/stressmodel.d.mts pipeline/
+# Shared with the tile pipeline: surface groups, the pathways' length steps, the stress model and the places' tags.
+COPY pipeline/surface-groups.json pipeline/pathway-lengths.json pipeline/stressmodel.mjs pipeline/stressmodel.d.mts pipeline/place-kinds.mjs pipeline/place-kinds.d.mts pipeline/
 COPY web web
 RUN npm run build --workspace web
 

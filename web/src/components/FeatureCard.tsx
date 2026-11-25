@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MAPILLARY_TOKEN } from '../config'
+import { MAPILLARY_TOKEN, OSM_URL } from '../config'
 import { editKind } from '../editFields'
 import { describeStatus, hoursStatus, parseHours, weekTimeIn } from '../hours'
 import { isMessageKey, type MessageKey, type Translate, useI18n } from '../i18n'
@@ -29,6 +29,7 @@ import { CardPhoto } from './PlacePhoto'
 const WAY_FACTS = ['surface', 'smoothness', 'width', 'lit', 'maxspeed', 'lanes'] as const
 const PLACE_FACTS = [
   'description',
+  'note',
   'artist_name',
   'bicycle_parking',
   'capacity',
@@ -110,8 +111,12 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
   // A named way's kind is a fact of its own instead.
   const subtitle = selected.kind === 'way' ? '' : kindLabel || (typeof props.address === 'string' ? props.address : '')
   const [type, id] = osmPath(selected).split('/')
+  // A place this person sent as a note: not on OSM yet, so nothing there to edit.
+  const noted = type === 'note'
 
   const facts: { label: string; value: string; color?: string; tone?: 'open' | 'closed'; note?: string }[] = []
+  // The title too, but here it sits with the other tags.
+  if (name) facts.push({ label: t('fact.name'), value: name })
   if (selected.kind === 'way') {
     // In the type legend's colours: the pathways legend's for a pathway, as its other facts are.
     const pathType = props.pathway === true ? PATHWAY_TYPE_COLORS[String(props.path_type)] : undefined
@@ -280,13 +285,22 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
           )}
         </dl>
       )}
-      {id && (
+      {noted && (
+        <p className="card-edit-done" role="status">
+          {t('add.noted')}{' '}
+          <a href={`${OSM_URL}/note/${id}`} target="_blank" rel="noopener noreferrer">
+            {t('note.view')}
+          </a>
+        </p>
+      )}
+      {id && !noted && (
         <CardEdits
           key={`${type}/${id}`}
           path={`${type}/${id}`}
           at={selected.at}
           edit={editKind(selected.kind, props)}
           onSaved={() => setSaves((n) => n + 1)}
+          added={selected.kind === 'place' ? selected.added : undefined}
         />
       )}
       <p className="feature-links">
@@ -309,13 +323,13 @@ export function FeatureCard({ selected, onClose, onRouteHere }: Props) {
             {label}
           </a>
         ))}
-        {id && (
+        {id && !noted && (
           <a href={`https://www.openstreetmap.org/edit?${type}=${id}`} target="_blank" rel="noopener noreferrer">
             {t('editInOsm')}
           </a>
         )}
       </p>
-      {id && <OsmTags key={`${type}/${id}/${saves}`} path={`${type}/${id}`} />}
+      {id && !noted && <OsmTags key={`${type}/${id}/${saves}`} path={`${type}/${id}`} />}
     </section>
   )
 }

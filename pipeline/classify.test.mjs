@@ -157,6 +157,11 @@ test('places are recognised by kind and private ones skipped', () => {
   assert.equal(classifyPlace({ amenity: 'bank' }), null)
 })
 
+test('places keep their note for the card, and not a fixme', () => {
+  const { props } = classifyPlace({ amenity: 'drinking_water', note: 'Off for winter', fixme: 'check' })
+  assert.deepEqual(props, { kind: 'water', note: 'Off for winter' })
+})
+
 test('every place kind from the original amenities map is recognised', () => {
   const cases = [
     [{ amenity: 'compressed_air' }, 'air'],

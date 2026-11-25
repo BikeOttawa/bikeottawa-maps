@@ -312,7 +312,6 @@ a {
 .place-group legend .check {
   min-height: 28px;
 }
-
 /* A kind of place as a chip: outlined while hidden, filled with its group's colour when shown. */
 .place-chips {
   display: flex;
@@ -2467,6 +2466,24 @@ a {
   height: 16px;
 }
 
+/* Under the place kinds: one that is missing from the map. */
+.add-place {
+  display: flex;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.add-place .card-edit-open {
+  flex: 0 0 auto;
+  padding: 0 14px;
+}
+
+.add-place .icon {
+  width: 16px;
+  height: 16px;
+}
+
 .card-edit {
   display: flex;
   flex-direction: column;
@@ -2497,6 +2514,7 @@ a {
 }
 
 .card-edit select,
+.card-edit input[type="text"],
 .card-edit textarea {
   width: 100%;
   min-height: 32px;

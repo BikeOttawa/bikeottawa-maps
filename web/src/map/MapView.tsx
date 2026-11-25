@@ -6,6 +6,7 @@ import {
   Map as MapLibreMap,
   Marker,
   NavigationControl,
+  type Offset,
   Popup,
   ScaleControl,
   setWorkerUrl,
@@ -32,6 +33,7 @@ import { renderPlaceImage } from './placeImage'
 import { BUBBLE_IMAGE, renderBubbleImage, renderStopImage } from './stopImage'
 import { streetAlong } from './streetAlong'
 import {
+  ADDED_PLACES_LAYER,
   buildStyle,
   INTERACTIVE_LAYERS,
   PLACES_SOURCE,
@@ -102,6 +104,25 @@ interface Props {
   } | null
 }
 
+/** A place being added, whose pin a click or a drag moves. */
+function pinToPlace(selected: Selected | null): Extract<Selected, { kind: 'new' }> | null {
+  return selected?.kind === 'new' ? selected : null
+}
+
+/** The details popup's distance from what it is about: clear of the new place's pin, which stands above its spot. */
+const POPUP_OFFSET = 14
+const PIN_POPUP_OFFSET: Offset = {
+  center: [0, 0],
+  top: [0, 8],
+  'top-left': [0, 8],
+  'top-right': [0, 8],
+  bottom: [0, -46],
+  'bottom-left': [0, -46],
+  'bottom-right': [0, -46],
+  left: [16, -22],
+  right: [-16, -22],
+}
+
 function markerElement(index: 0 | 1): HTMLElement {
   const el = document.createElement('div')
   el.className = `route-marker ${index === 0 ? 'start' : 'end'}`
@@ -163,6 +184,7 @@ export function MapView({
   const hoverMarker = useRef<Marker | null>(null)
   const viaMarkers = useRef<Marker[]>([])
   const foundMarker = useRef<Marker | null>(null)
+  const pinMarker = useRef<Marker | null>(null)
   // True while the hover dot is being dragged out into a via point.
   const dragging = useRef(false)
   const profile = useMemo(() => (state.route ? routeProfile(state.route.coords) : []), [state.route])
@@ -312,7 +334,7 @@ export function MapView({
         const routes = String(feature.properties.routes ?? '').split(',')
         return { kind: 'route', routes, focus: routes[0], at: [lngLat.lng, lngLat.lat] }
       }
-      if (feature.sourceLayer === 'places') {
+      if (feature.sourceLayer === 'places' || feature.layer.id === ADDED_PLACES_LAYER) {
         // A place is anchored at its own position, a street where it was clicked.
         const at = feature.geometry.type === 'Point' ? (feature.geometry.coordinates as [number, number]) : null
         return {
@@ -356,6 +378,12 @@ export function MapView({
     }
 
     map.on('click', (e) => {
+      // Adding a place, a click moves its pin there.
+      const adding = pinToPlace(latest.current.state.selected)
+      if (adding) {
+        latest.current.onSelect({ ...adding, at: [e.lngLat.lng, e.lngLat.lat] })
+        return
+      }
       const merged = mergedAt(e.point)
       if (merged) {
         const { id, at } = merged
@@ -379,7 +407,11 @@ export function MapView({
       if (routing && !feature) routing.onMapClick([e.lngLat.lng, e.lngLat.lat])
     })
     map.on('mousemove', (e) => {
-      const { routing, profile } = latest.current
+      const { routing, profile, state } = latest.current
+      if (pinToPlace(state.selected)) {
+        map.getCanvas().style.cursor = 'crosshair'
+        return
+      }
       const overFeature =
         featureAt(e.point, e.lngLat) !== null || mergedAt(e.point) !== null || otherRouteAt(e.point) !== null
       if (!routing) {
@@ -572,9 +604,36 @@ export function MapView({
     }
   }, [searched])
 
+  // The pin of a place being added: dragged, or moved by a click, to where the place is.
+  const pin = state.selected?.kind === 'new' ? state.selected : null
+  const [pinLng, pinLat] = pin?.at ?? [null, null]
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || pinLng === null || pinLat === null) {
+      pinMarker.current?.remove()
+      pinMarker.current = null
+      return
+    }
+    if (!pinMarker.current) {
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+      const marker = new Marker({ color: color || undefined, draggable: true }).setLngLat([pinLng, pinLat]).addTo(map)
+      marker.on('dragend', () => {
+        const adding = pinToPlace(latest.current.state.selected)
+        const { lng, lat } = marker.getLngLat()
+        if (adding) latest.current.onSelect({ ...adding, at: [lng, lat] })
+      })
+      pinMarker.current = marker
+      // Into the part of the map the panels leave free.
+      const { top, bottom, left, right } = panelPadding()
+      map.easeTo({ center: [pinLng, pinLat], offset: [(left - right) / 2, (top - bottom) / 2] })
+    }
+    pinMarker.current.setLngLat([pinLng, pinLat])
+  }, [pinLng, pinLat])
+
   // The details popup follows the selection. It is shown only when there is content for it.
   const anchor = popup ? (state.selected?.at ?? null) : null
   const [anchorLng, anchorLat] = anchor ?? [null, null]
+  const pinned = pin !== null
   useEffect(() => {
     const map = mapRef.current
     if (!map || anchorLng === null || anchorLat === null) {
@@ -587,11 +646,13 @@ export function MapView({
         closeButton: false,
         closeOnClick: false,
         maxWidth: '340px',
-        offset: 14,
         className: 'feature-popup',
       }).setDOMContent(popupElement)
     }
-    popupRef.current.setLngLat([anchorLng, anchorLat]).addTo(map)
+    popupRef.current
+      .setOffset(pinned ? PIN_POPUP_OFFSET : POPUP_OFFSET)
+      .setLngLat([anchorLng, anchorLat])
+      .addTo(map)
 
     // MapLibre keeps the popup inside the map but knows nothing of the side panel; nudge the map if they overlap.
     // While the map is on its way to a place found by a search, wait: nudging now would stop it.
@@ -605,7 +666,7 @@ export function MapView({
       cancelAnimationFrame(frame)
       map.off('moveend', nudge)
     }
-  }, [anchorLng, anchorLat, popupElement])
+  }, [anchorLng, anchorLat, popupElement, pinned])
 
   // Via points: drag to move, click to remove.
   const vias = routing?.vias

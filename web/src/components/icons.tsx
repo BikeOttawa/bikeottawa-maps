@@ -27,6 +27,13 @@ export const EditIcon = () => (
   </Icon>
 )
 
+export const AddPlaceIcon = () => (
+  <Icon>
+    <path d="M12 21s-6.5-5.8-6.5-11a6.5 6.5 0 0 1 13 0c0 5.2-6.5 11-6.5 11z" />
+    <path d="M12 7v6M9 10h6" />
+  </Icon>
+)
+
 export const NoteIcon = () => (
   <Icon>
     <path d="M5 21V4h12l-2.5 4.5L17 13H5" />

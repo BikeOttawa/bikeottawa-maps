@@ -1,6 +1,7 @@
 import { layers as basemapLayers, type Flavor, namedFlavor } from '@protomaps/basemaps'
 import type { FeatureCollection } from 'geojson'
 import type { ExpressionSpecification, FilterSpecification, LayerSpecification, StyleSpecification } from 'maplibre-gl'
+import { type AddedPlace, noteOf } from '../addedPlaces'
 import {
   type CollisionSet,
   collisionGroups,
@@ -87,7 +88,11 @@ export type Selected =
       at: [number, number]
       /** Found by a search: the props are the search's until the map finds the place in its own data. */
       searched?: boolean
+      /** Just added, in this changeset: the card says so. */
+      added?: number
     }
+  /** A place being added, where its pin is. */
+  | { kind: 'new'; at: [number, number] }
   /** A spot on the collisions layer, by its key (see collisionSpots). */
   | { kind: 'collision'; spot: string; at: [number, number] }
   /** An intersection on the thefts layer, by its key (see theftSpots). */
@@ -162,10 +167,16 @@ export interface StyleState {
   lights?: boolean
   /** Places of one kind picked out on the map: those within reach on How far. */
   placeHighlight?: { kind: PlaceKind; points: readonly [number, number][] } | null
+  /** Places this person added that the tiles do not have yet, shown on the places layer whatever kinds are ticked. */
+  addedPlaces?: readonly AddedPlace[]
 }
 
 /** Layers of the bike routes overlay a click can hit, under those of the data layer. */
 export const ROUTE_LAYERS = ['routes-band']
+
+/** The places this person added, until the tiles have them. */
+export const ADDED_PLACES_LAYER = 'added-places-icon'
+const ADDED_PLACES_SOURCE = 'added-places'
 
 /** Layers of the roadwork overlay a click can hit, over those of the data layer. */
 export const ROADWORK_LAYERS = ['closures-icon', 'closures-line']
@@ -175,6 +186,7 @@ export const INTERACTIVE_LAYERS: Record<LayerId, string[]> = {
   comfort: ['comfort-line'],
   pathways: ['pathways-line'],
   places: [
+    ADDED_PLACES_LAYER,
     'places-icon',
     ...PLACE_GROUP_IDS.flatMap((group) => [mergedPlacesId(group), `${mergedPlacesId(group)}-alone`]),
   ],
@@ -1544,6 +1556,50 @@ function mergedPlacesLayers(state: StyleState): LayerSpecification[] {
   })
 }
 
+/** The places this person added, until the tiles have them: their marker, with the selection's ring under it. */
+function addedPlacesLayers(state: StyleState, theme: Theme): LayerSpecification[] {
+  if (state.layer !== 'places') return []
+  const selected = state.selected?.kind === 'place' ? state.selected.osm : ''
+  return [
+    {
+      id: 'added-places-selected',
+      type: 'circle',
+      source: ADDED_PLACES_SOURCE,
+      filter: ['==', ['get', 'osm'], selected],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 12, 14, 16, 17, 20],
+        'circle-color': theme.contrast,
+        'circle-opacity': 0.35,
+      },
+    },
+    {
+      id: ADDED_PLACES_LAYER,
+      type: 'symbol',
+      source: ADDED_PLACES_SOURCE,
+      layout: {
+        'icon-image': ['concat', placeImageId(''), ['get', 'kind']],
+        'icon-size': PLACE_ICON_SIZE,
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
+      // Those still in a note are not on OSM yet: they stand back.
+      paint: { 'icon-opacity': ['case', ['==', ['get', 'noted'], true], 0.55, 1] },
+    },
+  ]
+}
+
+/** The places this person added, as the map's own places are: their kind and tags, and where they are in OSM. */
+function addedPlacesData(places: readonly AddedPlace[]): FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: places.map((place) => ({
+      type: 'Feature',
+      properties: { ...place.tags, kind: place.kind, osm: place.osm, noted: noteOf(place) !== null },
+      geometry: { type: 'Point', coordinates: [...place.at] },
+    })),
+  }
+}
+
 function placesLayer(state: StyleState, theme: Theme): LayerSpecification {
   // With a kind picked out, the others step back.
   const kind = state.placeHighlight?.kind
@@ -1665,6 +1721,9 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
           },
         },
       }),
+      ...(state.layer === 'places' && {
+        [ADDED_PLACES_SOURCE]: { type: 'geojson', data: addedPlacesData(state.addedPlaces ?? []) },
+      }),
       ...(state.reach && { [REACH_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } }),
       // Loaded only while the collisions layer is on.
       ...(collisions.over.length && {
@@ -1742,6 +1801,7 @@ export function buildStyle(state: StyleState, assetsBase: string): StyleSpecific
       ...routeLabelLayers(state, theme),
       ...wards.labels,
       ...(showsPlaces(state) ? [...mergedPlacesLayers(state), placesLayer(state, theme)] : []),
+      ...addedPlacesLayers(state, theme),
       ...placeHighlightLayers(state, theme),
       ...collisions.over,
       ...thefts.over,

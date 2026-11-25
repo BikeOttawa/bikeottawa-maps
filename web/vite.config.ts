@@ -62,6 +62,8 @@ const regionFiles = (): Plugin => ({
 
 export default defineConfig({
   resolve: { alias: { '@region': dir.replace(/\/$/, '') } },
+  // OSM's sign-in takes a plain-http redirect only to 127.0.0.1; "localhost" alone would listen on ::1 only.
+  server: { host: '127.0.0.1' },
   plugins: [
     react(),
     oldSitePages(),

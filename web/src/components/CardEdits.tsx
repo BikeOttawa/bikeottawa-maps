@@ -16,6 +16,8 @@ interface Props {
   edit: EditKind | null
   /** Told after a save, so the live tags are fetched again. */
   onSaved: () => void
+  /** The changeset the feature was just added in, to say so. */
+  added?: number
 }
 
 /**
@@ -23,10 +25,12 @@ interface Props {
  * notes for what they cannot fix. Give it a `key` of the path, so another
  * feature starts closed.
  */
-export function CardEdits({ path, at, edit, onSaved }: Props) {
+export function CardEdits({ path, at, edit, onSaved, added }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState<'edit' | 'note' | null>(null)
-  const [done, setDone] = useState<{ text: MessageKey; link: MessageKey; href: string } | null>(null)
+  const [done, setDone] = useState<{ text: MessageKey; link: MessageKey; href: string } | null>(() =>
+    added === undefined ? null : { text: 'add.saved', link: 'edit.changeset', href: `${OSM_URL}/changeset/${added}` },
+  )
 
   const loading = <p className="footnote">{t('loading')}</p>
   if (open === 'edit' && edit) {

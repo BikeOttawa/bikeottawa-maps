@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type AddedPlace, noteOf, notInTiles, rememberAddedPlaces, storedAddedPlaces } from './addedPlaces'
 import {
   type CollisionFilters,
   collisionSpots,
@@ -7,6 +8,7 @@ import {
   spotsGeoJSON,
 } from './collisions'
 import { type ComfortFilters, type ComfortTotals, formatComfortFilters, parseComfortFilters } from './comfort'
+import { AddPlaceCard } from './components/AddPlaceCard'
 import { BarrierCard, barrierLabel } from './components/BarrierCard'
 import { BikeRouteCard } from './components/BikeRouteCard'
 import { CollisionCard } from './components/CollisionCard'
@@ -447,6 +449,31 @@ export function App() {
   const { t } = i18n
   const tileMeta = useTileMeta()
   const dataDate = formatDataDate(tileMeta?.osmTimestamp, lang)
+  // Places added here, shown on this person's map until the tiles have them.
+  const [addedPlaces, setAddedPlaces] = useState(storedAddedPlaces)
+  const shownAdded = useMemo(
+    () => notInTiles(addedPlaces, tileMeta?.osmTimestamp),
+    [addedPlaces, tileMeta?.osmTimestamp],
+  )
+  useEffect(() => rememberAddedPlaces(shownAdded), [shownAdded])
+  // Notes still open are asked about once a visit, one request each: a closed one's place goes once
+  // the tiles are newer, a deleted one's at once. The OSM API loads only when there are some.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once a visit
+  useEffect(() => {
+    const open = addedPlaces.filter((place) => noteOf(place) !== null && !place.closed)
+    if (!open.length) return
+    const closed = (osm: string, update: (place: AddedPlace) => AddedPlace | null) =>
+      setAddedPlaces((current) => current.flatMap((place) => (place.osm === osm ? (update(place) ?? []) : [place])))
+    import('./osmAuth').then(({ osm }) => {
+      for (const place of open) {
+        osm.noteClosed(noteOf(place) ?? 0).then(
+          (when) => when && closed(place.osm, (p) => ({ ...p, closed: when })),
+          // An EditError, its class left in the API's chunk.
+          (error: { reason?: string }) => error.reason === 'gone' && closed(place.osm, () => null),
+        )
+      }
+    })
+  }, [])
   const {
     layer,
     placeKinds,
@@ -524,7 +551,7 @@ export function App() {
   // The places picked, for the map to merge when zoomed out.
   const placePoints = usePlacePoints(placeKinds, layer === 'places')
   const pickedKinds = useMemo(() => PLACE_KINDS.filter((kind) => placeKinds.includes(kind)), [placeKinds])
-  const reachPlaces = useReachPlaces(reaching ? cover : null, pickedKinds)
+  const reachPlaces = useReachPlaces(reaching ? cover : null, pickedKinds, shownAdded)
   // A kind in that list picked out on the map: pointed at, or kept by a click.
   const [pointedKind, setPointedKind] = useState<PlaceKind | null>(null)
   const [pinnedKind, setPinnedKind] = useState<PlaceKind | null>(null)
@@ -671,6 +698,28 @@ export function App() {
   const changePlaceKinds = useCallback((placeKinds: readonly PlaceKind[]) => {
     setUrl((current) => ({ ...current, placeKinds }))
     setSelected(null)
+  }, [])
+
+  // A pin for a missing place, where the map is looking.
+  const addPlace = useCallback(() => {
+    const [, lat, lng] = (parseHash(window.location.hash).map ?? '').split('/').map(Number)
+    setSelected({ kind: 'new', at: Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : REGION.center })
+  }, [])
+
+  // The kind being added shows on the map, so that one already there is seen.
+  const showKind = useCallback(
+    (kind: PlaceKind) =>
+      setUrl((current) =>
+        current.placeKinds.includes(kind) ? current : { ...current, placeKinds: [...current.placeKinds, kind] },
+      ),
+    [],
+  )
+
+  // A place just added, or sent as a note, stays on this map, and its card opens.
+  const placeAdded = useCallback((place: Omit<AddedPlace, 'added'>, changeset?: number) => {
+    setAddedPlaces((current) => [...current, { ...place, added: new Date().toISOString() }])
+    const props = { ...place.tags, kind: place.kind, osm: place.osm }
+    setSelected({ kind: 'place', osm: place.osm, props, at: place.at, added: changeset })
   }, [])
 
   const setPoint = useCallback((index: 0 | 1, point: RoutePoint | null) => {
@@ -872,6 +921,7 @@ export function App() {
       wards,
       lights,
       placeHighlight,
+      addedPlaces: shownAdded,
     }),
     [
       lang,
@@ -903,6 +953,7 @@ export function App() {
       wards,
       lights,
       placeHighlight,
+      shownAdded,
     ],
   )
   const mapRouting = useMemo(
@@ -1041,6 +1092,14 @@ export function App() {
       <TheftCard
         items={theftSpotByKey.get(selected.spot)?.items ?? []}
         at={selected.at}
+        onClose={() => setSelected(null)}
+      />
+    ) : selected.kind === 'new' ? (
+      <AddPlaceCard
+        at={selected.at}
+        shown={placeKinds}
+        onKindChange={showKind}
+        onAdded={placeAdded}
         onClose={() => setSelected(null)}
       />
     ) : (
@@ -1208,6 +1267,7 @@ export function App() {
                   basemap={basemap}
                   placeKinds={placeKinds}
                   onPlaceKindsChange={changePlaceKinds}
+                  onAddPlace={addPlace}
                   collisionSpots={spots}
                   collisions={collisionData}
                   busiestSpot={busiestSpot}
