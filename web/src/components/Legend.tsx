@@ -127,7 +127,7 @@ export function Legend({
             <PlaceGroup key={group} group={group} picked={placeKinds} onChange={onPlaceKindsChange} />
           ))}
           <div className="add-place">
-            <button type="button" className="card-edit-open" onClick={onAddPlace}>
+            <button type="button" className="card-edit-open" onClick={() => onAddPlace()}>
               <AddPlaceIcon />
               {t('add')}
             </button>

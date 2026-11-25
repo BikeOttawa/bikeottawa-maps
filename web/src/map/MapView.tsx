@@ -16,6 +16,7 @@ import { Protocol } from 'pmtiles'
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { AddPlaceButton } from '../components/AddPlaceButton'
 import { BasemapSwitch } from '../components/BasemapSwitch'
 import { RouteStopsSwitch } from '../components/RouteStopsSwitch'
 import { ASSETS_BASE } from '../config'
@@ -82,6 +83,8 @@ interface Props {
   reach: ReachShape | null
   /** A place picked from a search: marked, and flown to when it changes. */
   found: LngLat | null
+  /** Where the map button for a missing place sends where the map is looking; no button without it. */
+  onAddPlace: ((at: LngLat) => void) | null
   /** When set, clicks place route points instead of selecting features; places can still be picked. */
   routing: {
     points: RoutePoints
@@ -139,6 +142,19 @@ function panelPadding() {
   return { top: 50, bottom: 50, left: 420, right: 70 }
 }
 
+/** The part of the map the panels leave free, in pixels: its centre, whether it holds a point, and the offset to centre there. */
+function freeArea(map: MapLibreMap) {
+  const { top, bottom, left, right } = panelPadding()
+  const { width, height } = map.getContainer().getBoundingClientRect()
+  return {
+    center: [(left + width - right) / 2, (top + height - bottom) / 2] as [number, number],
+    /** `above`: how far the thing at the point reaches up from it. */
+    holds: ({ x, y }: { x: number; y: number }, above = 0) =>
+      x >= left && x <= width - right && y - above >= top && y <= height - bottom,
+    offset: [(left - right) / 2, (top - bottom) / 2] as [number, number],
+  }
+}
+
 /** The reach data last handed to the map, and the source object it went to. */
 interface ReachShown {
   source: unknown
@@ -176,6 +192,7 @@ export function MapView({
   popup,
   reach,
   found,
+  onAddPlace,
   routing,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
@@ -191,6 +208,7 @@ export function MapView({
   // Home of the map-style switcher, placed by MapLibre among its own controls.
   const [styleControl, setStyleControl] = useState<HTMLElement | null>(null)
   const [stopsControl, setStopsControl] = useState<HTMLElement | null>(null)
+  const [addControl, setAddControl] = useState<HTMLElement | null>(null)
   // The popup's content element lives as long as the map view; React renders into it.
   const popupElement = useMemo(() => document.createElement('div'), [])
   const popupRef = useRef<Popup | null>(null)
@@ -236,6 +254,11 @@ export function MapView({
     stops.className = 'maplibregl-ctrl maplibregl-ctrl-group route-stops-ctrl'
     map.addControl({ onAdd: () => stops, onRemove: () => stops.remove() }, 'top-right')
     setStopsControl(stops)
+    // On the places layer: a place to add. Empty, it is hidden.
+    const adder = document.createElement('div')
+    adder.className = 'maplibregl-ctrl maplibregl-ctrl-group add-place-ctrl'
+    map.addControl({ onAdd: () => adder, onRemove: () => adder.remove() }, 'top-right')
+    setAddControl(adder)
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left')
 
     // Markers are drawn the first time a style asks for them; a style rebuilt
@@ -623,17 +646,31 @@ export function MapView({
         if (adding) latest.current.onSelect({ ...adding, at: [lng, lat] })
       })
       pinMarker.current = marker
-      // Into the part of the map the panels leave free.
-      const { top, bottom, left, right } = panelPadding()
-      map.easeTo({ center: [pinLng, pinLat], offset: [(left - right) / 2, (top - bottom) / 2] })
     }
     pinMarker.current.setLngLat([pinLng, pinLat])
   }, [pinLng, pinLat])
 
+  // The pin stays in the part of the map the panels leave free: at first, and as the
+  // sheet opens for the form on phones and grows with its fields.
+  const pinned = pin !== null
+  useEffect(() => {
+    const map = mapRef.current
+    const sheet = document.querySelector('.sheet')
+    if (!map || !pinned || !sheet) return
+    const observer = new ResizeObserver(() => {
+      const at = pinMarker.current?.getLngLat()
+      const free = freeArea(map)
+      // The pin stands about 40 px above its point.
+      if (at && !free.holds(map.project(at), 40)) map.easeTo({ center: at, offset: free.offset })
+    })
+    // Told at once, then on each change.
+    observer.observe(sheet)
+    return () => observer.disconnect()
+  }, [pinned])
+
   // The details popup follows the selection. It is shown only when there is content for it.
   const anchor = popup ? (state.selected?.at ?? null) : null
   const [anchorLng, anchorLat] = anchor ?? [null, null]
-  const pinned = pin !== null
   useEffect(() => {
     const map = mapRef.current
     if (!map || anchorLng === null || anchorLat === null) {
@@ -762,6 +799,19 @@ export function MapView({
       {stopsControl &&
         state.route &&
         createPortal(<RouteStopsSwitch on={state.routeStops ?? true} onChange={onRouteStopsChange} />, stopsControl)}
+      {addControl &&
+        onAddPlace &&
+        createPortal(
+          <AddPlaceButton
+            onClick={() => {
+              const map = mapRef.current
+              if (!map) return
+              const { lng, lat } = map.unproject(freeArea(map).center)
+              onAddPlace([lng, lat])
+            }}
+          />,
+          addControl,
+        )}
       {popup && createPortal(popup, popupElement)}
     </>
   )

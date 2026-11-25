@@ -2531,6 +2531,15 @@ a {
   resize: vertical;
 }
 
+/* Smaller and iOS zooms the page in on focus, and leaves it zoomed. */
+@media (pointer: coarse) {
+  .card-edit select,
+  .card-edit input[type="text"],
+  .card-edit textarea {
+    font-size: 16px;
+  }
+}
+
 .card-edit-action {
   min-height: 36px;
   padding: 0 14px;
@@ -2594,6 +2603,22 @@ a {
 .route-stops-button > svg {
   width: 21px;
   height: 21px;
+}
+
+.add-place-ctrl:empty {
+  display: none;
+}
+
+/* Over MapLibre's `.maplibregl-ctrl-group button`, which sets display: block. */
+.add-place-ctrl .add-place-button {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.add-place-button > svg {
+  width: 20px;
+  height: 20px;
 }
 
 .route-stops-button[aria-pressed="false"] > svg {

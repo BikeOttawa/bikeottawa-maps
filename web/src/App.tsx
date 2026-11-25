@@ -700,10 +700,11 @@ export function App() {
     setSelected(null)
   }, [])
 
-  // A pin for a missing place, where the map is looking.
-  const addPlace = useCallback(() => {
+  // A pin for a missing place: where the map button says, else at the map's centre, which the map then brings clear of the panels.
+  const addPlace = useCallback((at?: LngLat) => {
     const [, lat, lng] = (parseHash(window.location.hash).map ?? '').split('/').map(Number)
-    setSelected({ kind: 'new', at: Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : REGION.center })
+    const centre: LngLat = Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : REGION.center
+    setSelected({ kind: 'new', at: at ?? centre })
   }, [])
 
   // The kind being added shows on the map, so that one already there is seen.
@@ -1126,6 +1127,7 @@ export function App() {
         routing={mapRouting}
         reach={reachShape}
         found={routing ? null : (found?.lngLat ?? null)}
+        onAddPlace={!routing && layer === 'places' ? addPlace : null}
       />
       <div className="sidebar">
         <div className={`card topbar ${topOpen ? '' : 'folded'}`} ref={topbar}>
