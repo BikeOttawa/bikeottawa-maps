@@ -64,6 +64,8 @@ export const osm = osmApi({
     created_by: REGION.osm.createdBy,
     hashtags: REGION.osm.hashtag,
     host: new URL(import.meta.env.BASE_URL, window.location.href).href,
+    // People edit what they see where they are: the map is meant for use on the spot.
+    source: 'survey',
   }),
   onUnauthorized: () => setUser(null),
 })
