@@ -41,6 +41,21 @@ describe('route breakdown', () => {
     expect(partOf(stretch({ ...oneway, cycleway: 'opposite_lane' }), 'bikeway')).toBe('traffic')
   })
 
+  it('takes the way a lane goes from its cycleway:<side>:oneway', () => {
+    const bikeway = (tags: Record<string, string>, reversed = false) => partOf(stretch(tags, { reversed }), 'bikeway')
+    const oneway = { highway: 'residential', oneway: 'yes', 'oneway:bicycle': 'no' }
+    const contraflow = { ...oneway, 'cycleway:left': 'lane', 'cycleway:left:oneway': '-1' }
+    expect([bikeway(contraflow), bikeway(contraflow, true)]).toEqual(['traffic', 'lane'])
+    const both = { ...oneway, 'cycleway:both': 'lane', 'cycleway:left:oneway': '-1' }
+    expect([bikeway(both), bikeway(both, true)]).toEqual(['lane', 'lane'])
+    const twoWayTrack = { ...oneway, 'cycleway:left': 'track', 'cycleway:left:oneway': 'no' }
+    expect([bikeway(twoWayTrack), bikeway(twoWayTrack, true)]).toEqual(['path', 'path'])
+    const twoWayStreet = { highway: 'secondary', 'cycleway:left': 'track', 'cycleway:left:oneway': 'no' }
+    expect([bikeway(twoWayStreet), bikeway(twoWayStreet, true)]).toEqual(['path', 'path'])
+    const reversedWay = { ...oneway, oneway: '-1', 'cycleway:right': 'lane', 'cycleway:right:oneway': 'yes' }
+    expect([bikeway(reversedWay), bikeway(reversedWay, true)]).toEqual(['lane', 'traffic'])
+  })
+
   it('groups surfaces as the pathways layer does, taking streets without a tag to be paved', () => {
     const surface = (tags: Record<string, string>) => partOf(stretch(tags), 'surface')
     expect(surface({ highway: 'path', surface: 'fine_gravel' })).toBe('stone_dust')

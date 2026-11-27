@@ -73,26 +73,38 @@ const STREET_BIKEWAYS: Record<string, string> = {
   opposite_lane: 'lane',
   shoulder: 'shoulder',
 }
-const ONEWAY = new Set(['yes', 'true', '1', '-1'])
+/** Which way traffic or a bike lane goes, as the way is drawn. */
+type Direction = 'forward' | 'backward' | 'both'
+const ONEWAY: Partial<Record<string, Direction>> = { yes: 'forward', true: 'forward', 1: 'forward', '-1': 'backward' }
+const LANE_ONEWAY: Partial<Record<string, Direction>> = { ...ONEWAY, no: 'both' }
+const AGAINST = { forward: 'backward', backward: 'forward' } as const
+const SIDES = ['left', 'right'] as const
 
 /**
- * The bike infrastructure on the side of the street being ridden: the right
- * side of the way, or its left when ridden against the way's direction. On a
- * one-way street, a lane on either side with the traffic, or a contraflow
- * (`opposite_*`) one against it.
+ * The bike infrastructure on the side of the street being ridden, or on either
+ * side when a lane there goes the rider's way. A lane goes as its
+ * `cycleway:<side>:oneway` says; otherwise with the traffic on a one-way
+ * street (against it when `opposite_*`), and on a two-way street with the
+ * traffic beside it. A plain `cycleway` tag is both sides of a two-way street,
+ * and on a one-way street the side traffic keeps to, or the other side when
+ * `opposite_*`.
  */
 function streetBikeway(tags: Record<string, string>, reversed: boolean): string {
-  const values = (keys: string[]) => keys.map((key) => tags[key]).filter((value) => value !== undefined)
-  let found: string[]
-  if (ONEWAY.has(tags.oneway)) {
-    const withTraffic = tags.oneway === '-1' ? reversed : !reversed
-    const all = values(['cycleway', 'cycleway:both', 'cycleway:left', 'cycleway:right'])
-    found = all.filter((value) => value.startsWith('opposite') !== withTraffic)
-  } else {
-    const side = values([reversed ? 'cycleway:left' : 'cycleway:right', 'cycleway:both'])
-    found = side.length ? side : values(['cycleway'])
-  }
-  const kinds = found.map((value) => STREET_BIKEWAYS[value] ?? 'traffic')
+  const traffic = ONEWAY[tags.oneway ?? '']
+  const trafficSide = traffic === 'backward' ? 'left' : 'right'
+  const otherSide = trafficSide === 'left' ? 'right' : 'left'
+  const plainSide = tags.cycleway?.startsWith('opposite') ? otherSide : trafficSide
+  const riding = reversed ? 'backward' : 'forward'
+  const kinds = SIDES.flatMap((side) => {
+    const plain = (suffix: string) => (!traffic || side === plainSide ? tags[`cycleway${suffix}`] : undefined)
+    const tag = (suffix = '') => tags[`cycleway:${side}${suffix}`] ?? tags[`cycleway:both${suffix}`] ?? plain(suffix)
+    const value = tag()
+    if (value === undefined) return []
+    const onSide = side === 'right' ? 'forward' : 'backward'
+    const untagged = !traffic ? onSide : value.startsWith('opposite') ? AGAINST[traffic] : traffic
+    const goes = LANE_ONEWAY[tag(':oneway') ?? ''] ?? untagged
+    return goes === 'both' || goes === riding ? [STREET_BIKEWAYS[value] ?? 'traffic'] : []
+  })
   return BIKEWAY_RANK.find((kind) => kinds.includes(kind)) ?? 'traffic'
 }
 
