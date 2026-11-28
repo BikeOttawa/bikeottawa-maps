@@ -73,9 +73,10 @@ const STREET_BIKEWAYS: Record<string, string> = {
   opposite_lane: 'lane',
   shoulder: 'shoulder',
 }
-/** Which way traffic or a bike lane goes, as the way is drawn. */
-type Direction = 'forward' | 'backward' | 'both'
-const ONEWAY: Partial<Record<string, Direction>> = { yes: 'forward', true: 'forward', 1: 'forward', '-1': 'backward' }
+/** Which way one-way traffic goes, as the way is drawn; a bike lane may also go both ways. */
+type Oneway = 'forward' | 'backward'
+type Direction = Oneway | 'both'
+const ONEWAY: Partial<Record<string, Oneway>> = { yes: 'forward', true: 'forward', 1: 'forward', '-1': 'backward' }
 const LANE_ONEWAY: Partial<Record<string, Direction>> = { ...ONEWAY, no: 'both' }
 const AGAINST = { forward: 'backward', backward: 'forward' } as const
 const SIDES = ['left', 'right'] as const
